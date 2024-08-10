@@ -1,0 +1,17 @@
+/NOLOGO
+/errorReport:prompt
+/MACHINE:x64
+/SUBSYSTEM:WINDOWS
+/DEF
+/NAME:"UnrealEditor-DropbyDrop.dll"
+/IGNORE:4221
+/NODEFAULTLIB
+"C:\Users\39345\Desktop\FORK\Drop-by-Drop\DropbyDrop\Intermediate\Build\Win64\x64\DropbyDropEditor\Development\Engine\SharedPCH.Engine.Cpp20.h.obj"
+"C:\Users\39345\Desktop\FORK\Drop-by-Drop\DropbyDrop\Intermediate\Build\Win64\x64\UnrealEditor\Development\DropbyDrop\DropbyDrop.init.gen.cpp.obj"
+"C:\Users\39345\Desktop\FORK\Drop-by-Drop\DropbyDrop\Intermediate\Build\Win64\x64\UnrealEditor\Development\DropbyDrop\HeightMapGeneratorClass.gen.cpp.obj"
+"C:\Users\39345\Desktop\FORK\Drop-by-Drop\DropbyDrop\Intermediate\Build\Win64\x64\UnrealEditor\Development\DropbyDrop\HeightMapMeshActor.gen.cpp.obj"
+"C:\Users\39345\Desktop\FORK\Drop-by-Drop\DropbyDrop\Intermediate\Build\Win64\x64\UnrealEditor\Development\DropbyDrop\DropbyDrop.cpp.obj"
+"C:\Users\39345\Desktop\FORK\Drop-by-Drop\DropbyDrop\Intermediate\Build\Win64\x64\UnrealEditor\Development\DropbyDrop\HeightMapGeneratorClass.cpp.obj"
+"C:\Users\39345\Desktop\FORK\Drop-by-Drop\DropbyDrop\Intermediate\Build\Win64\x64\UnrealEditor\Development\DropbyDrop\HeightMapMeshActor.cpp.obj"
+"C:\Users\39345\Desktop\FORK\Drop-by-Drop\DropbyDrop\Intermediate\Build\Win64\x64\UnrealEditor\Development\DropbyDrop\Default.rc2.res"
+/OUT:"C:\Users\39345\Desktop\FORK\Drop-by-Drop\DropbyDrop\Intermediate\Build\Win64\x64\UnrealEditor\Development\DropbyDrop\UnrealEditor-DropbyDrop.lib"

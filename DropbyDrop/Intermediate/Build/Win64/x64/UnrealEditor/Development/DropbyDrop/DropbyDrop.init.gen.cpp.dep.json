@@ -1,0 +1,13 @@
+{
+    "Version": "1.2",
+    "Data": {
+        "Source": "c:\\users\\39345\\desktop\\fork\\drop-by-drop\\dropbydrop\\intermediate\\build\\win64\\unrealeditor\\inc\\dropbydrop\\uht\\dropbydrop.init.gen.cpp",
+        "ProvidedModule": "",
+        "PCH": "c:\\users\\39345\\desktop\\fork\\drop-by-drop\\dropbydrop\\intermediate\\build\\win64\\x64\\dropbydropeditor\\development\\engine\\sharedpch.engine.cpp20.h.pch",
+        "Includes": [
+            "c:\\users\\39345\\desktop\\fork\\drop-by-drop\\dropbydrop\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\dropbydrop\\definitions.dropbydrop.h"
+        ],
+        "ImportedModules": [],
+        "ImportedHeaderUnits": []
+    }
+}

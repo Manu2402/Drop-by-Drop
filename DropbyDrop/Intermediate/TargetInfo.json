@@ -1,0 +1,14 @@
+{
+	"Targets": [
+		{
+			"Name": "DropbyDrop",
+			"Path": "..\\Source\\DropbyDrop.Target.cs",
+			"Type": "Game"
+		},
+		{
+			"Name": "DropbyDropEditor",
+			"Path": "..\\Source\\DropbyDropEditor.Target.cs",
+			"Type": "Editor"
+		}
+	]
+}
