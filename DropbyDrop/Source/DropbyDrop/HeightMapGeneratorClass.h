@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -14,6 +12,8 @@ class DROPBYDROP_API AHeightMapGeneratorClass : public AActor
 	GENERATED_BODY()
 	
 public:	
+	AHeightMapGeneratorClass();
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Heightmap Generation", meta = (Tooltip = "Seed used to initialize the random number generator.", DisplayName = "Random Seed"))
 	int32 Seed = -4314;
 
@@ -32,7 +32,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Heightmap Generation", meta = (Tooltip = "The initial scale applied to the Perlin noise calculation. Controls the overall size of features in the heightmap."))
 	float InitialScale = 1.8f;
 
-	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Heightmap Generation", meta = (Tooltip = "Erosion actor algorithm."))
+	class UErosionComponent* ErosionComponent;
+
 	// Function to generate heightmap on CPU, generates a heightmap as a float array with the specified map size using Perlin noise.
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	TArray<float> GenerateHeightMapCPU(int32 MapSize);

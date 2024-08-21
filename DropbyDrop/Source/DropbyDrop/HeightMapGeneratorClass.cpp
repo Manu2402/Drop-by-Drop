@@ -1,10 +1,13 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "HeightMapGeneratorClass.h"
 #include "ImageUtils.h"
 #include "Engine/TextureRenderTarget2D.h"
+#include "Public/ErosionComponent.h"
 
+
+AHeightMapGeneratorClass::AHeightMapGeneratorClass()
+{
+	ErosionComponent = CreateDefaultSubobject<UErosionComponent>(TEXT("ErosionComponent"));
+}
 
 TArray<float> AHeightMapGeneratorClass::GenerateHeightMapCPU(int32 MapSize)
 {
@@ -67,6 +70,7 @@ TArray<float> AHeightMapGeneratorClass::GenerateHeightMapCPU(int32 MapSize)
 	{
 		UE_LOG(LogTemp, Log, TEXT("HeightMap[%d]: %f"), i, HeightMap[i]);
 	}
+
 	return HeightMap;
 }
 

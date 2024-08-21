@@ -1,6 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "HeightMapMeshActor.h"
 #include "ImageUtils.h"
 
@@ -14,7 +11,7 @@ AHeightMapMeshActor::AHeightMapMeshActor()
 void AHeightMapMeshActor::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 }
 
 void AHeightMapMeshActor::Tick(float DeltaTime)
@@ -31,7 +28,7 @@ void AHeightMapMeshActor::GenerateMeshFromHeightMap(const TArray<float>& HeightM
 	TArray<FVector2D> UVs;
 	const TArray<FProcMeshTangent> Tangents;
 
-	
+
 	// avoid dynamic resizing
 	Vertices.Reserve(MapSize * MapSize);
 	Normals.Reserve(MapSize * MapSize);
@@ -107,101 +104,101 @@ void AHeightMapMeshActor::GenerateMeshFromHeightMap(const TArray<float>& HeightM
 	Mesh->CreateMeshSection_LinearColor(0, Vertices, Triangles, Normals, UVs, TArray<FLinearColor>(), Tangents, true);
 }
 
-void AHeightMapMeshActor::GenerateMeshFromPng(const FString& FilePath,  int32 MapSize, float MaxHeight, float ScaleXY)
+void AHeightMapMeshActor::GenerateMeshFromPng(const FString& FilePath, int32 MapSize, float MaxHeight, float ScaleXY)
 {
 	TArray<uint8> FileData;
-if (!FFileHelper::LoadFileToArray(FileData, *FilePath))
-{
-    UE_LOG(LogTemp, Error, TEXT("Failed to load file: %s"), *FilePath);
-    return;
-}
+	if (!FFileHelper::LoadFileToArray(FileData, *FilePath))
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to load file: %s"), *FilePath);
+		return;
+	}
 
-UTexture2D* LoadedTexture = FImageUtils::ImportBufferAsTexture2D(FileData);
-if (!LoadedTexture)
-{
-    UE_LOG(LogTemp, Error, TEXT("Failed to import texture from file: %s"), *FilePath);
-    return;
-}
+	UTexture2D* LoadedTexture = FImageUtils::ImportBufferAsTexture2D(FileData);
+	if (!LoadedTexture)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to import texture from file: %s"), *FilePath);
+		return;
+	}
 
-FTexture2DMipMap& MipMap = LoadedTexture->GetPlatformData()->Mips[0];
-int32 Width = MipMap.SizeX;
-int32 Height = MipMap.SizeY;
+	FTexture2DMipMap& MipMap = LoadedTexture->GetPlatformData()->Mips[0];
+	int32 Width = MipMap.SizeX;
+	int32 Height = MipMap.SizeY;
 
-uint8* MipData = static_cast<uint8*>(MipMap.BulkData.Lock(LOCK_READ_ONLY));
-FColor* SrcPtr = reinterpret_cast<FColor*>(MipData);
+	uint8* MipData = static_cast<uint8*>(MipMap.BulkData.Lock(LOCK_READ_ONLY));
+	FColor* SrcPtr = reinterpret_cast<FColor*>(MipData);
 
-TArray<float> HeightMap;
-HeightMap.SetNum(Width * Height);
+	TArray<float> HeightMap;
+	HeightMap.SetNum(Width * Height);
 
-float MinValue = FLT_MAX;
-float MaxValue = FLT_MIN;
+	float MinValue = FLT_MAX;
+	float MaxValue = FLT_MIN;
 
-// Trova i valori minimi e massimi
-for (int32 y = 0; y < Height; y++)
-{
-    for (int32 x = 0; x < Width; x++)
-    {
-        int32 PixelIndex = y * Width + x;
-        FColor PixelColor = SrcPtr[PixelIndex];
-        float GrayValue = static_cast<float>(PixelColor.R) / 255.0f;
-        
-        MinValue = FMath::Min(MinValue, GrayValue);
-        MaxValue = FMath::Max(MaxValue, GrayValue);
+	// Trova i valori minimi e massimi
+	for (int32 y = 0; y < Height; y++)
+	{
+		for (int32 x = 0; x < Width; x++)
+		{
+			int32 PixelIndex = y * Width + x;
+			FColor PixelColor = SrcPtr[PixelIndex];
+			float GrayValue = static_cast<float>(PixelColor.R) / 255.0f;
 
-        HeightMap[PixelIndex] = GrayValue;
-    }
-}
+			MinValue = FMath::Min(MinValue, GrayValue);
+			MaxValue = FMath::Max(MaxValue, GrayValue);
 
-// Normalizza i valori tra 0 e 1 usando il lerp
-for (int32 i = 0; i < HeightMap.Num(); i++)
-{
-    HeightMap[i] = (HeightMap[i] - MinValue) / (MaxValue - MinValue);
-}
+			HeightMap[PixelIndex] = GrayValue;
+		}
+	}
 
-MipMap.BulkData.Unlock();
+	// Normalizza i valori tra 0 e 1 usando il lerp
+	for (int32 i = 0; i < HeightMap.Num(); i++)
+	{
+		HeightMap[i] = (HeightMap[i] - MinValue) / (MaxValue - MinValue);
+	}
 
-// Advanced Gaussian smoothing filter
+	MipMap.BulkData.Unlock();
 
-TArray<float> SmoothedHeightMap;
-SmoothedHeightMap.SetNum(Width * Height);
+	// Advanced Gaussian smoothing filter
 
-const int32 KernelSize = 5; // Adjust kernel size as needed
-const float Kernel[KernelSize][KernelSize] = {
-    {1,  4,  6,  4, 1},
-    {4, 16, 24, 16, 4},
-    {6, 24, 36, 24, 6},
-    {4, 16, 24, 16, 4},
-    {1,  4,  6,  4, 1}
-};
-const float KernelSum = 256.0f;
+	TArray<float> SmoothedHeightMap;
+	SmoothedHeightMap.SetNum(Width * Height);
 
-for (int32 y = KernelSize / 2; y < Height - KernelSize / 2; y++)
-{
-    for (int32 x = KernelSize / 2; x < Width - KernelSize / 2; x++)
-    {
-        float Sum = 0.0f;
+	const int32 KernelSize = 5; // Adjust kernel size as needed
+	const float Kernel[KernelSize][KernelSize] = {
+		{1,  4,  6,  4, 1},
+		{4, 16, 24, 16, 4},
+		{6, 24, 36, 24, 6},
+		{4, 16, 24, 16, 4},
+		{1,  4,  6,  4, 1}
+	};
+	const float KernelSum = 256.0f;
 
-        for (int32 ky = -KernelSize / 2; ky <= KernelSize / 2; ky++)
-        {
-            for (int32 kx = -KernelSize / 2; kx <= KernelSize / 2; kx++)
-            {
-                int32 PixelIndex = (y + ky) * Width + (x + kx);
-                Sum += HeightMap[PixelIndex] * Kernel[ky + KernelSize / 2][kx + KernelSize / 2];
-            }
-        }
+	for (int32 y = KernelSize / 2; y < Height - KernelSize / 2; y++)
+	{
+		for (int32 x = KernelSize / 2; x < Width - KernelSize / 2; x++)
+		{
+			float Sum = 0.0f;
 
-        int32 CenterIndex = y * Width + x;
-        SmoothedHeightMap[CenterIndex] = Sum / KernelSum;
-    }
-}
+			for (int32 ky = -KernelSize / 2; ky <= KernelSize / 2; ky++)
+			{
+				for (int32 kx = -KernelSize / 2; kx <= KernelSize / 2; kx++)
+				{
+					int32 PixelIndex = (y + ky) * Width + (x + kx);
+					Sum += HeightMap[PixelIndex] * Kernel[ky + KernelSize / 2][kx + KernelSize / 2];
+				}
+			}
 
-// Clamp the height values to a reasonable range
-for (float& HeightValue : SmoothedHeightMap)
-{
-    HeightValue = FMath::Clamp(HeightValue, 0.0f, MaxHeight);
-}
+			int32 CenterIndex = y * Width + x;
+			SmoothedHeightMap[CenterIndex] = Sum / KernelSum;
+		}
+	}
 
-GenerateMeshFromHeightMap(SmoothedHeightMap, MapSize, MaxHeight, ScaleXY);
+	// Clamp the height values to a reasonable range
+	for (float& HeightValue : SmoothedHeightMap)
+	{
+		HeightValue = FMath::Clamp(HeightValue, 0.0f, MaxHeight);
+	}
+
+	GenerateMeshFromHeightMap(SmoothedHeightMap, MapSize, MaxHeight, ScaleXY);
 
 }
 
