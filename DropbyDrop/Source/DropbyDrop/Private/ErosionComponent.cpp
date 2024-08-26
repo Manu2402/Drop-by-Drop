@@ -124,7 +124,7 @@ FDrop UErosionComponent::SetDropInitialParams(const int32 GridSize, const FVecto
 		return GenerateDropInitialParams(GridSize);
 	}
 
-	Drop.Position = Position; // Check index
+	Drop.Position = Position; // Check index (error if position was set into left-down grid borders).
 
 	if (Direction.X < -1 || Direction.X > 1 || Direction.Y < -1 || Direction.Y > 1)
 	{
@@ -147,14 +147,33 @@ FVector2D UErosionComponent::GetGradient(const float& P1, const float& P2, const
 	return FVector2D(P1 - P2, P3 - P4).GetSafeNormal();
 }
 
-FVector2D UErosionComponent::GetBilinearInterpolation(const FVector2D& OffsetPosition, const float& F1, const float& F2, const float& F3, const float& F4) const
+FVector2D UErosionComponent::GetPairedLinearInterpolation(const FVector2D& OffsetPosition, const float& F1, const float& F2, const float& F3, const float& F4) const
 {
 	// (x, y) = (u, v)
-
 	return FVector2D(
 		F1 * (1 - OffsetPosition.Y) + F2 * OffsetPosition.Y,
 		F3 * (1 - OffsetPosition.X) + F4 * OffsetPosition.X
 	);
+}
+
+FPositionHeights UErosionComponent::GetPositionHeights(const FVector2D& IntegerPosition, const int32 GridSize) const
+{
+	FPositionHeights PositionHeights = FPositionHeights();
+
+	PositionHeights.X_Y = GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize];                     // P(x, y)
+	PositionHeights.X1_Y = GridHeights[(IntegerPosition.X + 1) + IntegerPosition.Y * GridSize];				 // P(x + 1, y)
+	PositionHeights.X_Y1 = GridHeights[(IntegerPosition.X + GridSize) + IntegerPosition.Y * GridSize];		 // P(x, y + 1)
+	PositionHeights.X1_Y1 = GridHeights[(IntegerPosition.X + GridSize + 1) + IntegerPosition.Y * GridSize];	 // P(x + 1, y + 1)
+
+	return PositionHeights;
+}
+
+float UErosionComponent::GetBilinearInterpolation(const FVector2D& OffsetPosition, const FPositionHeights& PositionHeights) const
+{
+	return PositionHeights.X_Y * (1 - OffsetPosition.X) * (1 - OffsetPosition.Y) +
+		PositionHeights.X1_Y * OffsetPosition.X * (1 - OffsetPosition.Y) +
+		PositionHeights.X_Y1 * (1 - OffsetPosition.X) * OffsetPosition.Y +
+		PositionHeights.X1_Y1 * OffsetPosition.X * OffsetPosition.Y;
 }
 
 void UErosionComponent::Erosion(FDrop Drop, /* make const */ int32 GridSize)
@@ -163,17 +182,15 @@ void UErosionComponent::Erosion(FDrop Drop, /* make const */ int32 GridSize)
 	GridHeights = TArray<float>({ 3, 5, 2, 1, 4, 6, 7, 8, 9 });
 	GridSize = 3;
 	Drop.Position = FVector2D(1.7f, 1.1f);
+	Drop.Direction = FVector2D(1, 2);
 #pragma endregion
 
 	// Phase zero: drop position informations.
-	FVector2D IntegerPosition = FVector2D(FMath::Floor(Drop.Position.X), FMath::Floor(Drop.Position.Y)); // (x, y)
-	FVector2D OffsetPosition = FVector2D(Drop.Position.X - IntegerPosition.X, Drop.Position.Y - IntegerPosition.Y);
+	FVector2D IntegerPosOld = FVector2D(FMath::Floor(Drop.Position.X), FMath::Floor(Drop.Position.Y)); // (x, y)
+	FVector2D OffsetPosOld = FVector2D(Drop.Position.X - IntegerPosOld.X, Drop.Position.Y - IntegerPosOld.Y);
 
 	// Phase one: gradients calculus.
-	float X_Y = GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize];						 // P(x, y)
-	float X1_Y = GridHeights[(IntegerPosition.X + 1) + IntegerPosition.Y * GridSize];				 // P(x + 1, y)
-	float X_Y1 = GridHeights[(IntegerPosition.X + GridSize) + IntegerPosition.Y * GridSize];		 // P(x, y + 1)
-	float X1_Y1 = GridHeights[(IntegerPosition.X + GridSize + 1) + IntegerPosition.Y * GridSize];    // P(x + 1, y + 1)
+	FPositionHeights PosOldHeights = GetPositionHeights(IntegerPosOld, GridSize);
 
 	/*
 
@@ -185,13 +202,46 @@ void UErosionComponent::Erosion(FDrop Drop, /* make const */ int32 GridSize)
 	*/
 
 	// Phase two: bilinear interpolation between gradients.
-	FVector2D DropPositionGradient = GetBilinearInterpolation(
-		OffsetPosition,
-		X1_Y - X_Y,
-		X1_Y1 - X_Y1,
-		X_Y1 - X_Y,
-		X1_Y1 - X1_Y
+	FVector2D DropPositionGradient = GetPairedLinearInterpolation(
+		OffsetPosOld,
+		PosOldHeights.X1_Y - PosOldHeights.X_Y,
+		PosOldHeights.X1_Y1 - PosOldHeights.X_Y1,
+		PosOldHeights.X_Y1 - PosOldHeights.X_Y,
+		PosOldHeights.X1_Y1 - PosOldHeights.X1_Y
 	);
 
-	UE_LOG(LogTemp, Warning, TEXT("Gradient on Drop's position: (%f, %f)"), DropPositionGradient.X, DropPositionGradient.Y);
+	// UE_LOG(LogTemp, Warning, TEXT("Gradient on Drop's position: (%f, %f)"), DropPositionGradient.X, DropPositionGradient.Y);
+
+	// Phase three: inertia blends.
+	Drop.Direction = Drop.Direction * Inertia - DropPositionGradient * (1 - Inertia);
+
+	//UE_LOG(LogTemp, Warning, TEXT("New direction: (%f, %f)"), Drop.Direction.X, Drop.Direction.Y);
+
+	// Phase three.five: inertia blends.
+	if (Drop.Direction.SquaredLength() > 0)
+	{
+		Drop.Direction.Normalize();
+	}
+	else
+	{
+		Drop.Direction = FVector2D(FMath::RandRange(-1, 1), FMath::RandRange(-1, 1)).GetSafeNormal();
+	}
+
+	// Phase four: new position calculus.
+	Drop.Position = Drop.Position + Drop.Direction;
+
+	//UE_LOG(LogTemp, Warning, TEXT("New position: (%f, %f)"), Drop.Position.X, Drop.Position.Y);
+
+	// Phase five: heights difference.
+	float HeightPosOld = GetBilinearInterpolation(OffsetPosOld, PosOldHeights);
+
+	FVector2D IntegerPosNew = FVector2D(FMath::Floor(Drop.Position.X), FMath::Floor(Drop.Position.Y));
+	FVector2D OffsetPosNew = FVector2D(Drop.Position.X - IntegerPosNew.X, Drop.Position.Y - IntegerPosNew.Y);
+
+	FPositionHeights PosNewHeights = GetPositionHeights(IntegerPosNew, GridSize);
+
+	float HeightPosNew = GetBilinearInterpolation(OffsetPosNew, PosNewHeights);
+	float HeightsDifference = HeightPosNew - HeightPosOld;
+
+	UE_LOG(LogTemp, Warning, TEXT("Heights Difference: %f"), HeightsDifference);
 }

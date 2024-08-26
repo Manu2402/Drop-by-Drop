@@ -17,6 +17,17 @@ struct FDrop
 	float Sediment;
 };
 
+USTRUCT()
+struct FPositionHeights
+{
+	GENERATED_BODY()
+
+	float X_Y;
+	float X1_Y;
+	float X_Y1;
+	float X1_Y1;
+};
+
 UCLASS(Blueprintable)
 class DROPBYDROP_API UErosionComponent : public UActorComponent
 {
@@ -27,6 +38,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 CellSize;
+
+#pragma region Parameters
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1")) // [0, 1]
+	float Inertia;
+
+#pragma endregion
 
 protected:
 	virtual void BeginPlay() override;
@@ -56,7 +73,9 @@ private:
 
 #pragma region ErosionSubFunctions
 	FVector2D GetGradient(const float& P1, const float& P2, const float& P3, const float& P4) const;
-	FVector2D GetBilinearInterpolation(const FVector2D& OffsetPosition, const float& F1, const float& F2, const float& F3, const float& F4) const;
+	FVector2D GetPairedLinearInterpolation(const FVector2D& OffsetPosition, const float& F1, const float& F2, const float& F3, const float& F4) const;
+	FPositionHeights GetPositionHeights(const FVector2D& Position, const int32 GridSize) const;
+	float GetBilinearInterpolation(const FVector2D& OffsetPosition, const FPositionHeights& PositionHeights) const;
 #pragma endregion
 
 };
