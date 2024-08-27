@@ -40,8 +40,32 @@ public:
 	int32 CellSize;
 
 #pragma region Parameters
+	UPROPERTY(EditAnywhere)
+	int32 ErosionCycles;
+
 	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1")) // [0, 1]
-	float Inertia;
+	float Inertia; // pInertia
+
+	UPROPERTY(EditAnywhere)
+	float Capacity; // pCapacity
+
+	UPROPERTY(EditAnywhere)
+	float MinimalSlope; // pMinSlope
+
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1"))
+	float DepositionSpeed; // pDeposition
+
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1"))
+	float ErosionSpeed; // pErosion
+
+	UPROPERTY(EditAnywhere)
+	float Gravity; // pGravity
+
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1"))
+	float Evaporation; // pEvaporation
+
+	UPROPERTY(EditAnywhere)
+	float MaxPath; // pMaxPath
 
 #pragma endregion
 
@@ -56,6 +80,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	TArray<float> GenerateVirtualGrid(TArray<float> MapHeights, const int32 MapSize, const int32 NewCellSize);
+
+	UFUNCTION(BlueprintCallable)
+	void ErosionHandler(const int32 GridSize);
 
 #pragma region InitDrop
 	UFUNCTION(BlueprintCallable, BlueprintPure = false)
