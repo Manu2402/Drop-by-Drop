@@ -26,6 +26,15 @@ struct FPositionHeights
 	float X1_Y1;
 };
 
+UENUM()
+enum EOutOfBoundResult : uint8
+{
+	NO_ERROR,
+	ERROR_RIGHT,
+	ERROR_DOWN,
+	ERROR_RIGHT_DOWN
+};
+
 UCLASS(Blueprintable)
 class DROPBYDROP_API UErosionComponent : public UActorComponent
 {
@@ -97,7 +106,7 @@ public:
 	void Erosion(FDrop Drop, /* make const */ int32 GridSize, const int32 MapSize);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure = false)
-	void InitWeights(/* make const */FVector2D& DropPosition, const int32 MapSize);
+	void InitWeights(/* make const */FVector2D& DropPosition, const int32 GridSize);
 
 private:
 	TArray<float> MapHeights;
@@ -113,12 +122,14 @@ private:
 	float GetBilinearInterpolation(const FVector2D& OffsetPosition, const FPositionHeights& PositionHeights) const;
 #pragma endregion
 
-	TArray<FVector2D> GetPointsPositionInRadius(/* make const */ FVector2D& DropPosition, /* make const */ int32 MapSize) const;
+	TArray<FVector2D> GetPointsPositionInRadius(/* make const */ FVector2D& DropPosition, /* make const */ int32 GridSize) const;
 
 #pragma region WeightsSubFunctions
 	float GetRelativeWeightOnPoint(const FVector2D& DropPosition, const FVector2D& PointPosition) const;
 #pragma endregion
 
-	TArray<float> GetErosionOnPoints(const float& ErosionFactor);
+	TArray<float> GetErosionOnPoints(/* make const */ float& ErosionFactor);
+	void ComputeDepositOnPoints(const FVector2D& IntegerPosition, const FVector2D& OffsetPosition, const float& Deposit, const int32 GridSize);
 
+	EOutOfBoundResult GetOutOfBoundResult(const FVector2D& IntegerPosition, const int32 GridSize) const;
 };
