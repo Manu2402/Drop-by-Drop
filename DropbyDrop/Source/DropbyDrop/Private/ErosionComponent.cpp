@@ -23,16 +23,8 @@ void UErosionComponent::SetHeights(const TArray<float> NewHeights)
 	GridHeights = NewHeights;
 }
 
-/*
-
-TO DO:
-- Handle "not squared" terrains (num_rows != num_columns);
-- Find a way to take excluded values (in a 20x20 map with 7x7 pixels size there is an out of bounds
-  or in cases as 6x6 pixels size there are some excluded values).
-
-*/
-
-TArray<float> UErosionComponent::GenerateVirtualGrid(TArray<float> MapHeightsValues, const int32 MapSize, const int32 NewCellSize = 1)
+// Useless!
+TArray<float> UErosionComponent::GenerateVirtualGrid(const TArray<float> MapHeightsValues, const int32 MapSize, const int32 NewCellSize = 1)
 {
 	// NewCellSize = 1 --> 1x1 cells.
 	// NewCellSize = 2 --> 2x2 cells.
@@ -64,7 +56,7 @@ MapSize = 3; (3x3 grid)
 
 	if (NewCellSize == 1)
 	{
-		return MapHeights;
+		return MapHeights; // Unique valid case at the time.
 	}
 
 	TArray<float> NewHeights;
@@ -72,11 +64,11 @@ MapSize = 3; (3x3 grid)
 	// fmod(float x, float y) returns the module about division between two floating numbers.
 	if (std::fmod(MapSize / (NewCellSize * NewCellSize), 1.0) != 0.f)
 	{
-		// Isn't an error (maybe), but this case will be handle in a different way.
+		// Isn't an error (maybe), but this case will be handled in a different way.
 		return TArray<float>();
 	}
 
-	int32 NewHeightsLength = MapHeights.Num() / (NewCellSize * NewCellSize);
+	const int32 NewHeightsLength = MapHeights.Num() / (NewCellSize * NewCellSize);
 	NewHeights.Reserve(NewHeightsLength);
 
 	int32 Index = 0;
@@ -84,7 +76,7 @@ MapSize = 3; (3x3 grid)
 	{
 		for (int32 X = 0; X < MapSize; X += NewCellSize)
 		{
-			int32 CurrentIndex = X + Y * MapSize;
+			const int32 CurrentIndex = X + Y * MapSize;
 			float CurrentValue = 0;
 
 			for (int32 Z = 0; Z < NewCellSize; Z++)
@@ -109,7 +101,7 @@ FDrop UErosionComponent::GenerateDropInitialParams(const int32 GridSize) const /
 {
 	FDrop Drop = FDrop();
 
-	Drop.Position = FVector2D(FMath::RandRange(0.f, (float)(GridSize - 1)), FMath::RandRange(0.f, (float)(GridSize - 1)));
+	Drop.Position = FVector2D(FMath::RandRange(0.f, static_cast<float>(GridSize - 1)), FMath::RandRange(0.f, static_cast<float>(GridSize - 1)));
 	Drop.Direction = FVector2D(FMath::RandRange(-1.f, 1.f), FMath::RandRange(-1.f, 1.f));
 	Drop.Velocity = 1;
 	Drop.Water = 1;
@@ -164,25 +156,25 @@ FPositionHeights UErosionComponent::GetPositionHeights(const FVector2D& IntegerP
 
 	switch (GetOutOfBoundResult(IntegerPosition, GridSize))
 	{
-		case ERROR_RIGHT_DOWN:
+		case Error_Right_Down:
 			PositionHeights.X_Y = GridHeights[GridSize - 1];
 			PositionHeights.X1_Y = GridHeights[GridSize - 1];
 			PositionHeights.X_Y1 = GridHeights[GridSize - 1];
 			PositionHeights.X1_Y1 = GridHeights[GridSize - 1];
 			break;
-		case ERROR_RIGHT:
+		case Error_Right:
 			PositionHeights.X_Y = GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize];
 			PositionHeights.X1_Y = GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize];
 			PositionHeights.X_Y1 = GridHeights[(IntegerPosition.X + GridSize) + IntegerPosition.Y * GridSize];
 			PositionHeights.X1_Y1 = GridHeights[(IntegerPosition.X + GridSize) + IntegerPosition.Y * GridSize];
 			break;
-		case ERROR_DOWN:
+		case Error_Down:
 			PositionHeights.X_Y = GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize];
 			PositionHeights.X1_Y = GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize];
 			PositionHeights.X_Y1 = GridHeights[(IntegerPosition.X + 1) + IntegerPosition.Y * GridSize];
 			PositionHeights.X1_Y1 = GridHeights[(IntegerPosition.X + 1) + IntegerPosition.Y * GridSize];
 			break;
-		case NO_ERROR:
+		case No_Error:
 			PositionHeights.X_Y = GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize];                     // P(x, y)
 			PositionHeights.X1_Y = GridHeights[(IntegerPosition.X + 1) + IntegerPosition.Y * GridSize];				 // P(x + 1, y)
 			PositionHeights.X_Y1 = GridHeights[(IntegerPosition.X + GridSize) + IntegerPosition.Y * GridSize];		 // P(x, y + 1)
@@ -201,7 +193,7 @@ float UErosionComponent::GetBilinearInterpolation(const FVector2D& OffsetPositio
 		PositionHeights.X1_Y1 * OffsetPosition.X * OffsetPosition.Y;
 }
 
-TArray<FVector2D> UErosionComponent::GetPointsPositionInRadius(/* make const */ FVector2D& DropPosition, /* make const */ int32 GridSize) const
+TArray<FVector2D> UErosionComponent::GetPointsPositionInRadius(const FVector2D& DropPosition, /* make const */ int32 GridSize) const
 {
 #pragma region Test
 	//DropPosition = FVector2D(1, 1);
@@ -220,8 +212,8 @@ TArray<FVector2D> UErosionComponent::GetPointsPositionInRadius(/* make const */ 
 	{
 		for (int32 X = -ErosionRadius; X <= ErosionRadius; X++)
 		{
-			float PosX = DropPosition.X + X;
-			float PosY = DropPosition.Y + Y;
+			const float PosX = DropPosition.X + X;
+			const float PosY = DropPosition.Y + Y;
 
 			if (PosX < 0 || PosX >= GridSize || PosY < 0 || PosY >= GridSize)
 			{
@@ -240,7 +232,7 @@ float UErosionComponent::GetRelativeWeightOnPoint(const FVector2D& DropPosition,
 	return FMath::Max(0, ErosionRadius - (PointPosition - DropPosition).Length());
 }
 
-TArray<float> UErosionComponent::GetErosionOnPoints(/* make const */ float& ErosionFactor)
+TArray<float> UErosionComponent::GetErosionOnPoints(const float& ErosionFactor)
 {
 	TArray<float> ErosionValues;
 	ErosionValues.Reserve(Points.Num());
@@ -261,25 +253,25 @@ void UErosionComponent::ComputeDepositOnPoints(const FVector2D& IntegerPosition,
 {
 	switch (GetOutOfBoundResult(IntegerPosition, GridSize))
 	{
-		case ERROR_RIGHT_DOWN:
+		case Error_Right_Down:
 			GridHeights[GridSize - 1] += Deposit * (1 - OffsetPosition.X) * (1 - OffsetPosition.Y);
 			GridHeights[GridSize - 1] += Deposit * OffsetPosition.X * (1 - OffsetPosition.Y);
 			GridHeights[GridSize - 1] += Deposit * (1 - OffsetPosition.X) * OffsetPosition.Y;
 			GridHeights[GridSize - 1] += Deposit * OffsetPosition.X * OffsetPosition.Y;
 			break;
-		case ERROR_RIGHT:
+		case Error_Right:
 			GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize] += Deposit * (1 - OffsetPosition.X) * (1 - OffsetPosition.Y);
 			GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize] += Deposit * OffsetPosition.X * (1 - OffsetPosition.Y);
 			GridHeights[(IntegerPosition.X + GridSize) + IntegerPosition.Y * GridSize] += Deposit * (1 - OffsetPosition.X) * OffsetPosition.Y;
 			GridHeights[(IntegerPosition.X + GridSize) + IntegerPosition.Y * GridSize] += Deposit * OffsetPosition.X * OffsetPosition.Y;
 			break;
-		case ERROR_DOWN:
+		case Error_Down:
 			GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize] += Deposit * (1 - OffsetPosition.X) * (1 - OffsetPosition.Y);
 			GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize] += Deposit * OffsetPosition.X * (1 - OffsetPosition.Y);
 			GridHeights[(IntegerPosition.X + 1) + IntegerPosition.Y * GridSize] += Deposit * (1 - OffsetPosition.X) * OffsetPosition.Y;
 			GridHeights[(IntegerPosition.X + 1) + IntegerPosition.Y * GridSize] += Deposit * OffsetPosition.X * OffsetPosition.Y;
 			break;
-		case NO_ERROR:
+		case No_Error:
 			GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize] += Deposit * (1 - OffsetPosition.X) * (1 - OffsetPosition.Y);		    // P(x, y)
 			GridHeights[(IntegerPosition.X + 1) + IntegerPosition.Y * GridSize] += Deposit * OffsetPosition.X * (1 - OffsetPosition.Y);			// P(x + 1, y)
 			GridHeights[(IntegerPosition.X + GridSize) + IntegerPosition.Y * GridSize] += Deposit * (1 - OffsetPosition.X) * OffsetPosition.Y;	// P(x, y + 1)
@@ -290,30 +282,30 @@ void UErosionComponent::ComputeDepositOnPoints(const FVector2D& IntegerPosition,
 
 EOutOfBoundResult UErosionComponent::GetOutOfBoundResult(const FVector2D& IntegerPosition, const int32 GridSize) const
 {
-	bool bOutOfBoundsOnX = IntegerPosition.X >= GridSize - 1;
-	bool bOutOfBoundsOnY = IntegerPosition.Y >= GridSize - 1;
+	const bool bOutOfBoundsOnX = IntegerPosition.X >= GridSize - 1;
+	const bool bOutOfBoundsOnY = IntegerPosition.Y >= GridSize - 1;
 
 #pragma region OutOfBoundsHandler
 	if (bOutOfBoundsOnX && bOutOfBoundsOnY)
 	{
-		return EOutOfBoundResult::ERROR_RIGHT_DOWN;
+		return EOutOfBoundResult::Error_Right_Down;
 	}
 
 	if (bOutOfBoundsOnX)
 	{
-		return EOutOfBoundResult::ERROR_RIGHT;
+		return EOutOfBoundResult::Error_Right;
 	}
 
 	if (bOutOfBoundsOnY)
 	{
-		return EOutOfBoundResult::ERROR_DOWN;
+		return EOutOfBoundResult::Error_Down;
 	}
 #pragma endregion
 
-	return EOutOfBoundResult::NO_ERROR;
+	return EOutOfBoundResult::No_Error;
 }
 
-void UErosionComponent::Erosion(FDrop Drop, /* make const */ int32 GridSize, const int32 MapSize)
+void UErosionComponent::Erosion(FDrop Drop, const int32 GridSize, const int32 MapSize)
 {
 #pragma region Test
 	/*
@@ -326,13 +318,12 @@ void UErosionComponent::Erosion(FDrop Drop, /* make const */ int32 GridSize, con
 	Drop.Water = 2;
 
 	*/
-
 #pragma endregion
 	float Sediment = 0;
 
 	for (int32 Cycle = 0; Cycle < MaxPath; Cycle++)
 	{
-		// Phase zero: drop position informations.
+		// Phase zero: drop position information.
 		FVector2D IntegerPosOld = FVector2D(FMath::Floor(Drop.Position.X), FMath::Floor(Drop.Position.Y)); // (x, y)
 		FVector2D OffsetPosOld = FVector2D(Drop.Position.X - IntegerPosOld.X, Drop.Position.Y - IntegerPosOld.Y);
 
@@ -407,7 +398,7 @@ void UErosionComponent::Erosion(FDrop Drop, /* make const */ int32 GridSize, con
 #pragma endregion
 
 		// Phase five: heights difference.
-		float HeightPosOld = GetBilinearInterpolation(OffsetPosOld, PosOldHeights);
+		const float HeightPosOld = GetBilinearInterpolation(OffsetPosOld, PosOldHeights);
 
 		FVector2D IntegerPosNew = FVector2D(FMath::Floor(Drop.Position.X), FMath::Floor(Drop.Position.Y));
 		FVector2D OffsetPosNew = FVector2D(Drop.Position.X - IntegerPosNew.X, Drop.Position.Y - IntegerPosNew.Y);
@@ -427,14 +418,13 @@ void UErosionComponent::Erosion(FDrop Drop, /* make const */ int32 GridSize, con
 #pragma endregion
 
 		// Capacity calculus.
-		float C = FMath::Max(-HeightsDifference, MinimalSlope) * Drop.Velocity * Drop.Water * Capacity;
+		const float C = FMath::Max(-HeightsDifference, MinimalSlope) * Drop.Velocity * Drop.Water * Capacity;
 
 		UE_LOG(LogTemp, Warning, TEXT("C: %f"), C);
 
-		bool bDropHasMovingUp = HeightsDifference > 0;
-		bool bDropHasToDeposit = Sediment > C;
+		const bool bDropHasMovingUp = HeightsDifference > 0;
 
-		if (bDropHasMovingUp || bDropHasToDeposit)
+		if (const bool bDropHasToDeposit = Sediment > C; bDropHasMovingUp || bDropHasToDeposit)
 		{
 			Deposit = bDropHasMovingUp ? Deposit = FMath::Min(HeightsDifference, Sediment) : (Sediment - C) * DepositionSpeed;
 			Sediment -= Deposit;
@@ -460,21 +450,21 @@ void UErosionComponent::Erosion(FDrop Drop, /* make const */ int32 GridSize, con
 
 			for (int32 Index = 0; Index < Points.Num(); Index++)
 			{
-				int32 MapIndex = Points[Index].X + Points[Index].Y * GridSize;
+				const int32 MapIndex = Points[Index].X + Points[Index].Y * GridSize;
 				Sediment += MapHeights[MapIndex] < ErosionValues[Index] ? MapHeights[MapIndex] : ErosionValues[Index];
 
 				GridHeights[MapIndex] -= ErosionValues[Index];
 			}
 		}
 
-		// Apply modifies on the original heightmap. Wait Eugenio.
+		// Apply modifies on the original heightmap.
 
 		UE_LOG(LogTemp, Warning, TEXT("Deposit: %f"), Deposit);
 		UE_LOG(LogTemp, Warning, TEXT("Erosion: %f"), Erosion);
 
 		// Phase seven: drop's mutation. The original formula take "HeightsDifference" without minus.
-		float VelocityValue = ((Drop.Velocity * Drop.Velocity) + (-HeightsDifference * Gravity));
-		float Velocity = VelocityValue > 0 ? VelocityValue : 0;
+		const float VelocityValue = ((Drop.Velocity * Drop.Velocity) + (-HeightsDifference * Gravity));
+		const float Velocity = VelocityValue > 0 ? VelocityValue : 0;
 		Drop.Velocity = FMath::Sqrt(Velocity);
 
 #pragma region Test
@@ -488,12 +478,12 @@ void UErosionComponent::Erosion(FDrop Drop, /* make const */ int32 GridSize, con
 
 		UE_LOG(LogTemp, Warning, TEXT("Iteration number: %d"), (Cycle + 1));
 
-		UE_LOG(LogTemp, Warning, TEXT("-----------------------------------------------------------"), Cycle);
+		UE_LOG(LogTemp, Warning, TEXT("-----------------------------------------------------------"));
 	}
 
 }
 
-void UErosionComponent::InitWeights(/* make const */ FVector2D& DropPosition, const int32 GridSize)
+void UErosionComponent::InitWeights(const FVector2D& DropPosition, const int32 GridSize)
 {
 	Weights.Empty();
 	TArray<float> RelativeWeights;
@@ -537,7 +527,7 @@ void UErosionComponent::ErosionHandler(const int32 GridSize, const int32 MapSize
 {
 	for (int32 Index = 0; Index < ErosionCycles; Index++)
 	{
-		FDrop Drop = GenerateDropInitialParams(GridSize);
+		const FDrop Drop = GenerateDropInitialParams(GridSize);
 
 		Erosion(Drop, GridSize, MapSize);
 		UE_LOG(LogTemp, Warning, TEXT("DROP IS DEAD!"));
