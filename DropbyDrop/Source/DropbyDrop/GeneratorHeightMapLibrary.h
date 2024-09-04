@@ -6,6 +6,8 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Engine/Texture2D.h"
 #include "Misc/FileHelper.h"
+#include "Landscape.h"
+#include "LandscapeProxy.h"
 #include "GeneratorHeightMapLibrary.generated.h"
 
 UCLASS()
@@ -75,7 +77,12 @@ class DROPBYDROP_API UGeneratorHeightMapLibrary : public UBlueprintFunctionLibra
 		InitialScale = NewInitialScale;
 	}
 	
-	static void InitParam();
+	UFUNCTION(BlueprintCallable, Category = "Heightmap")
+	static void GenerateLandscapeFromPNG(const FString& HeightmapPath);
+
+	static TArray<uint16> ConvertFloatArrayToUint16(const TArray<float>& FloatData);
+	static ALandscape* CallLandscape(const FTransform& LandscapeTransform, const int32& SectionSize, const int32& SectionsPerComponent,
+	const int32& ComponentCountX, const int32& ComponentCountY, TArray<uint16>& Heightmap);
 	
 	// Function to generate heightmap on CPU, generates a heightmap as a float array with the specified map size using Perlin noise.
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
