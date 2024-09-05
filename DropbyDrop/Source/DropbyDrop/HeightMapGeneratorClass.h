@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -32,7 +30,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Heightmap Generation", meta = (Tooltip = "The initial scale applied to the Perlin noise calculation. Controls the overall size of features in the heightmap."))
 	float InitialScale = 1.8f;
 
-	
 	// Function to generate heightmap on CPU, generates a heightmap as a float array with the specified map size using Perlin noise.
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	TArray<float> GenerateHeightMapCPU(int32 MapSize);

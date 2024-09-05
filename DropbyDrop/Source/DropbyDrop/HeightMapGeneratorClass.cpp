@@ -1,10 +1,7 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "HeightMapGeneratorClass.h"
 #include "ImageUtils.h"
 #include "Engine/TextureRenderTarget2D.h"
-
+#include "Public/ErosionComponent.h"
 
 TArray<float> AHeightMapGeneratorClass::GenerateHeightMapCPU(int32 MapSize)
 {
@@ -53,7 +50,7 @@ TArray<float> AHeightMapGeneratorClass::GenerateHeightMapCPU(int32 MapSize)
 		}
 	}
 	UE_LOG(LogTemp, Log, TEXT("Min noise value: %f, Max noise value: %f"), MinValue, MaxValue);
-	
+
 	// Normalize heightmap values (if necessary)
 	if (MinValue != MaxValue)
 	{
@@ -67,13 +64,14 @@ TArray<float> AHeightMapGeneratorClass::GenerateHeightMapCPU(int32 MapSize)
 	{
 		UE_LOG(LogTemp, Log, TEXT("HeightMap[%d]: %f"), i, HeightMap[i]);
 	}
+
 	return HeightMap;
 }
 
 UTexture2D* AHeightMapGeneratorClass::CreateHeightMapTexture(const TArray<float>& HeightMapData, int32 Width, int32 Height)
 {
 	//Create Empty Texture2D          CreateTransient -> Used to create texture in execute, the texture create in Transient can be modificated in execute.
-	UTexture2D* Texture = UTexture2D::CreateTransient(Width, Height, PF_R8G8B8A8/* */); 
+	UTexture2D* Texture = UTexture2D::CreateTransient(Width, Height, PF_R8G8B8A8/* */);
 	Texture->SRGB = false; //Standard Red Green Blue, is false becouse the heightmap interpreted the grey color for height not like color.
 	Texture->MipGenSettings = TMGS_NoMipmaps; //No multiply mipMaps
 
@@ -100,7 +98,7 @@ UTexture2D* AHeightMapGeneratorClass::CreateHeightMapTexture(const TArray<float>
 	//ESSENTIAL! Unlock the mipMap Data
 	MipMap.BulkData.Unlock();
 	Texture->UpdateResource();
-	
+
 	return Texture;
 }
 
@@ -112,13 +110,13 @@ void AHeightMapGeneratorClass::SaveTextureToFile(UTexture2D* Texture, const FStr
 		return;
 	}
 	Texture->UpdateResource();
-    
+
 	if (!Texture->GetResource())
 	{
 		UE_LOG(LogTemp, Error, TEXT("Texture resource is null after UpdateResource"));
 		return;
 	}
-	
+
 	// Crea un render target
 	UTextureRenderTarget2D* RenderTarget = NewObject<UTextureRenderTarget2D>(UTextureRenderTarget2D::StaticClass());
 	if (!RenderTarget)
@@ -153,7 +151,7 @@ void AHeightMapGeneratorClass::SaveTextureToFile(UTexture2D* Texture, const FStr
 			FRHICopyTextureInfo CopyInfo;
 			RHICmdList.CopyTexture(Texture->GetResource()->TextureRHI, RenderTarget->GetResource()->TextureRHI, CopyInfo);
 		}
-	);
+		);
 
 	// Assicura che tutte le operazioni di rendering siano complete
 	FlushRenderingCommands(); //Forza la chiusura di comandi di rendering pendenti
@@ -168,24 +166,24 @@ void AHeightMapGeneratorClass::SaveTextureToFile(UTexture2D* Texture, const FStr
 	}
 	RenderTargetResource->ReadPixels(Bitmap);
 
-/*
-	// Stampa i valori dei pixel per il debug
-	for (int32 y = 0; y < Texture->GetSizeY(); y++)
-	{
-		for (int32 x = 0; x < Texture->GetSizeX(); x++)
+	/*
+		// Stampa i valori dei pixel per il debug
+		for (int32 y = 0; y < Texture->GetSizeY(); y++)
 		{
-			FColor PixelColor = Bitmap[y * Texture->GetSizeX() + x];
-			UE_LOG(LogTemp, Log, TEXT("Pixel[%d][%d]: R=%d, G=%d, B=%d, A=%d"), x, y, PixelColor.R, PixelColor.G, PixelColor.B, PixelColor.A);
+			for (int32 x = 0; x < Texture->GetSizeX(); x++)
+			{
+				FColor PixelColor = Bitmap[y * Texture->GetSizeX() + x];
+				UE_LOG(LogTemp, Log, TEXT("Pixel[%d][%d]: R=%d, G=%d, B=%d, A=%d"), x, y, PixelColor.R, PixelColor.G, PixelColor.B, PixelColor.A);
+			}
 		}
-	}
 
-	// Salva il bitmap in un file PNG
-	TArray64<uint8> CompressedBitmap;
-	// ReSharper disable once CppDeprecatedEntity
-	FImageUtils::PNGCompressImageArray(Texture->GetSizeX(), Texture->GetSizeY(), Bitmap, CompressedBitmap);
-    */
+		// Salva il bitmap in un file PNG
+		TArray64<uint8> CompressedBitmap;
+		// ReSharper disable once CppDeprecatedEntity
+		FImageUtils::PNGCompressImageArray(Texture->GetSizeX(), Texture->GetSizeY(), Bitmap, CompressedBitmap);
+		*/
 
-	// Check if Bitmap has the expected number of pixels
+		// Check if Bitmap has the expected number of pixels
 	int32 ExpectedPixelCount = Texture->GetSizeX() * Texture->GetSizeY();
 	if (Bitmap.Num() != ExpectedPixelCount)
 	{
@@ -200,7 +198,7 @@ void AHeightMapGeneratorClass::SaveTextureToFile(UTexture2D* Texture, const FStr
 		uint8 GrayValue = Pixel.R; // Assuming R, G, and B are equal
 		Pixel = FColor(GrayValue, GrayValue, GrayValue, 255); // Set RGB to GrayValue and Alpha to 255
 	}
-	
+
 	// Compress and save the bitmap
 	try
 	{
