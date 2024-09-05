@@ -43,13 +43,13 @@ class DROPBYDROP_API UErosionComponent : public UActorComponent
 public:	
 	UErosionComponent();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 CellSize;
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	// int32 CellSize;
 
 #pragma region Parameters
 	UPROPERTY(EditAnywhere)
-	int32 ErosionCycles;
-
+	int32 ErosionCycles; // erosionCycles
+	
 	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1")) // [0, 1]
 	float Inertia; // pInertia
 
@@ -87,11 +87,13 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetHeights(const TArray<float> NewHeights);
 
-	UFUNCTION(BlueprintCallable) // Useless!
-	TArray<float> GenerateVirtualGrid(const TArray<float> MapHeightsValues, const int32 MapSize, const int32 NewCellSize);
+	TArray<float> GetHeights() const;
+
+	//UFUNCTION(BlueprintCallable) Useless!
+	//TArray<float> GenerateVirtualGrid(const TArray<float> MapHeightsValues, const int32 MapSize, const int32 NewCellSize);
 
 	UFUNCTION(BlueprintCallable)
-	void ErosionHandler(const int32 GridSize, const int32 MapSize);
+	void ErosionHandler(const int32 GridSize);
 
 #pragma region InitDrop
 	UFUNCTION(BlueprintCallable, BlueprintPure = false)
@@ -102,17 +104,20 @@ public:
 #pragma endregion
 
 	UFUNCTION(BlueprintCallable, BlueprintPure = false)
-	void Erosion(FDrop Drop, const int32 GridSize, const int32 MapSize);
+	void Erosion(FDrop Drop, const int32 GridSize);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure = false)
 	void InitWeights(const FVector2D& DropPosition, const int32 GridSize);
 
-private:
-	TArray<float> MapHeights;
 	TArray<float> GridHeights;
-
+	
+private:
+	// TArray<float> MapHeights;
+	
 	TArray<FVector2D> Points; // pI
 	TArray<float> Weights; // wI
+
+	void InitParameters();
 
 #pragma region ErosionSubFunctions
 	FVector2D GetGradient(const float& P1, const float& P2, const float& P3, const float& P4) const;
@@ -121,7 +126,7 @@ private:
 	float GetBilinearInterpolation(const FVector2D& OffsetPosition, const FPositionHeights& PositionHeights) const;
 #pragma endregion
 
-	TArray<FVector2D> GetPointsPositionInRadius(const FVector2D& DropPosition, const int32 GridSize) const;
+	void SetPointsPositionInRadius(const FVector2D& DropPosition, const int32 GridSize);
 
 #pragma region WeightsSubFunctions
 	float GetRelativeWeightOnPoint(const FVector2D& DropPosition, const FVector2D& PointPosition) const;

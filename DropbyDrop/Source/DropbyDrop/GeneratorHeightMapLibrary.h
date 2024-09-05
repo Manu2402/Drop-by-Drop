@@ -7,7 +7,6 @@
 #include "Engine/Texture2D.h"
 #include "Misc/FileHelper.h"
 #include "Landscape.h"
-#include "LandscapeProxy.h"
 #include "GeneratorHeightMapLibrary.generated.h"
 
 UCLASS()
@@ -15,6 +14,9 @@ class DROPBYDROP_API UGeneratorHeightMapLibrary : public UBlueprintFunctionLibra
 {
 	GENERATED_BODY()
 	public:
+
+	UGeneratorHeightMapLibrary();
+
 	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Heightmap Generation", meta = (Tooltip = "Seed used to initialize the random number generator.", DisplayName = "Random Seed"))
 	int32 Seed = -4314;
 
@@ -41,6 +43,9 @@ class DROPBYDROP_API UGeneratorHeightMapLibrary : public UBlueprintFunctionLibra
 	static float Lacunarity;
 	static float InitialScale;
 	static int32 Size;
+
+	UFUNCTION(BlueprintCallable, Category = "Erosion")
+	static void GenerateErosion();
 
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	static void SetSeed(int32 NewSeed)
@@ -104,4 +109,6 @@ class DROPBYDROP_API UGeneratorHeightMapLibrary : public UBlueprintFunctionLibra
 	//Main Function
 	UFUNCTION(BlueprintCallable, Category = "HeightMap")
 	static void CreateHeightMap(int32 MapSize);
+	
+	static class UErosionComponent* ErosionComponent;
 };
