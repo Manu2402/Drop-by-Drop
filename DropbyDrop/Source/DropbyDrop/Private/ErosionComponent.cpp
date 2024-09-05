@@ -193,7 +193,7 @@ float UErosionComponent::GetBilinearInterpolation(const FVector2D& OffsetPositio
 		PositionHeights.X1_Y1 * OffsetPosition.X * OffsetPosition.Y;
 }
 
-TArray<FVector2D> UErosionComponent::GetPointsPositionInRadius(const FVector2D& DropPosition, /* make const */ int32 GridSize) const
+TArray<FVector2D> UErosionComponent::GetPointsPositionInRadius(const FVector2D& DropPosition, const int32 GridSize) const
 {
 #pragma region Test
 	//DropPosition = FVector2D(1, 1);
@@ -405,8 +405,8 @@ void UErosionComponent::Erosion(FDrop Drop, const int32 GridSize, const int32 Ma
 
 		FPositionHeights PosNewHeights = GetPositionHeights(IntegerPosNew, GridSize);
 
-		float HeightPosNew = GetBilinearInterpolation(OffsetPosNew, PosNewHeights);
-		float HeightsDifference = HeightPosNew - HeightPosOld;
+		const float HeightPosNew = GetBilinearInterpolation(OffsetPosNew, PosNewHeights);
+		const float HeightsDifference = HeightPosNew - HeightPosOld;
 
 		UE_LOG(LogTemp, Warning, TEXT("Heights Difference: %f"), HeightsDifference);
 
