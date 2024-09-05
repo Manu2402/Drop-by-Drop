@@ -20,6 +20,7 @@ int32 UGeneratorHeightMapLibrary::NumOctaves = 8;
 float UGeneratorHeightMapLibrary::Persistence = 0.45f;
 float UGeneratorHeightMapLibrary::Lacunarity = 2.f;
 float UGeneratorHeightMapLibrary::InitialScale = 1.8f;
+int32 UGeneratorHeightMapLibrary::Size = 505;
 
 
 void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& HeightmapPath)
@@ -32,18 +33,12 @@ void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& Heightm
 		return;
 	}
 	//Create HeightMap
-	TArray<float> HeightmapFloats = GenerateHeightMapCPU(505);
+	TArray<float> HeightmapFloats = GenerateHeightMapCPU(Size);
 	TArray<uint16> HeightData = ConvertFloatArrayToUint16(HeightmapFloats);
-
-	//Data for Landscape
-	int32 HeightmapSize = 505;
-	const int32 SectionSize = 63; //16, 32, 63, 127
-	const int32 SectionsPerComponent = 1;
-	const int32 ComponentCountX = 8;
-	const int32 ComponentCountY = 8;
+	
 	const FTransform LandscapeTransform = FTransform(FQuat(FRotator::ZeroRotator), FVector(0, 0, 0), FVector(100, 100, 100));
 
-	if (CallLandscape(LandscapeTransform, SectionSize, SectionsPerComponent, ComponentCountX, ComponentCountY, HeightData))
+	if (CallLandscape(LandscapeTransform, HeightData))
 	{
 		UE_LOG(LogTemp, Log, TEXT("Landscape created successfully!"));
 	}
@@ -67,24 +62,27 @@ TArray<uint16> UGeneratorHeightMapLibrary::ConvertFloatArrayToUint16(const TArra
 	return Uint16Data;
 }
 
-ALandscape* UGeneratorHeightMapLibrary::CallLandscape(const FTransform& LandscapeTransform, const int32& SectionSize,
-	const int32& SectionsPerComponent, const int32& ComponentCountX, const int32& ComponentCountY,
-	TArray<uint16>& Heightmap)
+ALandscape* UGeneratorHeightMapLibrary::CallLandscape(const FTransform& LandscapeTransform, TArray<uint16>& Heightmap)
 {
+	int32 HeightmapSize = Size;
+	const int32 SectionSize = 63;
+	const int32 SectionsPerComponent = 1;
 	//Get Quads
 	int32 QuadsPerComponent = SectionSize * SectionsPerComponent;  //63 
-
+	// Calcola il numero di componenti in X e Y
+	int32 ComponentCountX = (HeightmapSize - 1) / QuadsPerComponent;
+	int32 ComponentCountY = (HeightmapSize - 1) / QuadsPerComponent;
+	
 	// Calculate the total size of the landscape in quads
 	int32 SizeX = ComponentCountX * QuadsPerComponent + 1 ;  // 8 * (63 * 1) + 1 = 505 
 	int32 SizeY = ComponentCountY * QuadsPerComponent + 1 ;
 
 	// Verify that the heightmap size matches the calculated size
-	int32 ExpectedSize = SizeX * SizeY;
-	if (Heightmap.Num() != ExpectedSize)
+	//int32 ExpectedSize = SizeX * SizeY;
+	if (SizeX != HeightmapSize || SizeY != HeightmapSize)
 	{
-		int32 NumElements = Heightmap.Num();
-		int32 HeightmapSize = static_cast<int32>(sqrt(NumElements));
-		UE_LOG(LogTemp, Error, TEXT("Heightmap size (%d) doesn't match expected size (%d x %d), current size (%d x %d)."), Heightmap.Num(),HeightmapSize,HeightmapSize, SizeX, SizeY); //x,y = 225
+		UE_LOG(LogTemp, Error, TEXT("Dimensioni calcolate (%d x %d) non corrispondono alla dimensione dell'heightmap (%d x %d)."),
+			   SizeX, SizeY, HeightmapSize, HeightmapSize);
 		return nullptr;
 	}
 
