@@ -1,7 +1,6 @@
 #include "HeightMapGeneratorClass.h"
 #include "ImageUtils.h"
 #include "Engine/TextureRenderTarget2D.h"
-#include "Public/ErosionComponent.h"
 
 TArray<float> AHeightMapGeneratorClass::GenerateHeightMapCPU(int32 MapSize)
 {

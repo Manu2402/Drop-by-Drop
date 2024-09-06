@@ -1,6 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "GeneratorHeightMapLibrary.h"
 
 #include "Editor.h"
@@ -10,7 +7,7 @@
 #include "Landscape.h"
 #include "LandscapeComponent.h"
 #include "Engine/TextureRenderTarget2D.h"
-#include "ErosionComponent.h"
+#include "ErosionLibrary.h"
 
 int32 UGeneratorHeightMapLibrary::Seed = -4314;
 bool UGeneratorHeightMapLibrary::bRandomizeSeed = false;
@@ -19,23 +16,12 @@ float UGeneratorHeightMapLibrary::Persistence = 0.45f;
 float UGeneratorHeightMapLibrary::Lacunarity = 2.f;
 float UGeneratorHeightMapLibrary::InitialScale = 1.8f;
 int32 UGeneratorHeightMapLibrary::Size = 505;
-UErosionComponent* UGeneratorHeightMapLibrary::ErosionComponent = nullptr;
-
-UGeneratorHeightMapLibrary::UGeneratorHeightMapLibrary()
-{
-	ErosionComponent = CreateDefaultSubobject<UErosionComponent>(TEXT("Erosion Component"));
-}
 
 void UGeneratorHeightMapLibrary::GenerateErosion()
 {
-	if(!ErosionComponent)
-	{
-		return;
-	}
-
-	ErosionComponent->GridHeights = GenerateHeightMapCPU(Size);
-	ErosionComponent->ErosionHandler(Size);
-	TArray<uint16> ErodedHeightmapU16 = ConvertFloatArrayToUint16(ErosionComponent->GridHeights);
+	UErosionLibrary::ErosionHandler(Size);
+	
+	TArray<uint16> ErodedHeightmapU16 = ConvertFloatArrayToUint16(UErosionLibrary::GetHeights());
 
 	// Generate new landscape.
 	const FTransform LandscapeTransform = FTransform(FQuat(FRotator::ZeroRotator), FVector(0, 0, 0), FVector(100, 100, 100));
@@ -52,12 +38,12 @@ void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& Heightm
 		UE_LOG(LogTemp, Error, TEXT("Failed to get editor world"));
 		return;
 	}
-	//Create HeightMap
-	TArray<float> HeightmapFloats = GenerateHeightMapCPU(Size);
-	TArray<uint16> HeightData = ConvertFloatArrayToUint16(HeightmapFloats);
+	
+	TArray<uint16> HeightData = ConvertFloatArrayToUint16(UErosionLibrary::GetHeights());
 
 	const FTransform LandscapeTransform = FTransform(FQuat(FRotator::ZeroRotator), FVector(0, 0, 0), FVector(100, 100, 100));
 
+	//Create HeightMap
 	if (CallLandscape(LandscapeTransform, HeightData))
 	{
 		UE_LOG(LogTemp, Log, TEXT("Landscape created successfully!"));
@@ -357,6 +343,9 @@ void UGeneratorHeightMapLibrary::SaveTextureToFile(UTexture2D* Texture, const FS
 void UGeneratorHeightMapLibrary::CreateHeightMap(int32 MapSize)
 {
 	TArray<float> HeightMap = GenerateHeightMapCPU(MapSize);
+
+	UErosionLibrary::SetHeights(HeightMap);
+	
 	UTexture2D* Texture = CreateHeightMapTexture(HeightMap, MapSize, MapSize);
 	FString FilePath = FPaths::ProjectDir() / TEXT("Saved/HeightMap/Heightmap.png");
 	SaveTextureToFile(Texture, FilePath);

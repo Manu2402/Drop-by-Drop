@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -13,9 +11,7 @@ UCLASS()
 class DROPBYDROP_API UGeneratorHeightMapLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
-	public:
-
-	UGeneratorHeightMapLibrary();
+public:
 
 	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Heightmap Generation", meta = (Tooltip = "Seed used to initialize the random number generator.", DisplayName = "Random Seed"))
 	int32 Seed = -4314;
@@ -109,6 +105,4 @@ class DROPBYDROP_API UGeneratorHeightMapLibrary : public UBlueprintFunctionLibra
 	//Main Function
 	UFUNCTION(BlueprintCallable, Category = "HeightMap")
 	static void CreateHeightMap(int32 MapSize);
-	
-	static class UErosionComponent* ErosionComponent;
 };
