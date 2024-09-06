@@ -1,15 +1,15 @@
 #include "ErosionLibrary.h"
 
-int32 UErosionLibrary::ErosionCycles = 50000;
-float UErosionLibrary::Inertia = 0.3; // pInertia
-float UErosionLibrary::Capacity = 8; // pCapacity
+int32 UErosionLibrary::ErosionCycles = 70000;
+float UErosionLibrary::Inertia = 0.05; // pInertia
+float UErosionLibrary::Capacity = 4; // pCapacity
 float UErosionLibrary::MinimalSlope = 0.01; // pMinSlope
-float UErosionLibrary::DepositionSpeed = 0.2; // pDeposition
-float UErosionLibrary::ErosionSpeed = 0.7; // pErosion
-float UErosionLibrary::Gravity = 10; // pGravity
-float UErosionLibrary::Evaporation = 0.02; // pEvaporation
-float UErosionLibrary::MaxPath = 64; // pMaxPath
-int32 UErosionLibrary::ErosionRadius = 4; // pRadius
+float UErosionLibrary::DepositionSpeed = 0.3; // pDeposition
+float UErosionLibrary::ErosionSpeed = 0.3; // pErosion 
+float UErosionLibrary::Gravity = 4; // pGravity
+float UErosionLibrary::Evaporation = 0.01; // pEvaporation 
+float UErosionLibrary::MaxPath = 30; // pMaxPath 
+int32 UErosionLibrary::ErosionRadius = 3; // pRadius 
 
 TArray<float> UErosionLibrary::GridHeights = TArray<float>();
 TArray<FVector2D> UErosionLibrary::Points = TArray<FVector2D>();
@@ -112,8 +112,7 @@ FDrop UErosionLibrary::GenerateDropInitialParams(const int32 GridSize) // GridSi
 {
 	FDrop Drop;
 
-	Drop.Position = FVector2D(FMath::RandRange(0.f, static_cast<float>(GridSize - 1)),
-	                          FMath::RandRange(0.f, static_cast<float>(GridSize - 1)));
+	Drop.Position = FVector2D(FMath::RandRange(0.f, static_cast<float>(GridSize - 1)), FMath::RandRange(0.f, static_cast<float>(GridSize - 1)));
 	Drop.Direction = FVector2D(FMath::RandRange(-1.f, 1.f), FMath::RandRange(-1.f, 1.f));
 	Drop.Velocity = 1;
 	Drop.Water = 1;
@@ -206,11 +205,6 @@ float UErosionLibrary::GetBilinearInterpolation(const FVector2D& OffsetPosition,
 
 void UErosionLibrary::SetPointsPositionInRadius(const FVector2D& DropPosition, const int32 GridSize)
 {
-#pragma region Test
-	//DropPosition = FVector2D(1, 1);
-	//GridSize = 4;
-#pragma endregion
-
 	// pRadius = 1 --> 9
 	// pRadius = 2 --> 25
 	// pRadius = 3 --> 49
@@ -243,10 +237,6 @@ TArray<float> UErosionLibrary::GetErosionOnPoints(const float& ErosionFactor)
 {
 	TArray<float> ErosionValues;
 	ErosionValues.Reserve(Points.Num());
-
-#pragma region Test
-	//ErosionFactor = 0.7f;
-#pragma endregion
 
 	for (int32 Index = 0; Index < Points.Num(); Index++)
 	{
@@ -314,18 +304,6 @@ EOutOfBoundResult UErosionLibrary::GetOutOfBoundResult(const FVector2D& IntegerP
 
 void UErosionLibrary::Erosion(FDrop Drop, const int32 GridSize)
 {
-#pragma region Test
-	/*
-	
-	GridHeights = TArray<float>({ 3, 5, 2, 1, 4, 6, 7, 8, 9 });
-	GridSize = 3;
-	Drop.Position = FVector2D(1.7f, 1.1f);
-	Drop.Direction = FVector2D(1, 2);
-	Drop.Velocity = 2;
-	Drop.Water = 2;
-
-	*/
-#pragma endregion
 	float Sediment = 0;
 
 	for (int32 Cycle = 0; Cycle < MaxPath; Cycle++)
@@ -334,8 +312,8 @@ void UErosionLibrary::Erosion(FDrop Drop, const int32 GridSize)
 		FVector2D IntegerPosOld = FVector2D(FMath::Floor(Drop.Position.X), FMath::Floor(Drop.Position.Y)); // (x, y)
 		FVector2D OffsetPosOld = FVector2D(Drop.Position.X - IntegerPosOld.X, Drop.Position.Y - IntegerPosOld.Y);
 
-		UE_LOG(LogTemp, Warning, TEXT("Drop's integer PosOld: (%f, %f)"), IntegerPosOld.X, IntegerPosOld.Y);
-		UE_LOG(LogTemp, Warning, TEXT("Drop's offset PosOld: (%f, %f)"), OffsetPosOld.X, OffsetPosOld.Y);
+		//UE_LOG(LogTemp, Warning, TEXT("Drop's integer PosOld: (%f, %f)"), IntegerPosOld.X, IntegerPosOld.Y);
+		//UE_LOG(LogTemp, Warning, TEXT("Drop's offset PosOld: (%f, %f)"), OffsetPosOld.X, OffsetPosOld.Y);
 
 		// Phase one: gradients calculus.
 		FPositionHeights PosOldHeights = GetPositionHeights(IntegerPosOld, GridSize);
@@ -367,12 +345,12 @@ void UErosionLibrary::Erosion(FDrop Drop, const int32 GridSize)
 			PosOldHeights.X1_Y1 - PosOldHeights.X1_Y
 		);
 
-		UE_LOG(LogTemp, Warning, TEXT("Gradient on Drop's position: (%f, %f)"), DropPositionGradient.X, DropPositionGradient.Y);
+		//UE_LOG(LogTemp, Warning, TEXT("Gradient on Drop's position: (%f, %f)"), DropPositionGradient.X, DropPositionGradient.Y);
 
 		// Phase three: inertia blends.
 		Drop.Direction = Drop.Direction * Inertia - DropPositionGradient * (1 - Inertia);
 
-		UE_LOG(LogTemp, Warning, TEXT("New direction: (%f, %f)"), Drop.Direction.X, Drop.Direction.Y);
+		//UE_LOG(LogTemp, Warning, TEXT("New direction: (%f, %f)"), Drop.Direction.X, Drop.Direction.Y);
 
 		// Phase three.five: inertia blends.
 		if (Drop.Direction.SquaredLength() > 0)
@@ -396,14 +374,10 @@ void UErosionLibrary::Erosion(FDrop Drop, const int32 GridSize)
 			return;
 		}
 
-		UE_LOG(LogTemp, Warning, TEXT("New position: (%f, %f)"), Drop.Position.X, Drop.Position.Y);
+		//UE_LOG(LogTemp, Warning, TEXT("New position: (%f, %f)"), Drop.Position.X, Drop.Position.Y);
 
 		InitWeights(Drop.Position, GridSize);
-
-#pragma region Test
-		//Drop.Position = FVector2D(1.168711f, 0.252809f);
-#pragma endregion
-
+		
 		// Phase five: heights difference.
 		const float HeightPosOld = GetBilinearInterpolation(OffsetPosOld, PosOldHeights);
 
@@ -415,25 +389,20 @@ void UErosionLibrary::Erosion(FDrop Drop, const int32 GridSize)
 		const float HeightPosNew = GetBilinearInterpolation(OffsetPosNew, PosNewHeights);
 		const float HeightsDifference = HeightPosNew - HeightPosOld;
 
-		UE_LOG(LogTemp, Warning, TEXT("Heights Difference: %f"), HeightsDifference);
+		//UE_LOG(LogTemp, Warning, TEXT("Heights Difference: %f"), HeightsDifference);
 
 		// Phase six: deposit and erosion calculus.
-		float Deposit = 0, Erosion = 0;
-
-#pragma region Test
-		//Drop.Velocity = 1;
-#pragma endregion
 
 		// Capacity calculus.
 		const float C = FMath::Max(-HeightsDifference, MinimalSlope) * Drop.Velocity * Drop.Water * Capacity;
 
-		UE_LOG(LogTemp, Warning, TEXT("C: %f"), C);
+		//UE_LOG(LogTemp, Warning, TEXT("C: %f"), C);
 
 		const bool bDropHasMovingUp = HeightsDifference > 0;
 
 		if (const bool bDropHasToDeposit = Sediment > C; bDropHasMovingUp || bDropHasToDeposit)
 		{
-			Deposit = bDropHasMovingUp
+			float Deposit = bDropHasMovingUp
 				          ? Deposit = FMath::Min(HeightsDifference, Sediment)
 				          : (Sediment - C) * DepositionSpeed;
 			Sediment -= Deposit;
@@ -442,50 +411,34 @@ void UErosionLibrary::Erosion(FDrop Drop, const int32 GridSize)
 		}
 		else
 		{
-			Erosion = FMath::Min((C - Sediment) * ErosionSpeed, -HeightsDifference);
+			float Erosion = FMath::Min((C - Sediment) * ErosionSpeed, -HeightsDifference);
 
 			TArray<float> ErosionValues = GetErosionOnPoints(Erosion);
-
-#pragma region Test
-			/*
-			
-			ErosionValues.Empty();
-			ErosionValues.Add(0.07f);
-			ErosionValues.Add(0.27f);
-			ErosionValues.Add(0.39f);
-			
-			*/
-#pragma endregion
 
 			for (int32 Index = 0; Index < Points.Num(); Index++)
 			{
 				const int32 MapIndex = Points[Index].X + Points[Index].Y * GridSize;
-				Sediment += GridHeights[MapIndex] < ErosionValues[Index] ? GridHeights[MapIndex] : ErosionValues[Index];
-
 				GridHeights[MapIndex] -= ErosionValues[Index];
+				Sediment += GridHeights[MapIndex] < ErosionValues[Index] ? GridHeights[MapIndex] : ErosionValues[Index];
 			}
 		}
 
-		UE_LOG(LogTemp, Warning, TEXT("Deposit: %f"), Deposit);
-		UE_LOG(LogTemp, Warning, TEXT("Erosion: %f"), Erosion);
+		//UE_LOG(LogTemp, Warning, TEXT("Deposit: %f"), Deposit);
+		//UE_LOG(LogTemp, Warning, TEXT("Erosion: %f"), Erosion);
 
 		// Phase seven: drop's mutation. The original formula take "HeightsDifference" without minus.
 		const float VelocityValue = ((Drop.Velocity * Drop.Velocity) + (-HeightsDifference * Gravity));
 		const float Velocity = VelocityValue > 0 ? VelocityValue : 0;
 		Drop.Velocity = FMath::Sqrt(Velocity);
 
-#pragma region Test
-		//Drop.Water = 3;
-#pragma endregion
-
 		Drop.Water = Drop.Water * (1 - Evaporation);
 
-		UE_LOG(LogTemp, Warning, TEXT("New Velocity: %f"), Drop.Velocity);
-		UE_LOG(LogTemp, Warning, TEXT("New Water: %f"), Drop.Water);
+		//UE_LOG(LogTemp, Warning, TEXT("New Velocity: %f"), Drop.Velocity);
+		//UE_LOG(LogTemp, Warning, TEXT("New Water: %f"), Drop.Water);
 
-		UE_LOG(LogTemp, Warning, TEXT("Iteration number: %d"), (Cycle + 1));
+		//UE_LOG(LogTemp, Warning, TEXT("Iteration number: %d"), (Cycle + 1));
 
-		UE_LOG(LogTemp, Warning, TEXT("-----------------------------------------------------------"));
+		//UE_LOG(LogTemp, Warning, TEXT("-----------------------------------------------------------"));
 	}
 }
 
@@ -493,33 +446,20 @@ void UErosionLibrary::InitWeights(const FVector2D& DropPosition, const int32 Gri
 {
 	Weights.Reset();
 	Points.Reset();
-	
-#pragma region Test
-	/*
-	
-	Points = TArray<FVector2D>({
-		FVector2D(1, 1),
-		FVector2D(1, 2),
-		FVector2D(2, 2)
-	});
-		
-	*/
-
-	//DropPosition = FVector2D(2, 2);
-#pragma endregion
 
 	float RelativeWeightsSum = 0;
 	TArray<float> RelativeWeights;
 
 	SetPointsPositionInRadius(DropPosition, GridSize);
 
+	// Optimize.
 	for (int32 Index = 0; Index < Points.Num(); Index++)
 	{
 		RelativeWeights.Add(GetRelativeWeightOnPoint(DropPosition, Points[Index]));
 		RelativeWeightsSum += RelativeWeights[Index];
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("RelativeWeightsSum: %f"), RelativeWeightsSum);
+	//UE_LOG(LogTemp, Warning, TEXT("RelativeWeightsSum: %f"), RelativeWeightsSum);
 
 	for (int32 Index = 0; Index < Points.Num(); Index++)
 	{
@@ -534,9 +474,9 @@ void UErosionLibrary::ErosionHandler(const int32 GridSize)
 		const FDrop Drop = GenerateDropInitialParams(GridSize);
 
 		Erosion(Drop, GridSize);
-		UE_LOG(LogTemp, Warning, TEXT("DROP IS DEAD!"));
-		UE_LOG(LogTemp, Warning, TEXT("-----------------------------------------------------------"));
+		//UE_LOG(LogTemp, Warning, TEXT("DROP IS DEAD!"));
+		//UE_LOG(LogTemp, Warning, TEXT("-----------------------------------------------------------"));
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("EROSION ENDED!"));
+	//UE_LOG(LogTemp, Warning, TEXT("EROSION ENDED!"));
 }
