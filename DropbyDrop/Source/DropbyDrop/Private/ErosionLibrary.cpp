@@ -1,15 +1,15 @@
 #include "ErosionLibrary.h"
 
-int32 UErosionLibrary::ErosionCycles = 100;
-float UErosionLibrary::Inertia = 0.4; // pInertia
+int32 UErosionLibrary::ErosionCycles = 50000;
+float UErosionLibrary::Inertia = 0.3; // pInertia
 float UErosionLibrary::Capacity = 8; // pCapacity
-float UErosionLibrary::MinimalSlope = 1; // pMinSlope
-float UErosionLibrary::DepositionSpeed = 0.7; // pDeposition
-float UErosionLibrary::ErosionSpeed = 0.6; // pErosion
-float UErosionLibrary::Gravity = 0.8; // pGravity
-float UErosionLibrary::Evaporation = 0.01; // pEvaporation
+float UErosionLibrary::MinimalSlope = 0.01; // pMinSlope
+float UErosionLibrary::DepositionSpeed = 0.2; // pDeposition
+float UErosionLibrary::ErosionSpeed = 0.7; // pErosion
+float UErosionLibrary::Gravity = 10; // pGravity
+float UErosionLibrary::Evaporation = 0.02; // pEvaporation
 float UErosionLibrary::MaxPath = 64; // pMaxPath
-int32 UErosionLibrary::ErosionRadius = 2; // pRadius
+int32 UErosionLibrary::ErosionRadius = 4; // pRadius
 
 TArray<float> UErosionLibrary::GridHeights = TArray<float>();
 TArray<FVector2D> UErosionLibrary::Points = TArray<FVector2D>();
@@ -229,10 +229,6 @@ void UErosionLibrary::SetPointsPositionInRadius(const FVector2D& DropPosition, c
 			}
 
 			FVector2D Position(PosX, PosY);
-
-			UE_LOG(LogTemp, Warning, TEXT("Points Pointer: %p"), &Points);
-			UE_LOG(LogTemp, Warning, TEXT("Points Num: %d"), Points.Num());
-
 			Points.Add(Position);
 		}
 	}
