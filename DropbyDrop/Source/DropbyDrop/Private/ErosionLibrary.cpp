@@ -1,14 +1,14 @@
 #include "ErosionLibrary.h"
 
 int32 UErosionLibrary::ErosionCycles = 70000;
-float UErosionLibrary::Inertia = 0.05; // pInertia
-float UErosionLibrary::Capacity = 4; // pCapacity
-float UErosionLibrary::MinimalSlope = 0.01; // pMinSlope
-float UErosionLibrary::DepositionSpeed = 0.3; // pDeposition
-float UErosionLibrary::ErosionSpeed = 0.3; // pErosion 
-float UErosionLibrary::Gravity = 4; // pGravity
-float UErosionLibrary::Evaporation = 0.01; // pEvaporation 
-float UErosionLibrary::MaxPath = 30; // pMaxPath 
+float UErosionLibrary::Inertia = 0.05f; // pInertia
+float UErosionLibrary::Capacity = 4.f; // pCapacity
+float UErosionLibrary::MinimalSlope = 0.01f; // pMinSlope
+float UErosionLibrary::DepositionSpeed = 0.3f; // pDeposition
+float UErosionLibrary::ErosionSpeed = 0.3f; // pErosion 
+float UErosionLibrary::Gravity = 4.f; // pGravity
+float UErosionLibrary::Evaporation = 0.01f; // pEvaporation 
+float UErosionLibrary::MaxPath = 30.f; // pMaxPath 
 int32 UErosionLibrary::ErosionRadius = 3; // pRadius 
 
 TArray<float> UErosionLibrary::GridHeights = TArray<float>();
@@ -114,6 +114,7 @@ FDrop UErosionLibrary::GenerateDropInitialParams(const int32 GridSize) // GridSi
 
 	Drop.Position = FVector2D(FMath::RandRange(0.f, static_cast<float>(GridSize - 1)), FMath::RandRange(0.f, static_cast<float>(GridSize - 1)));
 	Drop.Direction = FVector2D(FMath::RandRange(-1.f, 1.f), FMath::RandRange(-1.f, 1.f));
+	
 	Drop.Velocity = 1;
 	Drop.Water = 1;
 
@@ -185,9 +186,9 @@ FPositionHeights UErosionLibrary::GetPositionHeights(const FVector2D& IntegerPos
 			PositionHeights.X1_Y1 = GridHeights[(IntegerPosition.X + 1) + IntegerPosition.Y * GridSize];
 			break;
 		case No_Error:
-			PositionHeights.X_Y = GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize]; // P(x, y)
-			PositionHeights.X1_Y = GridHeights[(IntegerPosition.X + 1) + IntegerPosition.Y * GridSize]; // P(x + 1, y)
-			PositionHeights.X_Y1 = GridHeights[(IntegerPosition.X + GridSize) + IntegerPosition.Y * GridSize]; // P(x, y + 1)
+			PositionHeights.X_Y = GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize];					// P(x, y)
+			PositionHeights.X1_Y = GridHeights[(IntegerPosition.X + 1) + IntegerPosition.Y * GridSize];				// P(x + 1, y)
+			PositionHeights.X_Y1 = GridHeights[(IntegerPosition.X + GridSize) + IntegerPosition.Y * GridSize];		// P(x, y + 1)
 			PositionHeights.X1_Y1 = GridHeights[(IntegerPosition.X + GridSize + 1) + IntegerPosition.Y * GridSize]; // P(x + 1, y + 1)
 			break;
 	}
@@ -325,17 +326,6 @@ void UErosionLibrary::Erosion(FDrop Drop, const int32 GridSize)
 			FVector2D GradientX1_Y1 = GetGradient(X1_Y1, X_Y1, X1_Y1, X1_Y);
 		*/
 
-#pragma region Test
-		/*
-		
-		PosOldHeights.X_Y = 4;
-		PosOldHeights.X1_Y = 6;
-		PosOldHeights.X_Y1 = 8;
-		PosOldHeights.X1_Y1 = 9;
-		
-		*/
-#pragma endregion
-
 		// Phase two: bilinear interpolation between gradients.
 		FVector2D DropPositionGradient = GetPairedLinearInterpolation(
 			OffsetPosOld,
@@ -399,15 +389,14 @@ void UErosionLibrary::Erosion(FDrop Drop, const int32 GridSize)
 		//UE_LOG(LogTemp, Warning, TEXT("C: %f"), C);
 
 		const bool bDropHasMovingUp = HeightsDifference > 0;
-
-		if (const bool bDropHasToDeposit = Sediment > C; bDropHasMovingUp || bDropHasToDeposit)
+		const bool bDropHasToDeposit = Sediment > C;
+		
+		if (bDropHasMovingUp || bDropHasToDeposit)
 		{
-			float Deposit = bDropHasMovingUp
-				          ? Deposit = FMath::Min(HeightsDifference, Sediment)
-				          : (Sediment - C) * DepositionSpeed;
-			Sediment -= Deposit;
+			float Deposit = bDropHasMovingUp ? Deposit = FMath::Min(HeightsDifference, Sediment) : (Sediment - C) * DepositionSpeed;
 
 			ComputeDepositOnPoints(IntegerPosOld, OffsetPosOld, Deposit, GridSize);
+			Sediment -= Deposit;
 		}
 		else
 		{
@@ -418,17 +407,19 @@ void UErosionLibrary::Erosion(FDrop Drop, const int32 GridSize)
 			for (int32 Index = 0; Index < Points.Num(); Index++)
 			{
 				const int32 MapIndex = Points[Index].X + Points[Index].Y * GridSize;
-				GridHeights[MapIndex] -= ErosionValues[Index];
-				Sediment += GridHeights[MapIndex] < ErosionValues[Index] ? GridHeights[MapIndex] : ErosionValues[Index];
+
+				const float DeltaSediment = GridHeights[MapIndex] < ErosionValues[Index] ? GridHeights[MapIndex] : ErosionValues[Index];
+				
+				GridHeights[MapIndex] -= DeltaSediment;
+				Sediment += DeltaSediment;
 			}
 		}
-
+		
 		//UE_LOG(LogTemp, Warning, TEXT("Deposit: %f"), Deposit);
 		//UE_LOG(LogTemp, Warning, TEXT("Erosion: %f"), Erosion);
 
-		// Phase seven: drop's mutation. The original formula take "HeightsDifference" without minus.
-		const float VelocityValue = ((Drop.Velocity * Drop.Velocity) + (-HeightsDifference * Gravity));
-		const float Velocity = VelocityValue > 0 ? VelocityValue : 0;
+		// Phase seven: drop's mutation.
+		const float Velocity = ((Drop.Velocity * Drop.Velocity) + FMath::Abs(HeightsDifference) * Gravity);
 		Drop.Velocity = FMath::Sqrt(Velocity);
 
 		Drop.Water = Drop.Water * (1 - Evaporation);
