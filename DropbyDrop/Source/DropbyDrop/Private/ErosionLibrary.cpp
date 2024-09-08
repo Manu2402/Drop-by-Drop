@@ -1,15 +1,15 @@
 #include "ErosionLibrary.h"
 
-int32 UErosionLibrary::ErosionCycles = 70000;
-float UErosionLibrary::Inertia = 0.05f; // pInertia
-float UErosionLibrary::Capacity = 4.f; // pCapacity
+int32 UErosionLibrary::ErosionCycles = 50000;
+float UErosionLibrary::Inertia = 0.3; // pInertia
+float UErosionLibrary::Capacity = 8; // pCapacity
 float UErosionLibrary::MinimalSlope = 0.01f; // pMinSlope
-float UErosionLibrary::DepositionSpeed = 0.3f; // pDeposition
-float UErosionLibrary::ErosionSpeed = 0.3f; // pErosion 
-float UErosionLibrary::Gravity = 4.f; // pGravity
-float UErosionLibrary::Evaporation = 0.01f; // pEvaporation 
-float UErosionLibrary::MaxPath = 30.f; // pMaxPath 
-int32 UErosionLibrary::ErosionRadius = 3; // pRadius 
+float UErosionLibrary::DepositionSpeed = 0.2f; // pDeposition
+float UErosionLibrary::ErosionSpeed = 0.7f; // pErosion 
+float UErosionLibrary::Gravity = 10; // pGravity
+float UErosionLibrary::Evaporation = 0.02f; // pEvaporation 
+float UErosionLibrary::MaxPath = 64; // pMaxPath 
+int32 UErosionLibrary::ErosionRadius = 4; // pRadius 
 
 TArray<float> UErosionLibrary::GridHeights = TArray<float>();
 TArray<FVector2D> UErosionLibrary::Points = TArray<FVector2D>();
@@ -195,7 +195,7 @@ void UErosionLibrary::SetPointsPositionInRadius(const FVector2D& DropPosition, c
 			const float PosX = FMath::Floor(DropPosition.X) + X;
 			const float PosY = FMath::Floor(DropPosition.Y) + Y;
 
-			if (PosX < 0 || PosX >= GridSize || PosY < 0 || PosY >= GridSize)
+			if (PosX <= 0 || PosX >= GridSize - 1 || PosY <= 0 || PosY >= GridSize - 1)
 			{
 				continue;
 			}
@@ -242,8 +242,7 @@ void UErosionLibrary::Erosion(FDrop Drop, const int32 GridSize)
 		FVector2D IntegerPosOld = FVector2D(FMath::Floor(Drop.Position.X), FMath::Floor(Drop.Position.Y)); // (x, y)
 		FVector2D OffsetPosOld = FVector2D(Drop.Position.X - IntegerPosOld.X, Drop.Position.Y - IntegerPosOld.Y);
 
-		// Ignoring all borders, 'cause produce inconsistent calculus.
-		// Maybe remove borders?
+		// Ignoring all borders, 'cause produce inconsistent calculus. // Maybe remove borders?
 		if (Drop.Position.X <= 0 || Drop.Position.X >= GridSize - 1 || Drop.Position.Y <= 0 || Drop.Position.Y >= GridSize - 1)
 		{
 			return;
@@ -355,8 +354,8 @@ void UErosionLibrary::Erosion(FDrop Drop, const int32 GridSize)
 		//UE_LOG(LogTemp, Warning, TEXT("Erosion: %f"), Erosion);
 
 		// Phase seven: drop's mutation.
-		const float Velocity = ((Drop.Velocity * Drop.Velocity) + FMath::Abs(HeightsDifference) * Gravity);
-		Drop.Velocity = FMath::Sqrt(Velocity);
+		const float Velocity = ((Drop.Velocity * Drop.Velocity) + (-HeightsDifference) * Gravity);
+		Drop.Velocity = Velocity > 0 ? FMath::Sqrt(Velocity) : 0;
 
 		Drop.Water = Drop.Water * (1 - Evaporation);
 
@@ -378,8 +377,7 @@ void UErosionLibrary::InitWeights(const FVector2D& DropPosition, const int32 Gri
 	TArray<float> RelativeWeights;
 
 	SetPointsPositionInRadius(DropPosition, GridSize);
-
-	// Optimize.
+	
 	for (int32 Index = 0; Index < Points.Num(); Index++)
 	{
 		RelativeWeights.Add(GetRelativeWeightOnPoint(DropPosition, Points[Index]));
