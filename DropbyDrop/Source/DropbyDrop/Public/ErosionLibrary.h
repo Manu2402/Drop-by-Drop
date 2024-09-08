@@ -26,15 +26,6 @@ struct FPositionHeights
 	float X1_Y1;
 };
 
-UENUM()
-enum EOutOfBoundResult : uint8
-{
-	No_Error,
-	Error_Right,
-	Error_Down,
-	Error_Right_Down
-};
-
 UCLASS(Blueprintable)
 class DROPBYDROP_API UErosionLibrary : public UBlueprintFunctionLibrary
 {
@@ -119,6 +110,4 @@ private:
 
 	static TArray<float> GetErosionOnPoints(const float& ErosionFactor);
 	static void ComputeDepositOnPoints(const FVector2D& IntegerPosition, const FVector2D& OffsetPosition, const float& Deposit, const int32 GridSize);
-
-	static EOutOfBoundResult GetOutOfBoundResult(const FVector2D& IntegerPosition, const int32 GridSize);
 };
