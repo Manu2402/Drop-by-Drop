@@ -40,33 +40,83 @@ public:
 #pragma region Parameters
 	//UPROPERTY(EditAnywhere)
 	static int32 ErosionCycles; // erosionCycles
+	UFUNCTION(BlueprintCallable, Category = "Erosion")
+	static void SetErosion(int32 NewErosionCycles)
+	{
+		ErosionCycles = NewErosionCycles;
+	}
 	
 	//UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1")) // [0, 1]
 	static float Inertia; // pInertia
-
+	UFUNCTION(BlueprintCallable, Category = "Erosion")
+	static void SetInertia(float NewInertia)
+	{
+		Inertia = NewInertia;
+	}
+	
 	//UPROPERTY(EditAnywhere)
 	static float Capacity; // pCapacity
-
+	UFUNCTION(BlueprintCallable, Category = "Erosion")
+	static void SetCapacity(float NewCapacity)
+	{
+		Capacity = NewCapacity;
+	}
+	
 	//UPROPERTY(EditAnywhere)
 	static float MinimalSlope; // pMinSlope
-
+	UFUNCTION(BlueprintCallable, Category = "Erosion")
+	static void SetMinimalSlope(float NewMinimalSlope)
+	{
+		MinimalSlope = NewMinimalSlope;
+	}
+	
 	//UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1"))
 	static float DepositionSpeed; // pDeposition
-
+	UFUNCTION(BlueprintCallable, Category = "Erosion")
+	static void SetDepositionSpeed(float NewDepositionSpeed)
+	{
+		DepositionSpeed = NewDepositionSpeed;
+	}
+	
 	//UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1"))
 	static float ErosionSpeed; // pErosion
-
+	UFUNCTION(BlueprintCallable, Category = "Erosion")
+	static void SetErosionSpeed(float NewErosionSpeed)
+	{
+		ErosionSpeed = NewErosionSpeed;
+	}
+	
 	//UPROPERTY(EditAnywhere)
 	static float Gravity; // pGravity
-
+	UFUNCTION(BlueprintCallable, Category = "Erosion")
+	static void SetGravity(float NewGravity)
+	{
+		Gravity = NewGravity;
+	}
+	
 	//UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1"))
 	static float Evaporation; // pEvaporation
-
+	UFUNCTION(BlueprintCallable, Category = "Erosion")
+	static void SetEvaporation(float NewEvaporation)
+	{
+		Evaporation = NewEvaporation;
+	}
+	
 	//UPROPERTY(EditAnywhere)
 	static float MaxPath; // pMaxPath
-
+	UFUNCTION(BlueprintCallable, Category = "Erosion")
+	static void SetMaxPath(float NewMaxPath)
+	{
+		MaxPath = NewMaxPath;
+	}
+	
 	//UPROPERTY(EditAnywhere)
-	static int32 ErosionRadius; // pRadius
+	static int32 ErosionRadius;
+	UFUNCTION(BlueprintCallable, Category = "Erosion")
+	static void SetErosionRadius(int32 NewErosionRadius)
+	{
+		ErosionRadius = NewErosionRadius;
+	}// pRadius
 #pragma endregion
 
 public:	

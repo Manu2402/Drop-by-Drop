@@ -16,6 +16,7 @@ float UGeneratorHeightMapLibrary::Persistence = 0.45f;
 float UGeneratorHeightMapLibrary::Lacunarity = 2.f;
 float UGeneratorHeightMapLibrary::InitialScale = 1.8f;
 int32 UGeneratorHeightMapLibrary::Size = 505;
+float UGeneratorHeightMapLibrary::MaxHeightDifference = 1;
 
 void UGeneratorHeightMapLibrary::GenerateErosion()
 {
@@ -196,6 +197,9 @@ TArray<float> UGeneratorHeightMapLibrary::GenerateHeightMapCPU(int32 MapSize)
 		for (int32 i = 0; i < HeightMap.Num(); i++)
 		{
 			HeightMap[i] = (HeightMap[i] - MinValue) / (MaxValue - MinValue);
+
+			// Scale the heightmap based on MaxHeightDifference
+			HeightMap[i] = HeightMap[i] * MaxHeightDifference;
 		}
 	}
 	return HeightMap;

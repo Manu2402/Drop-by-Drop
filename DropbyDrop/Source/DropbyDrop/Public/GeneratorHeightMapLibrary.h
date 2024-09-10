@@ -39,7 +39,8 @@ public:
 	static float Lacunarity;
 	static float InitialScale;
 	static int32 Size;
-
+	static  float MaxHeightDifference;
+	
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void GenerateErosion();
 
@@ -82,6 +83,12 @@ public:
 	static void SetSize(int32 NewSize)
 	{
 		Size = NewSize;
+	}
+	
+	UFUNCTION(BlueprintCallable, Category = "Heightmap")
+	static void SetMaxHeightDifference(float NewMaxHeightDifference) //[0,1]
+	{
+		MaxHeightDifference = NewMaxHeightDifference;
 	}
 	
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
