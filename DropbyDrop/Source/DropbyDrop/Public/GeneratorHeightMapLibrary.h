@@ -32,6 +32,7 @@ public:
 	float InitialScale = 1.8f;
 */
 
+	//Param HeightMap
 	static int32 Seed;
 	static bool bRandomizeSeed;
 	static int32 NumOctaves;
@@ -40,7 +41,21 @@ public:
 	static float InitialScale;
 	static int32 Size;
 	static  float MaxHeightDifference;
+
+	//Param LandScape
+	static int32 SectionSize;
+	UFUNCTION(BlueprintCallable, Category = "Heightmap")
+	static void SetSectionSize(const int32 NewSectionSize)
+	{
+		SectionSize = NewSectionSize;
+	}
 	
+	static int32 NumSubsections;
+	UFUNCTION(BlueprintCallable, Category = "Heightmap")
+	static void SetNumSubsections(const int32 NewNumSubsections)
+	{
+		NumSubsections = NewNumSubsections;
+	}
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void GenerateErosion();
 
@@ -83,6 +98,11 @@ public:
 	static void SetSize(int32 NewSize)
 	{
 		Size = NewSize;
+	}
+	UFUNCTION(BlueprintCallable, Category = "Heightmap")
+	static int32 GetMapSize()
+	{
+		return Size;
 	}
 	
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")

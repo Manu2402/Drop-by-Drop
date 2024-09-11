@@ -18,6 +18,10 @@ float UGeneratorHeightMapLibrary::InitialScale = 1.8f;
 int32 UGeneratorHeightMapLibrary::Size = 505;
 float UGeneratorHeightMapLibrary::MaxHeightDifference = 1;
 
+//LandScapeParam
+int32 UGeneratorHeightMapLibrary::SectionSize = 63;
+int32 UGeneratorHeightMapLibrary::NumSubsections = 1;
+
 void UGeneratorHeightMapLibrary::GenerateErosion()
 {
 	UErosionLibrary::ErosionHandler(Size);
@@ -40,7 +44,8 @@ void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& Heightm
 		return;
 	}
 	
-	TArray<uint16> HeightData = ConvertFloatArrayToUint16(UErosionLibrary::GetHeights());
+	//TArray<uint16> HeightData = ConvertFloatArrayToUint16(UErosionLibrary::GetHeights());
+	TArray<uint16> HeightData = ConvertFloatArrayToUint16(GenerateHeightMapCPU(Size));
 
 	const FTransform LandscapeTransform = FTransform(FQuat(FRotator::ZeroRotator), FVector(0, 0, 0), FVector(100, 100, 100));
 
@@ -72,24 +77,27 @@ TArray<uint16> UGeneratorHeightMapLibrary::ConvertFloatArrayToUint16(const TArra
 ALandscape* UGeneratorHeightMapLibrary::CallLandscape(const FTransform& LandscapeTransform, TArray<uint16>& Heightmap)
 {
 	int32 HeightmapSize = Size;
-	const int32 SectionSize = 63;
-	const int32 SectionsPerComponent = 1;
+	//const int32 SectionSize = 127;
+	//const int32 NumSubsections = 2;
 	//Get Quads
-	int32 QuadsPerComponent = SectionSize * SectionsPerComponent;  //63 
+	int32 SubsectionSizeQuads = SectionSize * NumSubsections;  //63 
 	// Calcola il numero di componenti in X e Y
-	int32 ComponentCountX = (HeightmapSize - 1) / QuadsPerComponent;
-	int32 ComponentCountY = (HeightmapSize - 1) / QuadsPerComponent;
-	
-	// Calculate the total size of the landscape in quads
-	int32 SizeX = ComponentCountX * QuadsPerComponent + 1 ;  // 8 * (63 * 1) + 1 = 505 
-	int32 SizeY = ComponentCountY * QuadsPerComponent + 1 ;
+	int32 ComponentCountX = (HeightmapSize - 1) / SubsectionSizeQuads;
+	int32 ComponentCountY = (HeightmapSize - 1) / SubsectionSizeQuads;
 
+	// Calcola il numero di componenti necessari in X e Y
+
+	// Calculate the total size of the landscape in quads
+	int32 MaxX = ComponentCountX * SubsectionSizeQuads + 1 ;  // 8 * (63 * 1) + 1 = 505 
+	int32 MaxY = ComponentCountY * SubsectionSizeQuads + 1 ;
+	
+	
 	// Verify that the heightmap size matches the calculated size
 	//int32 ExpectedSize = SizeX * SizeY;
-	if (SizeX != HeightmapSize || SizeY != HeightmapSize)
+	if (MaxX != HeightmapSize || MaxY != HeightmapSize)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Dimensioni calcolate (%d x %d) non corrispondono alla dimensione dell'heightmap (%d x %d)."),
-			   SizeX, SizeY, HeightmapSize, HeightmapSize);
+			   MaxX, MaxY, HeightmapSize, HeightmapSize);
 		return nullptr;
 	}
 
@@ -115,7 +123,7 @@ ALandscape* UGeneratorHeightMapLibrary::CallLandscape(const FTransform& Landscap
 	Landscape->bCanHaveLayersContent = false;
 	Landscape->LandscapeMaterial = nullptr;
 	// Assign an appropriate material if needed
-
+	
 	   // Set the landscape transform
 	Landscape->SetActorTransform(LandscapeTransform);
 	
@@ -123,9 +131,9 @@ ALandscape* UGeneratorHeightMapLibrary::CallLandscape(const FTransform& Landscap
 		Landscape->Import(
 			FGuid::NewGuid(),
 			0, 0,
-			SizeX -1, SizeY-1,
-			SectionsPerComponent,
-			QuadsPerComponent,
+			MaxX -1, MaxY -1,// -1, MaxY-1,
+			NumSubsections,
+			SubsectionSizeQuads,
 			HeightDataPerLayer,
 			nullptr,
 			MaterialLayerDataPerLayer,
