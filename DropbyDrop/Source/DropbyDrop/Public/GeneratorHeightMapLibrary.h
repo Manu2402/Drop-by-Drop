@@ -132,4 +132,6 @@ public:
 	//Main Function
 	UFUNCTION(BlueprintCallable, Category = "HeightMap")
 	static void CreateHeightMap(int32 MapSize);
+	
+	static TArray<float> HeightMap;
 };

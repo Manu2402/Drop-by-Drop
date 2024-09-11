@@ -22,8 +22,12 @@ float UGeneratorHeightMapLibrary::MaxHeightDifference = 1;
 int32 UGeneratorHeightMapLibrary::SectionSize = 63;
 int32 UGeneratorHeightMapLibrary::NumSubsections = 1;
 
+TArray<float> UGeneratorHeightMapLibrary::HeightMap;
+
 void UGeneratorHeightMapLibrary::GenerateErosion()
 {
+	UErosionLibrary::SetHeights(HeightMap); // Put it into if
+
 	UErosionLibrary::ErosionHandler(Size);
 	
 	TArray<uint16> ErodedHeightmapU16 = ConvertFloatArrayToUint16(UErosionLibrary::GetHeights());
@@ -45,7 +49,7 @@ void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& Heightm
 	}
 	
 	//TArray<uint16> HeightData = ConvertFloatArrayToUint16(UErosionLibrary::GetHeights());
-	TArray<uint16> HeightData = ConvertFloatArrayToUint16(GenerateHeightMapCPU(Size));
+	TArray<uint16> HeightData = ConvertFloatArrayToUint16(HeightMap);
 
 	const FTransform LandscapeTransform = FTransform(FQuat(FRotator::ZeroRotator), FVector(0, 0, 0), FVector(100, 100, 100));
 
@@ -152,8 +156,8 @@ ALandscape* UGeneratorHeightMapLibrary::CallLandscape(const FTransform& Landscap
 
 TArray<float> UGeneratorHeightMapLibrary::GenerateHeightMapCPU(int32 MapSize)
 {
-	TArray<float> HeightMap;
-	HeightMap.SetNum(MapSize * MapSize);
+	TArray<float> HeightMapValues;
+	HeightMapValues.SetNum(MapSize * MapSize);
 
 	// Seed handling
 	Seed = bRandomizeSeed ? FMath::RandRange(-10000, 10000) : Seed;
@@ -192,7 +196,7 @@ TArray<float> UGeneratorHeightMapLibrary::GenerateHeightMapCPU(int32 MapSize)
 				Scale *= Lacunarity; //Scale the position P with the frequence of the octave
 			}
 
-			HeightMap[y * MapSize + x] = NoiseValue;
+			HeightMapValues[y * MapSize + x] = NoiseValue;
 			MinValue = FMath::Min(MinValue, NoiseValue);
 			MaxValue = FMath::Max(MaxValue, NoiseValue);
 		}
@@ -202,15 +206,15 @@ TArray<float> UGeneratorHeightMapLibrary::GenerateHeightMapCPU(int32 MapSize)
 	// Normalize heightmap values (if necessary)
 	if (MinValue != MaxValue)
 	{
-		for (int32 i = 0; i < HeightMap.Num(); i++)
+		for (int32 i = 0; i < HeightMapValues.Num(); i++)
 		{
-			HeightMap[i] = (HeightMap[i] - MinValue) / (MaxValue - MinValue);
+			HeightMapValues[i] = (HeightMapValues[i] - MinValue) / (MaxValue - MinValue);
 
 			// Scale the heightmap based on MaxHeightDifference
-			HeightMap[i] = HeightMap[i] * MaxHeightDifference;
+			HeightMapValues[i] = HeightMapValues[i] * MaxHeightDifference;
 		}
 	}
-	return HeightMap;
+	return HeightMapValues;
 }
 
 UTexture2D* UGeneratorHeightMapLibrary::CreateHeightMapTexture(const TArray<float>& HeightMapData, int32 Width,
@@ -354,7 +358,7 @@ void UGeneratorHeightMapLibrary::SaveTextureToFile(UTexture2D* Texture, const FS
 
 void UGeneratorHeightMapLibrary::CreateHeightMap(int32 MapSize)
 {
-	TArray<float> HeightMap = GenerateHeightMapCPU(MapSize);
+	HeightMap = GenerateHeightMapCPU(MapSize);
 
 	UErosionLibrary::SetHeights(HeightMap);
 	
