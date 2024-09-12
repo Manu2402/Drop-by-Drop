@@ -35,8 +35,7 @@ void UGeneratorHeightMapLibrary::GenerateErosion()
 	TArray<uint16> ErodedHeightmapU16 = ConvertFloatArrayToUint16(UErosionLibrary::GetHeights());
 
 	// Generate new landscape.
-	const FTransform LandscapeTransform = FTransform(FQuat(FRotator::ZeroRotator), FVector(0, 0, 0),
-	                                                 FVector(100, 100, 100));
+	const FTransform LandscapeTransform = GetNewTransform();
 
 	CallLandscape(LandscapeTransform, ErodedHeightmapU16);
 }
@@ -53,9 +52,22 @@ void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& Heightm
 
 	//TArray<uint16> HeightData = ConvertFloatArrayToUint16(UErosionLibrary::GetHeights());
 	TArray<uint16> HeightData = ConvertFloatArrayToUint16(HeightMap);
-
-
 	
+	FTransform LandscapeTransform = GetNewTransform();
+
+	//Create HeightMap
+
+	if (CallLandscape(LandscapeTransform, HeightData))
+	{
+		UE_LOG(LogTemp, Log, TEXT("Landscape created successfully!"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to create landscape."));
+	}
+}
+FTransform UGeneratorHeightMapLibrary::GetNewTransform()
+{
 	FVector NewScale;
 	//FTransform LandscapeTransform = FTransform(FQuat(FRotator::ZeroRotator), FVector(0, 0, 0), FVector(100, 100, 100));
 	if (bKilometers)
@@ -72,19 +84,8 @@ void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& Heightm
 	}
 
 	FTransform LandscapeTransform = FTransform(FQuat(FRotator::ZeroRotator), FVector(0, 0, 0), NewScale);
-
-	//Create HeightMap
-
-	if (CallLandscape(LandscapeTransform, HeightData))
-	{
-		UE_LOG(LogTemp, Log, TEXT("Landscape created successfully!"));
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to create landscape."));
-	}
+	return LandscapeTransform;
 }
-
 TArray<uint16> UGeneratorHeightMapLibrary::ConvertFloatArrayToUint16(const TArray<float>& FloatData)
 {
 	TArray<uint16> Uint16Data;
@@ -387,3 +388,5 @@ void UGeneratorHeightMapLibrary::CreateHeightMap(int32 MapSize)
 	FString FilePath = FPaths::ProjectDir() / TEXT("Saved/HeightMap/Heightmap.png");
 	SaveTextureToFile(Texture, FilePath);
 }
+
+

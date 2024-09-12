@@ -145,4 +145,8 @@ public:
 	static void CreateHeightMap(int32 MapSize);
 	
 	static TArray<float> HeightMap;
+
+private:
+	static FTransform GetNewTransform();
+	
 };
