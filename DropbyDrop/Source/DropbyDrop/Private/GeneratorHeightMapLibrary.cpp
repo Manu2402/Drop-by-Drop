@@ -21,6 +21,8 @@ float UGeneratorHeightMapLibrary::MaxHeightDifference = 1;
 //LandScapeParam
 int32 UGeneratorHeightMapLibrary::SectionSize = 63;
 int32 UGeneratorHeightMapLibrary::NumSubsections = 1;
+int32 UGeneratorHeightMapLibrary::Kilometers = 1;
+bool UGeneratorHeightMapLibrary::bKilometers = false;
 
 TArray<float> UGeneratorHeightMapLibrary::HeightMap;
 
@@ -29,12 +31,13 @@ void UGeneratorHeightMapLibrary::GenerateErosion()
 	UErosionLibrary::SetHeights(HeightMap); // Put it into if
 
 	UErosionLibrary::ErosionHandler(Size);
-	
+
 	TArray<uint16> ErodedHeightmapU16 = ConvertFloatArrayToUint16(UErosionLibrary::GetHeights());
 
 	// Generate new landscape.
-	const FTransform LandscapeTransform = FTransform(FQuat(FRotator::ZeroRotator), FVector(0, 0, 0), FVector(100, 100, 100));
-	
+	const FTransform LandscapeTransform = FTransform(FQuat(FRotator::ZeroRotator), FVector(0, 0, 0),
+	                                                 FVector(100, 100, 100));
+
 	CallLandscape(LandscapeTransform, ErodedHeightmapU16);
 }
 
@@ -47,13 +50,31 @@ void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& Heightm
 		UE_LOG(LogTemp, Error, TEXT("Failed to get editor world"));
 		return;
 	}
-	
+
 	//TArray<uint16> HeightData = ConvertFloatArrayToUint16(UErosionLibrary::GetHeights());
 	TArray<uint16> HeightData = ConvertFloatArrayToUint16(HeightMap);
 
-	const FTransform LandscapeTransform = FTransform(FQuat(FRotator::ZeroRotator), FVector(0, 0, 0), FVector(100, 100, 100));
+
+	
+	FVector NewScale;
+	//FTransform LandscapeTransform = FTransform(FQuat(FRotator::ZeroRotator), FVector(0, 0, 0), FVector(100, 100, 100));
+	if (bKilometers)
+	{
+		FVector CurrentScale = FVector(100, 100, 100);
+		float CurrentSizeInUnits = Size * CurrentScale.X;
+		float DesiredSizeInUnits = Kilometers * 1000.0f * 100.0f;
+		float ScaleFactor = DesiredSizeInUnits / CurrentSizeInUnits;
+		NewScale = CurrentScale * ScaleFactor;
+	}
+	else
+	{
+		NewScale = FVector(100, 100, 100);
+	}
+
+	FTransform LandscapeTransform = FTransform(FQuat(FRotator::ZeroRotator), FVector(0, 0, 0), NewScale);
 
 	//Create HeightMap
+
 	if (CallLandscape(LandscapeTransform, HeightData))
 	{
 		UE_LOG(LogTemp, Log, TEXT("Landscape created successfully!"));
@@ -81,27 +102,27 @@ TArray<uint16> UGeneratorHeightMapLibrary::ConvertFloatArrayToUint16(const TArra
 ALandscape* UGeneratorHeightMapLibrary::CallLandscape(const FTransform& LandscapeTransform, TArray<uint16>& Heightmap)
 {
 	int32 HeightmapSize = Size;
-	//const int32 SectionSize = 127;
-	//const int32 NumSubsections = 2;
-	//Get Quads
-	int32 SubsectionSizeQuads = SectionSize * NumSubsections;  //63 
-	// Calcola il numero di componenti in X e Y
-	int32 ComponentCountX = (HeightmapSize - 1) / SubsectionSizeQuads;
-	int32 ComponentCountY = (HeightmapSize - 1) / SubsectionSizeQuads;
 
-	// Calcola il numero di componenti necessari in X e Y
+	//Get Quads
+	int32 SubSectionSizeQuads = SectionSize * NumSubsections;
+
+	// Calcola il numero di componenti in X e Y
+	int32 ComponentCountX = HeightmapSize / SubSectionSizeQuads;
+	int32 ComponentCountY = HeightmapSize / SubSectionSizeQuads;
+
 
 	// Calculate the total size of the landscape in quads
-	int32 MaxX = ComponentCountX * SubsectionSizeQuads + 1 ;  // 8 * (63 * 1) + 1 = 505 
-	int32 MaxY = ComponentCountY * SubsectionSizeQuads + 1 ;
-	
-	
+	int32 MaxX = ComponentCountX * SubSectionSizeQuads + 1;
+	int32 MaxY = ComponentCountY * SubSectionSizeQuads + 1;
+
+
 	// Verify that the heightmap size matches the calculated size
 	//int32 ExpectedSize = SizeX * SizeY;
 	if (MaxX != HeightmapSize || MaxY != HeightmapSize)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Dimensioni calcolate (%d x %d) non corrispondono alla dimensione dell'heightmap (%d x %d)."),
-			   MaxX, MaxY, HeightmapSize, HeightmapSize);
+		UE_LOG(LogTemp, Error,
+		       TEXT("Dimensioni calcolate (%d x %d) non corrispondono alla dimensione dell'heightmap (%d x %d)."),
+		       MaxX, MaxY, HeightmapSize, HeightmapSize);
 		return nullptr;
 	}
 
@@ -127,31 +148,31 @@ ALandscape* UGeneratorHeightMapLibrary::CallLandscape(const FTransform& Landscap
 	Landscape->bCanHaveLayersContent = false;
 	Landscape->LandscapeMaterial = nullptr;
 	// Assign an appropriate material if needed
-	
-	   // Set the landscape transform
+
+	// Set the landscape transform
 	Landscape->SetActorTransform(LandscapeTransform);
-	
-		// Import landscape data
-		Landscape->Import(
-			FGuid::NewGuid(),
-			0, 0,
-			MaxX -1, MaxY -1,// -1, MaxY-1,
-			NumSubsections,
-			SubsectionSizeQuads,
-			HeightDataPerLayer,
-			nullptr,
-			MaterialLayerDataPerLayer,
-			ELandscapeImportAlphamapType::Additive);
 
-		// Register all landscape components
-		ULandscapeInfo* LandscapeInfo = Landscape->GetLandscapeInfo();
-		LandscapeInfo->UpdateLayerInfoMap(Landscape);
-		Landscape->RegisterAllComponents();
-	
-		// Update the landscape after modifications
-		Landscape->PostEditChange();
+	// Import landscape data
+	Landscape->Import(
+		FGuid::NewGuid(),
+		0, 0,
+		MaxX - 1, MaxY - 1, // -1, MaxY-1,
+		NumSubsections,
+		SubSectionSizeQuads,
+		HeightDataPerLayer,
+		nullptr,
+		MaterialLayerDataPerLayer,
+		ELandscapeImportAlphamapType::Additive);
 
-		return Landscape;
+	// Register all landscape components
+	ULandscapeInfo* LandscapeInfo = Landscape->GetLandscapeInfo();
+	LandscapeInfo->UpdateLayerInfoMap(Landscape);
+	Landscape->RegisterAllComponents();
+
+	// Update the landscape after modifications
+	Landscape->PostEditChange();
+
+	return Landscape;
 }
 
 TArray<float> UGeneratorHeightMapLibrary::GenerateHeightMapCPU(int32 MapSize)
@@ -319,7 +340,7 @@ void UGeneratorHeightMapLibrary::SaveTextureToFile(UTexture2D* Texture, const FS
 		return;
 	}
 	RenderTargetResource->ReadPixels(Bitmap);
-	
+
 	// Check if Bitmap has the expected number of pixels
 	int32 ExpectedPixelCount = Texture->GetSizeX() * Texture->GetSizeY();
 	if (Bitmap.Num() != ExpectedPixelCount)
@@ -361,7 +382,7 @@ void UGeneratorHeightMapLibrary::CreateHeightMap(int32 MapSize)
 	HeightMap = GenerateHeightMapCPU(MapSize);
 
 	UErosionLibrary::SetHeights(HeightMap);
-	
+
 	UTexture2D* Texture = CreateHeightMapTexture(HeightMap, MapSize, MapSize);
 	FString FilePath = FPaths::ProjectDir() / TEXT("Saved/HeightMap/Heightmap.png");
 	SaveTextureToFile(Texture, FilePath);

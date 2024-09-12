@@ -49,7 +49,18 @@ public:
 	{
 		SectionSize = NewSectionSize;
 	}
-	
+	static int32 Kilometers;
+	UFUNCTION(BlueprintCallable,Category ="HeightMap")
+	static void SetKilometers(const int32 NewKilometers)
+	{
+		Kilometers = NewKilometers;
+	}
+	static bool bKilometers;
+	UFUNCTION(BlueprintCallable, Category="HeightMap")
+	static void SetbKilometers(const bool NewbKilometers)
+	{
+		bKilometers = NewbKilometers;
+	}
 	static int32 NumSubsections;
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	static void SetNumSubsections(const int32 NewNumSubsections)
