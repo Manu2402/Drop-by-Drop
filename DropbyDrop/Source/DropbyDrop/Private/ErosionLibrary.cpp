@@ -11,7 +11,7 @@ float UErosionLibrary::Evaporation = 0.02f; // pEvaporation
 float UErosionLibrary::MaxPath = 64; // pMaxPath 
 int32 UErosionLibrary::ErosionRadius = 4; // pRadius 
 
-TArray<float> UErosionLibrary::GridHeights = TArray<float>();  // Heightmap without borders
+TArray<float> UErosionLibrary::GridHeights = TArray<float>(); 
 TArray<FVector2D> UErosionLibrary::Points = TArray<FVector2D>();
 TArray<float> UErosionLibrary::Weights = TArray<float>();
 
@@ -167,30 +167,30 @@ FPositionHeights UErosionLibrary::GetPositionHeights(const FVector2D& IntegerPos
 
 	switch (GetOutOfBoundResult(IntegerPosition, GridSize))
 	{
-	case Error_Right_Down: // FIX
-		PositionHeights.X_Y = GridHeights[GridSize - 1];
-		PositionHeights.X1_Y = GridHeights[GridSize - 1];
-		PositionHeights.X_Y1 = GridHeights[GridSize - 1];
-		PositionHeights.X1_Y1 = GridHeights[GridSize - 1];
-		break;
-	case Error_Right:
-		PositionHeights.X_Y = GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize];
-		PositionHeights.X1_Y = GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize];
-		PositionHeights.X_Y1 = GridHeights[(IntegerPosition.X + GridSize) + IntegerPosition.Y * GridSize];
-		PositionHeights.X1_Y1 = GridHeights[(IntegerPosition.X + GridSize) + IntegerPosition.Y * GridSize];
-		break;
-	case Error_Down:
-		PositionHeights.X_Y = GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize];
-		PositionHeights.X1_Y = GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize];
-		PositionHeights.X_Y1 = GridHeights[(IntegerPosition.X + 1) + IntegerPosition.Y * GridSize];
-		PositionHeights.X1_Y1 = GridHeights[(IntegerPosition.X + 1) + IntegerPosition.Y * GridSize];
-		break;
-	case No_Error:
-		PositionHeights.X_Y = GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize];					// P(x, y)
-		PositionHeights.X1_Y = GridHeights[(IntegerPosition.X + 1) + IntegerPosition.Y * GridSize];				// P(x + 1, y)
-		PositionHeights.X_Y1 = GridHeights[(IntegerPosition.X + GridSize) + IntegerPosition.Y * GridSize];		// P(x, y + 1)
-		PositionHeights.X1_Y1 = GridHeights[(IntegerPosition.X + GridSize + 1) + IntegerPosition.Y * GridSize]; // P(x + 1, y + 1)
-		break;
+		case Error_Right_Down:
+			PositionHeights.X_Y = GridHeights[GridSize * GridSize - 1];
+			PositionHeights.X1_Y = GridHeights[GridSize * GridSize - 1];
+			PositionHeights.X_Y1 = GridHeights[GridSize * GridSize - 1 ];
+			PositionHeights.X1_Y1 = GridHeights[GridSize * GridSize - 1];
+			break;
+		case Error_Right:
+			PositionHeights.X_Y = GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize];
+			PositionHeights.X1_Y = GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize];
+			PositionHeights.X_Y1 = GridHeights[(IntegerPosition.X + GridSize) + IntegerPosition.Y * GridSize];
+			PositionHeights.X1_Y1 = GridHeights[(IntegerPosition.X + GridSize) + IntegerPosition.Y * GridSize];
+			break;
+		case Error_Down:
+			PositionHeights.X_Y = GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize];
+			PositionHeights.X1_Y = GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize];
+			PositionHeights.X_Y1 = GridHeights[(IntegerPosition.X + 1) + IntegerPosition.Y * GridSize];
+			PositionHeights.X1_Y1 = GridHeights[(IntegerPosition.X + 1) + IntegerPosition.Y * GridSize];
+			break;
+		case No_Error:
+			PositionHeights.X_Y = GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize];					// P(x, y)
+			PositionHeights.X1_Y = GridHeights[(IntegerPosition.X + 1) + IntegerPosition.Y * GridSize];				// P(x + 1, y)
+			PositionHeights.X_Y1 = GridHeights[(IntegerPosition.X + GridSize) + IntegerPosition.Y * GridSize];		// P(x, y + 1)
+			PositionHeights.X1_Y1 = GridHeights[(IntegerPosition.X + GridSize + 1) + IntegerPosition.Y * GridSize]; // P(x + 1, y + 1)
+			break;
 	}
 	
 	return PositionHeights;
@@ -217,8 +217,8 @@ void UErosionLibrary::SetPointsPositionInRadius(const FVector2D& DropPosition, c
 		{
 			const float PosX = FMath::Floor(DropPosition.X) + X;
 			const float PosY = FMath::Floor(DropPosition.Y) + Y;
-
-			if (PosX < 0 || PosX >= GridSize - 1 || PosY < 0 || PosY >= GridSize - 1)
+			
+			if (PosX < 0 || PosX >= GridSize || PosY < 0 || PosY >= GridSize)
 			{
 				continue;
 			}
@@ -251,23 +251,16 @@ void UErosionLibrary::ComputeDepositOnPoints(const FVector2D& IntegerPosition, c
 {
 	switch (GetOutOfBoundResult(IntegerPosition, GridSize))
 	{
-		case Error_Right_Down: // FIX
-			GridHeights[GridSize - 1] += Deposit * (1 - OffsetPosition.X) * (1 - OffsetPosition.Y);
-			GridHeights[GridSize - 1] += Deposit * OffsetPosition.X * (1 - OffsetPosition.Y);
-			GridHeights[GridSize - 1] += Deposit * (1 - OffsetPosition.X) * OffsetPosition.Y;
-			GridHeights[GridSize - 1] += Deposit * OffsetPosition.X * OffsetPosition.Y;
+		case Error_Right_Down:
+			GridHeights[GridSize * GridSize - 1] += Deposit * (1 - OffsetPosition.X) * (1 - OffsetPosition.Y);
 			break;
 		case Error_Right:
 			GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize] += Deposit * (1 - OffsetPosition.X) * (1 - OffsetPosition.Y);
-			GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize] += Deposit * OffsetPosition.X * (1 - OffsetPosition.Y);
 			GridHeights[(IntegerPosition.X + GridSize) + IntegerPosition.Y * GridSize] += Deposit * (1 - OffsetPosition.X) * OffsetPosition.Y;
-			GridHeights[(IntegerPosition.X + GridSize) + IntegerPosition.Y * GridSize] += Deposit * OffsetPosition.X * OffsetPosition.Y;
 			break;
 		case Error_Down:
 			GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize] += Deposit * (1 - OffsetPosition.X) * (1 - OffsetPosition.Y);
-			GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize] += Deposit * OffsetPosition.X * (1 - OffsetPosition.Y);
-			GridHeights[(IntegerPosition.X + 1) + IntegerPosition.Y * GridSize] += Deposit * (1 - OffsetPosition.X) * OffsetPosition.Y;
-			GridHeights[(IntegerPosition.X + 1) + IntegerPosition.Y * GridSize] += Deposit * OffsetPosition.X * OffsetPosition.Y;
+			GridHeights[(IntegerPosition.X + 1) + IntegerPosition.Y * GridSize] += Deposit * OffsetPosition.X * (1 - OffsetPosition.Y);
 			break;
 		case No_Error:
 			GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize] += Deposit * (1 - OffsetPosition.X) * (1 - OffsetPosition.Y); // P(x, y)
