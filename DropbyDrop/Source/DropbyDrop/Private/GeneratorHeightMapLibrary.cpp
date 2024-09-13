@@ -105,17 +105,29 @@ ALandscape* UGeneratorHeightMapLibrary::CallLandscape(const FTransform& Landscap
 	int32 HeightmapSize = Size;
 
 	//Get Quads
-	int32 SubSectionSizeQuads = SectionSize * NumSubsections;
+	int32 SubSectionSizeQuads;
+	if (NumSubsections == 1)
+	{
+		SubSectionSizeQuads = SectionSize;
+	}
+	else if (NumSubsections == 2)
+	{
+		SubSectionSizeQuads = SectionSize * NumSubsections;
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("Valore non valido per NumSubsections."));
+		return nullptr;
+	}
 
 	// Calcola il numero di componenti in X e Y
 	int32 ComponentCountX = HeightmapSize / SubSectionSizeQuads;
 	int32 ComponentCountY = HeightmapSize / SubSectionSizeQuads;
 
-
-	// Calculate the total size of the landscape in quads
+	// Dimensione totale del landscape in quads
 	int32 MaxX = ComponentCountX * SubSectionSizeQuads + 1;
 	int32 MaxY = ComponentCountY * SubSectionSizeQuads + 1;
-
+	
 
 	// Verify that the heightmap size matches the calculated size
 	//int32 ExpectedSize = SizeX * SizeY;
@@ -126,7 +138,42 @@ ALandscape* UGeneratorHeightMapLibrary::CallLandscape(const FTransform& Landscap
 		       MaxX, MaxY, HeightmapSize, HeightmapSize);
 		return nullptr;
 	}
+	
+	/*  // Aggiusta WeightmapSize per evitare errori di potenza di due
+	if (!FMath::IsPowerOfTwo(MaxX) || !FMath::IsPowerOfTwo(MaxY))
+	{
+		// Forza un valore compatibile
+		MaxX = FMath::RoundUpToPowerOfTwo(MaxX);
+		MaxY = FMath::RoundUpToPowerOfTwo(MaxY);
+	} 
+	int32 ExpectedSize = MaxX * MaxY;
 
+	// Se la heightmap è più piccola della dimensione attesa, riempi i bordi
+	if (Heightmap.Num() < ExpectedSize)
+	{
+		int32 MissingPixels = ExpectedSize - Heightmap.Num();
+		UE_LOG(LogTemp, Warning, TEXT("Riempimento della heightmap con %d pixel mancanti"), MissingPixels);
+
+		// Aggiungi i pixel mancanti (usa 0 o un valore predefinito)
+		Heightmap.AddZeroed(MissingPixels);
+	}
+	if(Heightmap.Num() > ExpectedSize)
+	{
+		// La heightmap è più grande del landscape, errore
+		UE_LOG(LogTemp, Error, TEXT("La heightmap è più grande del landscape generato: %d > %d x %d"), Heightmap.Num(), MaxX, MaxY);
+		return nullptr;
+	}
+	*/
+	// Calcola la dimensione della weightmap
+	int32 WeightmapSize = (SectionSize + 1) * NumSubsections;
+
+	// Assicurati che WeightmapSize sia una potenza di due
+	if (!FMath::IsPowerOfTwo(WeightmapSize))
+	{
+		// Adatta la dimensione del landscape o usa una dimensione standard
+		UE_LOG(LogTemp, Error, TEXT("La dimensione della weightmap (%d) non è una potenza di due."), WeightmapSize);
+		return nullptr;
+	}
 	// Prepare data for landscape import
 	TMap<FGuid, TArray<uint16>> HeightDataPerLayer;
 	TMap<FGuid, TArray<FLandscapeImportLayerInfo>> MaterialLayerDataPerLayer;
@@ -135,8 +182,16 @@ ALandscape* UGeneratorHeightMapLibrary::CallLandscape(const FTransform& Landscap
 	MaterialLayerDataPerLayer.Add(FGuid(), MoveTemp(MaterialImportLayers));
 
 	// Copy the provided heightmap data into the import data
-	HeightDataPerLayer.Add(FGuid(), MoveTemp(Heightmap));
-
+	if (Heightmap.Num() == MaxX * MaxY)
+	{
+		HeightDataPerLayer.Add(FGuid(), MoveTemp(Heightmap));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("Dimensioni dell'heightmap non corrispondono al landscape generato: %d != %d x %d"), Heightmap.Num(), MaxX, MaxY);
+		return nullptr;
+	}
+	
 	// Get the world 
 	UWorld* World = nullptr;
 	{

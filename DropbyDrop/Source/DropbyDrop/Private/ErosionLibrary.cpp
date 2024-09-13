@@ -428,7 +428,7 @@ void UErosionLibrary::InitWeights(const FVector2D& DropPosition, const int32& Gr
 
 void UErosionLibrary::ErosionHandler(const int32& GridSize)
 {
-	AddBorders(1, GridSize);
+	//AddBorders(1, GridSize);
 	
 	for (int32 Index = 0; Index < ErosionCycles; Index++)
 	{
