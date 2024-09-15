@@ -41,13 +41,19 @@ public:
 	static float InitialScale;
 	static int32 Size;
 	static  float MaxHeightDifference;
-
+	
 	//Param LandScape
-	static int32 SectionSize;
-	UFUNCTION(BlueprintCallable, Category = "Heightmap")
-	static void SetSectionSize(const int32 NewSectionSize)
+	static int32 WorldPartitionGridSize;
+	UFUNCTION(BlueprintCallable,Category ="HeightMap")
+	static void SetWorldPartitionGridSize(const int32 NewWorldPartitionGridSize)
 	{
-		SectionSize = NewSectionSize;
+		WorldPartitionGridSize = NewWorldPartitionGridSize;
+	}
+	static bool bSplitInProxies;
+	UFUNCTION(BlueprintCallable,Category ="HeightMap")
+	static void SetSplitInProxies(const bool NewBool)
+	{
+		bSplitInProxies = NewBool;
 	}
 	static int32 Kilometers;
 	UFUNCTION(BlueprintCallable,Category ="HeightMap")
@@ -62,11 +68,11 @@ public:
 		bKilometers = NewbKilometers;
 	}
 	static int32 NumSubsections;
-	UFUNCTION(BlueprintCallable, Category = "Heightmap")
+	/*UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	static void SetNumSubsections(const int32 NewNumSubsections)
 	{
 		NumSubsections = NewNumSubsections;
-	}
+	}*/
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void GenerateErosion();
 
@@ -124,6 +130,8 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	static void GenerateLandscapeFromPNG(const FString& HeightmapPath);
+	UFUNCTION(BlueprintCallable, Category = "HeightMap")
+	static void SplitLandscapeIntoProxies();
 
 	static TArray<uint16> ConvertFloatArrayToUint16(const TArray<float>& FloatData);
 	static ALandscape* CallLandscape(const FTransform& LandscapeTransform, TArray<uint16>& Heightmap);

@@ -1,6 +1,7 @@
 #include "GeneratorHeightMapLibrary.h"
 
 #include "Editor.h"
+#include "EngineUtils.h"
 #include "Editor/EditorEngine.h"
 #include "ImageUtils.h"
 #include "LandscapeProxy.h"
@@ -8,6 +9,9 @@
 #include "LandscapeComponent.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "ErosionLibrary.h"
+#include "LandscapeImportHelper.h"
+#include "LandscapeStreamingProxy.h"
+#include "LandscapeSubsystem.h"
 
 int32 UGeneratorHeightMapLibrary::Seed = -4314;
 bool UGeneratorHeightMapLibrary::bRandomizeSeed = false;
@@ -19,10 +23,12 @@ int32 UGeneratorHeightMapLibrary::Size = 505;
 float UGeneratorHeightMapLibrary::MaxHeightDifference = 1;
 
 //LandScapeParam
-int32 UGeneratorHeightMapLibrary::SectionSize = 63;
+//int32 UGeneratorHeightMapLibrary::SectionSize = 63;
 int32 UGeneratorHeightMapLibrary::NumSubsections = 1;
 int32 UGeneratorHeightMapLibrary::Kilometers = 1;
 bool UGeneratorHeightMapLibrary::bKilometers = false;
+int32 UGeneratorHeightMapLibrary::WorldPartitionGridSize = 4;
+bool UGeneratorHeightMapLibrary::bSplitInProxies = false;
 
 TArray<float> UGeneratorHeightMapLibrary::HeightMap;
 
@@ -52,7 +58,7 @@ void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& Heightm
 
 	//TArray<uint16> HeightData = ConvertFloatArrayToUint16(UErosionLibrary::GetHeights());
 	TArray<uint16> HeightData = ConvertFloatArrayToUint16(HeightMap);
-	
+
 	FTransform LandscapeTransform = GetNewTransform();
 
 	//Create HeightMap
@@ -66,10 +72,15 @@ void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& Heightm
 		UE_LOG(LogTemp, Error, TEXT("Failed to create landscape."));
 	}
 }
+
+void UGeneratorHeightMapLibrary::SplitLandscapeIntoProxies()
+{
+}
+
+
 FTransform UGeneratorHeightMapLibrary::GetNewTransform()
 {
 	FVector NewScale;
-	//FTransform LandscapeTransform = FTransform(FQuat(FRotator::ZeroRotator), FVector(0, 0, 0), FVector(100, 100, 100));
 	if (bKilometers)
 	{
 		FVector CurrentScale = FVector(100, 100, 100);
@@ -83,9 +94,11 @@ FTransform UGeneratorHeightMapLibrary::GetNewTransform()
 		NewScale = FVector(100, 100, 100);
 	}
 
-	FTransform LandscapeTransform = FTransform(FQuat(FRotator::ZeroRotator), FVector(0, 0, 0), NewScale);
+	FTransform LandscapeTransform =
+		FTransform(FQuat(FRotator::ZeroRotator), FVector(-100800, -100800, 17200), NewScale);
 	return LandscapeTransform;
 }
+
 TArray<uint16> UGeneratorHeightMapLibrary::ConvertFloatArrayToUint16(const TArray<float>& FloatData)
 {
 	TArray<uint16> Uint16Data;
@@ -103,34 +116,17 @@ TArray<uint16> UGeneratorHeightMapLibrary::ConvertFloatArrayToUint16(const TArra
 ALandscape* UGeneratorHeightMapLibrary::CallLandscape(const FTransform& LandscapeTransform, TArray<uint16>& Heightmap)
 {
 	int32 HeightmapSize = Size;
-
-	//Get Quads
 	int32 SubSectionSizeQuads;
-	if (NumSubsections == 1)
-	{
-		SubSectionSizeQuads = SectionSize;
-	}
-	else if (NumSubsections == 2)
-	{
-		SubSectionSizeQuads = SectionSize * NumSubsections;
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("Valore non valido per NumSubsections."));
-		return nullptr;
-	}
+	FIntPoint NewLandscape_ComponentCount;
+	FLandscapeImportHelper::ChooseBestComponentSizeForImport(Size, Size, SubSectionSizeQuads, NumSubsections,
+	                                                         NewLandscape_ComponentCount);
 
-	// Calcola il numero di componenti in X e Y
-	int32 ComponentCountX = HeightmapSize / SubSectionSizeQuads;
-	int32 ComponentCountY = HeightmapSize / SubSectionSizeQuads;
+	int32 ComponentCountX = NewLandscape_ComponentCount.X;
+	int32 ComponentCountY = NewLandscape_ComponentCount.Y;
+	const int32 QuadsPerComponent = NumSubsections * SubSectionSizeQuads;
+	int32 MaxX = ComponentCountX * QuadsPerComponent + 1;
+	int32 MaxY = ComponentCountY * QuadsPerComponent + 1;
 
-	// Dimensione totale del landscape in quads
-	int32 MaxX = ComponentCountX * SubSectionSizeQuads + 1;
-	int32 MaxY = ComponentCountY * SubSectionSizeQuads + 1;
-	
-
-	// Verify that the heightmap size matches the calculated size
-	//int32 ExpectedSize = SizeX * SizeY;
 	if (MaxX != HeightmapSize || MaxY != HeightmapSize)
 	{
 		UE_LOG(LogTemp, Error,
@@ -138,42 +134,7 @@ ALandscape* UGeneratorHeightMapLibrary::CallLandscape(const FTransform& Landscap
 		       MaxX, MaxY, HeightmapSize, HeightmapSize);
 		return nullptr;
 	}
-	
-	/*  // Aggiusta WeightmapSize per evitare errori di potenza di due
-	if (!FMath::IsPowerOfTwo(MaxX) || !FMath::IsPowerOfTwo(MaxY))
-	{
-		// Forza un valore compatibile
-		MaxX = FMath::RoundUpToPowerOfTwo(MaxX);
-		MaxY = FMath::RoundUpToPowerOfTwo(MaxY);
-	} 
-	int32 ExpectedSize = MaxX * MaxY;
 
-	// Se la heightmap è più piccola della dimensione attesa, riempi i bordi
-	if (Heightmap.Num() < ExpectedSize)
-	{
-		int32 MissingPixels = ExpectedSize - Heightmap.Num();
-		UE_LOG(LogTemp, Warning, TEXT("Riempimento della heightmap con %d pixel mancanti"), MissingPixels);
-
-		// Aggiungi i pixel mancanti (usa 0 o un valore predefinito)
-		Heightmap.AddZeroed(MissingPixels);
-	}
-	if(Heightmap.Num() > ExpectedSize)
-	{
-		// La heightmap è più grande del landscape, errore
-		UE_LOG(LogTemp, Error, TEXT("La heightmap è più grande del landscape generato: %d > %d x %d"), Heightmap.Num(), MaxX, MaxY);
-		return nullptr;
-	}
-	*/
-	// Calcola la dimensione della weightmap
-	int32 WeightmapSize = (SectionSize + 1) * NumSubsections;
-
-	// Assicurati che WeightmapSize sia una potenza di due
-	if (!FMath::IsPowerOfTwo(WeightmapSize))
-	{
-		// Adatta la dimensione del landscape o usa una dimensione standard
-		UE_LOG(LogTemp, Error, TEXT("La dimensione della weightmap (%d) non è una potenza di due."), WeightmapSize);
-		return nullptr;
-	}
 	// Prepare data for landscape import
 	TMap<FGuid, TArray<uint16>> HeightDataPerLayer;
 	TMap<FGuid, TArray<FLandscapeImportLayerInfo>> MaterialLayerDataPerLayer;
@@ -188,27 +149,27 @@ ALandscape* UGeneratorHeightMapLibrary::CallLandscape(const FTransform& Landscap
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("Dimensioni dell'heightmap non corrispondono al landscape generato: %d != %d x %d"), Heightmap.Num(), MaxX, MaxY);
+		UE_LOG(LogTemp, Error, TEXT("Dimensioni dell'heightmap non corrispondono al landscape generato: %d != %d x %d"),
+		       Heightmap.Num(), MaxX, MaxY);
 		return nullptr;
 	}
-	
+
 	// Get the world 
 	UWorld* World = nullptr;
 	{
 		FWorldContext& EditorWorldContext = GEditor->GetEditorWorldContext();
 		World = EditorWorldContext.World();
 	}
-
-	// Create the landscape actor
 	ALandscape* Landscape = World->SpawnActor<ALandscape>();
-	Landscape->bCanHaveLayersContent = false;
+	Landscape->bCanHaveLayersContent = true;
 	Landscape->LandscapeMaterial = nullptr;
 	// Assign an appropriate material if needed
 
-	// Set the landscape transform
 	Landscape->SetActorTransform(LandscapeTransform);
-
 	// Import landscape data
+	UE_LOG(LogTemp, Error, TEXT("NumSubSections: %d; SubSectionSizeQuads:%d; MaxX,Y: %d;"), NumSubsections,
+	       SubSectionSizeQuads, MaxY);
+
 	Landscape->Import(
 		FGuid::NewGuid(),
 		0, 0,
@@ -220,14 +181,21 @@ ALandscape* UGeneratorHeightMapLibrary::CallLandscape(const FTransform& Landscap
 		MaterialLayerDataPerLayer,
 		ELandscapeImportAlphamapType::Additive);
 
+
 	// Register all landscape components
 	ULandscapeInfo* LandscapeInfo = Landscape->GetLandscapeInfo();
 	LandscapeInfo->UpdateLayerInfoMap(Landscape);
 	Landscape->RegisterAllComponents();
-
+	if (bSplitInProxies)
+	{
+		if (ULandscapeSubsystem* LandscapeSubsystem = GEditor->GetEditorWorldContext().World()->GetSubsystem<
+			ULandscapeSubsystem>())
+		{
+			LandscapeSubsystem->ChangeGridSize(LandscapeInfo, WorldPartitionGridSize);
+		}
+	}
 	// Update the landscape after modifications
 	Landscape->PostEditChange();
-
 	return Landscape;
 }
 
@@ -443,5 +411,3 @@ void UGeneratorHeightMapLibrary::CreateHeightMap(int32 MapSize)
 	FString FilePath = FPaths::ProjectDir() / TEXT("Saved/HeightMap/Heightmap.png");
 	SaveTextureToFile(Texture, FilePath);
 }
-
-

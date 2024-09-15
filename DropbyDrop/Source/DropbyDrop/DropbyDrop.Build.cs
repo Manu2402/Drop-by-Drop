@@ -14,7 +14,8 @@ public class DropbyDrop : ModuleRules
 			"SlateCore",
 			"EditorStyle",
 			"UnrealEd", // Importante per l'accesso ai componenti dell'editor
-			"Landscape" });
+			"Landscape", "LandscapeEditor"
+		});
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
