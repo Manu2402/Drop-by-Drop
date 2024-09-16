@@ -12,6 +12,9 @@
 #include "LandscapeImportHelper.h"
 #include "LandscapeStreamingProxy.h"
 #include "LandscapeSubsystem.h"
+#include "Misc/ScopedSlowTask.h"
+#include "WorldPartition/WorldPartition.h"
+#include "WorldPartition/WorldPartitionSubsystem.h"
 
 int32 UGeneratorHeightMapLibrary::Seed = -4314;
 bool UGeneratorHeightMapLibrary::bRandomizeSeed = false;
@@ -21,16 +24,16 @@ float UGeneratorHeightMapLibrary::Lacunarity = 2.f;
 float UGeneratorHeightMapLibrary::InitialScale = 1.8f;
 int32 UGeneratorHeightMapLibrary::Size = 505;
 float UGeneratorHeightMapLibrary::MaxHeightDifference = 1;
-
+ALandscape* UGeneratorHeightMapLibrary::StaticLandscape = nullptr;
 //LandScapeParam
 //int32 UGeneratorHeightMapLibrary::SectionSize = 63;
 int32 UGeneratorHeightMapLibrary::NumSubsections = 1;
 int32 UGeneratorHeightMapLibrary::Kilometers = 1;
 bool UGeneratorHeightMapLibrary::bKilometers = false;
 int32 UGeneratorHeightMapLibrary::WorldPartitionGridSize = 4;
-bool UGeneratorHeightMapLibrary::bSplitInProxies = false;
 
 TArray<float> UGeneratorHeightMapLibrary::HeightMap;
+
 
 void UGeneratorHeightMapLibrary::GenerateErosion()
 {
@@ -44,6 +47,25 @@ void UGeneratorHeightMapLibrary::GenerateErosion()
 	const FTransform LandscapeTransform = GetNewTransform();
 
 	CallLandscape(LandscapeTransform, ErodedHeightmapU16);
+}
+
+void UGeneratorHeightMapLibrary::ErodeLandscapeProxy(ALandscapeProxy* LandscapeProxy)
+{
+	TArray<uint16> HeightmapData;
+
+	if (!LandscapeProxy)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Invalid LandscapeProxy."));
+		return;
+	}
+
+	// Get all landscape components
+	TArray<ULandscapeComponent*> LandscapeComponents;
+	LandscapeProxy->GetComponents<ULandscapeComponent>(LandscapeComponents);
+
+	//DA FINIREEE!!!
+	//TODO: Create voice in menu for call this method!
+
 }
 
 void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& HeightmapPath)
@@ -63,7 +85,9 @@ void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& Heightm
 
 	//Create HeightMap
 
-	if (CallLandscape(LandscapeTransform, HeightData))
+	StaticLandscape = CallLandscape(LandscapeTransform, HeightData);
+
+	if (StaticLandscape)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Landscape created successfully!"));
 	}
@@ -75,6 +99,37 @@ void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& Heightm
 
 void UGeneratorHeightMapLibrary::SplitLandscapeIntoProxies()
 {
+	if(!StaticLandscape) return;
+	
+	// Register all landscape components
+	ULandscapeInfo* LandscapeInfo = StaticLandscape->GetLandscapeInfo();
+	LandscapeInfo->UpdateLayerInfoMap(StaticLandscape);
+	StaticLandscape->RegisterAllComponents();
+
+		FScopedSlowTask SlowTask(100, FText::FromString("Split Landscape"));
+		SlowTask.MakeDialog(true); 
+		if (ULandscapeSubsystem* LandscapeSubsystem = GEditor->GetEditorWorldContext().World()->GetSubsystem<
+			ULandscapeSubsystem>())
+		{
+			LandscapeSubsystem->ChangeGridSize(LandscapeInfo, WorldPartitionGridSize);
+		}
+	
+		SlowTask.EnterProgressFrame(100);
+	
+	// Update the landscape after modifications
+	StaticLandscape->PostEditChange();
+	if (GEditor && GEditor->GetEditorWorldContext().World())
+	{
+		UWorld* World = GEditor->GetEditorWorldContext().World();
+		if (UWorldPartitionSubsystem* WorldPartitionSubsystem = World->GetSubsystem<UWorldPartitionSubsystem>())
+		{
+			// Force update of World Partition
+			WorldPartitionSubsystem->UpdateStreamingState();
+
+			// Optionally, refresh all editor views
+			GEditor->RedrawAllViewports();
+		}
+	}
 }
 
 
@@ -181,7 +236,7 @@ ALandscape* UGeneratorHeightMapLibrary::CallLandscape(const FTransform& Landscap
 		MaterialLayerDataPerLayer,
 		ELandscapeImportAlphamapType::Additive);
 
-
+/*
 	// Register all landscape components
 	ULandscapeInfo* LandscapeInfo = Landscape->GetLandscapeInfo();
 	LandscapeInfo->UpdateLayerInfoMap(Landscape);
@@ -193,7 +248,7 @@ ALandscape* UGeneratorHeightMapLibrary::CallLandscape(const FTransform& Landscap
 		{
 			LandscapeSubsystem->ChangeGridSize(LandscapeInfo, WorldPartitionGridSize);
 		}
-	}
+	}*/
 	// Update the landscape after modifications
 	Landscape->PostEditChange();
 	return Landscape;

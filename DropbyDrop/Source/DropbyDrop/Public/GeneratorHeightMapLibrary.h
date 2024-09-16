@@ -43,18 +43,19 @@ public:
 	static  float MaxHeightDifference;
 	
 	//Param LandScape
+	static ALandscape* StaticLandscape;
+	UFUNCTION(BlueprintCallable, Category ="HeightMap")
+	static void SetNewStaticLandscape(ALandscape* NewStaticLandscape)
+	{
+		StaticLandscape = NewStaticLandscape;
+	}
 	static int32 WorldPartitionGridSize;
 	UFUNCTION(BlueprintCallable,Category ="HeightMap")
 	static void SetWorldPartitionGridSize(const int32 NewWorldPartitionGridSize)
 	{
 		WorldPartitionGridSize = NewWorldPartitionGridSize;
 	}
-	static bool bSplitInProxies;
-	UFUNCTION(BlueprintCallable,Category ="HeightMap")
-	static void SetSplitInProxies(const bool NewBool)
-	{
-		bSplitInProxies = NewBool;
-	}
+
 	static int32 Kilometers;
 	UFUNCTION(BlueprintCallable,Category ="HeightMap")
 	static void SetKilometers(const int32 NewKilometers)
@@ -127,7 +128,10 @@ public:
 	{
 		MaxHeightDifference = NewMaxHeightDifference;
 	}
+
 	
+	UFUNCTION(BlueprintCallable, Category ="Heightmap")
+	static void ErodeLandscapeProxy(ALandscapeProxy* LandscapeProxy);
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	static void GenerateLandscapeFromPNG(const FString& HeightmapPath);
 	UFUNCTION(BlueprintCallable, Category = "HeightMap")
