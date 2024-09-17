@@ -37,7 +37,7 @@ TArray<float> UGeneratorHeightMapLibrary::HeightMap;
 
 void UGeneratorHeightMapLibrary::GenerateErosion()
 {
-	UErosionLibrary::SetHeights(HeightMap); // Put it into if
+	UErosionLibrary::SetHeights(HeightMap);
 
 	UErosionLibrary::ErosionHandler(Size);
 

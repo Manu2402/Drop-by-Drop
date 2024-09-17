@@ -26,6 +26,15 @@ struct FPositionHeights
 	float X1_Y1;
 };
 
+UENUM()
+enum EOutOfBoundResult : uint8
+{
+	No_Error,
+	Error_Right,
+	Error_Down,
+	Error_Right_Down
+};
+
 UCLASS(Blueprintable)
 class DROPBYDROP_API UErosionLibrary : public UBlueprintFunctionLibrary
 {
@@ -121,7 +130,6 @@ public:
 
 public:	
 	static void SetHeights(const TArray<float>& NewHeights);
-
 	static TArray<float> GetHeights();
 
 	//UFUNCTION(BlueprintCallable) Useless!
@@ -132,7 +140,6 @@ public:
 private:
 	// TArray<float> MapHeights;
 	static TArray<float> GridHeights;
-	static TArray<float> HeightMapBorders;
 	
 	static TArray<FVector2D> Points; // pI
 	static TArray<float> Weights; // wI
@@ -149,7 +156,7 @@ private:
 #pragma region ErosionSubFunctions
 	static FVector2D GetGradient(const float& P1, const float& P2, const float& P3, const float& P4);
 	static FVector2D GetPairedLinearInterpolation(const FVector2D& OffsetPosition, const float& F1, const float& F2, const float& F3, const float& F4);
-	static FPositionHeights GetPositionHeights(const FVector2D& IntegerPosition, const int32 GridSize);
+	static FPositionHeights GetPositionHeights(const FVector2D& IntegerPosition, const int32& GridSize);
 	static float GetBilinearInterpolation(const FVector2D& OffsetPosition, const FPositionHeights& PositionHeights);
 #pragma endregion
 
@@ -162,6 +169,5 @@ private:
 	static TArray<float> GetErosionOnPoints(const float& ErosionFactor);
 	static void ComputeDepositOnPoints(const FVector2D& IntegerPosition, const FVector2D& OffsetPosition, const float& Deposit, const int32& GridSize);
 
-	static void AddBorders(const int32& OffsetSize, const int32& GridSize);
-	static void RemoveBorders(const int32& OffsetSize, const int32& GridSize);
+	static EOutOfBoundResult GetOutOfBoundResult(const FVector2D& IntegerPosition, const int32& GridSize);
 };
