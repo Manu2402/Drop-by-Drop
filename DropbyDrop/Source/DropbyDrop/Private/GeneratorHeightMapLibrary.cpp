@@ -34,7 +34,6 @@ int32 UGeneratorHeightMapLibrary::WorldPartitionGridSize = 4;
 
 TArray<float> UGeneratorHeightMapLibrary::HeightMap;
 
-
 void UGeneratorHeightMapLibrary::GenerateErosion()
 {
 	UErosionLibrary::SetHeights(HeightMap);

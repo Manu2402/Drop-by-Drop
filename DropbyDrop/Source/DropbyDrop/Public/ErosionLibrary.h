@@ -50,7 +50,7 @@ public:
 	//UPROPERTY(EditAnywhere)
 	static int32 ErosionCycles; // erosionCycles
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
-	static void SetErosion(int32 NewErosionCycles)
+	static void SetErosion(const int32& NewErosionCycles)
 	{
 		ErosionCycles = NewErosionCycles;
 	}
@@ -58,7 +58,7 @@ public:
 	//UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1")) // [0, 1]
 	static float Inertia; // pInertia
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
-	static void SetInertia(float NewInertia)
+	static void SetInertia(const float& NewInertia)
 	{
 		Inertia = NewInertia;
 	}
@@ -66,7 +66,7 @@ public:
 	//UPROPERTY(EditAnywhere)
 	static float Capacity; // pCapacity
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
-	static void SetCapacity(float NewCapacity)
+	static void SetCapacity(const float& NewCapacity)
 	{
 		Capacity = NewCapacity;
 	}
@@ -74,7 +74,7 @@ public:
 	//UPROPERTY(EditAnywhere)
 	static float MinimalSlope; // pMinSlope
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
-	static void SetMinimalSlope(float NewMinimalSlope)
+	static void SetMinimalSlope(const float& NewMinimalSlope)
 	{
 		MinimalSlope = NewMinimalSlope;
 	}
@@ -82,7 +82,7 @@ public:
 	//UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1"))
 	static float DepositionSpeed; // pDeposition
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
-	static void SetDepositionSpeed(float NewDepositionSpeed)
+	static void SetDepositionSpeed(const float& NewDepositionSpeed)
 	{
 		DepositionSpeed = NewDepositionSpeed;
 	}
@@ -90,7 +90,7 @@ public:
 	//UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1"))
 	static float ErosionSpeed; // pErosion
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
-	static void SetErosionSpeed(float NewErosionSpeed)
+	static void SetErosionSpeed(const float& NewErosionSpeed)
 	{
 		ErosionSpeed = NewErosionSpeed;
 	}
@@ -98,7 +98,7 @@ public:
 	//UPROPERTY(EditAnywhere)
 	static float Gravity; // pGravity
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
-	static void SetGravity(float NewGravity)
+	static void SetGravity(const float& NewGravity)
 	{
 		Gravity = NewGravity;
 	}
@@ -106,7 +106,7 @@ public:
 	//UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1"))
 	static float Evaporation; // pEvaporation
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
-	static void SetEvaporation(float NewEvaporation)
+	static void SetEvaporation(const float& NewEvaporation)
 	{
 		Evaporation = NewEvaporation;
 	}
@@ -114,7 +114,7 @@ public:
 	//UPROPERTY(EditAnywhere)
 	static float MaxPath; // pMaxPath
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
-	static void SetMaxPath(float NewMaxPath)
+	static void SetMaxPath(const float& NewMaxPath)
 	{
 		MaxPath = NewMaxPath;
 	}
@@ -122,7 +122,7 @@ public:
 	//UPROPERTY(EditAnywhere)
 	static int32 ErosionRadius;
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
-	static void SetErosionRadius(int32 NewErosionRadius)
+	static void SetErosionRadius(const int32& NewErosionRadius)
 	{
 		ErosionRadius = NewErosionRadius;
 	}// pRadius

@@ -1,6 +1,6 @@
 #include "ErosionLibrary.h"
 
-int32 UErosionLibrary::ErosionCycles = 50000;
+int32 UErosionLibrary::ErosionCycles = 100000;
 float UErosionLibrary::Inertia = 0.3; // pInertia
 float UErosionLibrary::Capacity = 8; // pCapacity
 float UErosionLibrary::MinimalSlope = 0.01f; // pMinSlope
@@ -391,10 +391,10 @@ void UErosionLibrary::Erosion(FDrop& Drop, const int32& GridSize)
 		
 		if (bDropHasMovingUp || bDropHasToDeposit)
 		{
-			float Deposit = bDropHasMovingUp ? Deposit = FMath::Min(HeightsDifference, Sediment) : (Sediment - C) * DepositionSpeed;
+			float Deposit = bDropHasMovingUp ? FMath::Min(HeightsDifference, Sediment) : (Sediment - C) * DepositionSpeed;
+			Sediment -= Deposit;
 			
 			ComputeDepositOnPoints(IntegerPosOld, OffsetPosOld, Deposit, GridSize);
-			Sediment -= Deposit;
 		}
 		else
 		{
