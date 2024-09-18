@@ -11,112 +11,102 @@ UCLASS()
 class DROPBYDROP_API UGeneratorHeightMapLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
-public:
 
-	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Heightmap Generation", meta = (Tooltip = "Seed used to initialize the random number generator.", DisplayName = "Random Seed"))
-	int32 Seed = -4314;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Heightmap Generation", meta = (Tooltip = "Determines whether a random seed is generated for each heightmap. If false, the specified Seed value will be used."))
-	bool bRandomizeSeed = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Heightmap Generation", meta = (Tooltip = "The number of octaves used in Perlin noise generation. More octaves result in more detailed heightmaps."))
-	int32 NumOctaves = 8;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Heightmap Generation", meta = (Tooltip = "Controls the amplitude of successive octaves. Lower values create smoother heightmaps."))
-	float Persistence = 0.45f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Heightmap Generation", meta = (Tooltip = "Controls the frequency of successive octaves. Higher values create more detailed, higher frequency features."))
-	float Lacunarity = 2.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Heightmap Generation", meta = (Tooltip = "The initial scale applied to the Perlin noise calculation. Controls the overall size of features in the heightmap."))
-	float InitialScale = 1.8f;
-*/
-
+#pragma  region Param
 	//Param HeightMap
-	static int32 Seed;
-	static bool bRandomizeSeed;
-	static int32 NumOctaves;
-	static float Persistence;
-	static float Lacunarity;
-	static float InitialScale;
-	static int32 Size;
-	static  float MaxHeightDifference;
+		
+	static TArray<float> HeightMap;
+	static int32 Seed;					//"Seed used to initialize the random number generator."
+	static bool bRandomizeSeed;			//Determines whether a random seed is generated for each heightmap. If false, the specified Seed value will be used.
+	static int32 NumOctaves;			//The number of octaves used in Perlin noise generation. More octaves result in more detailed heightmaps.
+	static float Persistence;			//Controls the amplitude of successive octaves. Lower values create smoother heightmaps.
+	static float Lacunarity;			//Controls the frequency of successive octaves. Higher values create more detailed, higher frequency features.
+	static float InitialScale;			//The initial scale applied to the Perlin noise calculation. Controls the overall size of features in the heightmap.
+	static int32 Size;					//Size of the PNG
+	static float MaxHeightDifference;	//The max difference of the range [0,1]
 	
 	//Param LandScape
 	static ALandscape* StaticLandscape;
+	static int32 WorldPartitionGridSize;
+	static int32 Kilometers;
+	static bool bKilometers;
+	static bool bDestroyLastLandscape;
+#pragma endregion
+	
+public:
+#pragma region Get/Set Param
 	UFUNCTION(BlueprintCallable, Category ="HeightMap")
 	static void SetNewStaticLandscape(ALandscape* NewStaticLandscape)
 	{
 		StaticLandscape = NewStaticLandscape;
 	}
-	static int32 WorldPartitionGridSize;
+	
 	UFUNCTION(BlueprintCallable,Category ="HeightMap")
 	static void SetWorldPartitionGridSize(const int32 NewWorldPartitionGridSize)
 	{
 		WorldPartitionGridSize = NewWorldPartitionGridSize;
 	}
-
-	static int32 Kilometers;
+	
 	UFUNCTION(BlueprintCallable,Category ="HeightMap")
 	static void SetKilometers(const int32 NewKilometers)
 	{
 		Kilometers = NewKilometers;
 	}
-	static bool bKilometers;
+	
 	UFUNCTION(BlueprintCallable, Category="HeightMap")
 	static void SetbKilometers(const bool NewbKilometers)
 	{
 		bKilometers = NewbKilometers;
-	}
-	static int32 NumSubsections;
-	/*UFUNCTION(BlueprintCallable, Category = "Heightmap")
-	static void SetNumSubsections(const int32 NewNumSubsections)
-	{
-		NumSubsections = NewNumSubsections;
-	}*/
-	UFUNCTION(BlueprintCallable, Category = "Erosion")
-	static void GenerateErosion();
+	} 
 
+	UFUNCTION(BlueprintCallable, Category="Heightmap")
+	static void SetbDestroyLastLandscape(const bool NewbDestroyLastLandscape)
+	{
+		bDestroyLastLandscape = NewbDestroyLastLandscape;
+	}
+	
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
-	static void SetSeed(int32 NewSeed)
+	static void SetSeed(const int32 NewSeed)
 	{
 		Seed = NewSeed;
 	}
 
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
-	static void SetRandomizeSeed(bool bNewRandomizeSeed)
+	static void SetRandomizeSeed(const bool bNewRandomizeSeed)
 	{
 		bRandomizeSeed = bNewRandomizeSeed;
 	}
 
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
-	static void SetNumOctaves(int32 NewNumOctaves)
+	static void SetNumOctaves(const int32 NewNumOctaves)
 	{
 		NumOctaves = NewNumOctaves;
 	}
 
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
-	static void SetPersistence(float NewPersistence)
+	static void SetPersistence(const float NewPersistence)
 	{
 		Persistence = NewPersistence;
 	}
 
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
-	static void SetLacunarity(float NewLacunarity)
+	static void SetLacunarity(const float NewLacunarity)
 	{
 		Lacunarity = NewLacunarity;
 	}
 
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
-	static void SetInitialScale(float NewInitialScale)
+	static void SetInitialScale(const float NewInitialScale)
 	{
 		InitialScale = NewInitialScale;
 	}
+	
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
-	static void SetSize(int32 NewSize)
+	static void SetSize(const int32 NewSize)
 	{
 		Size = NewSize;
 	}
+	
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	static int32 GetMapSize()
 	{
@@ -124,41 +114,55 @@ public:
 	}
 	
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
-	static void SetMaxHeightDifference(float NewMaxHeightDifference) //[0,1]
+	static void SetMaxHeightDifference(const float NewMaxHeightDifference) //[0,1]
 	{
 		MaxHeightDifference = NewMaxHeightDifference;
 	}
+#pragma endregion
 
+#pragma region Erosion
+	UFUNCTION(BlueprintCallable, Category = "Erosion")
+	static void GenerateErosion();
 	
 	UFUNCTION(BlueprintCallable, Category ="Heightmap")
 	static void ErodeLandscapeProxy(ALandscapeProxy* LandscapeProxy);
+#pragma endregion
+
+#pragma region Landscape
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	static void GenerateLandscapeFromPNG(const FString& HeightmapPath);
+	
 	UFUNCTION(BlueprintCallable, Category = "HeightMap")
 	static void SplitLandscapeIntoProxies();
-
-	static TArray<uint16> ConvertFloatArrayToUint16(const TArray<float>& FloatData);
-	static ALandscape* CallLandscape(const FTransform& LandscapeTransform, TArray<uint16>& Heightmap);
 	
+	static bool SetLandscapeSizeParam(int32& SubSectionSizeQuads, int32& NumSubsections, int32& MaxX, int32& MaxY);
+	
+	static ALandscape* GenerateLandscape(const FTransform& LandscapeTransform, TArray<uint16>& Heightmap);
+	
+
+#pragma endregion
+
+#pragma region Heightmap
 	// Function to generate heightmap on CPU, generates a heightmap as a float array with the specified map size using Perlin noise.
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
-	static TArray<float> GenerateHeightMapCPU(int32 MapSize);
-
-	//Function to generate texture2D, using an array<float>
-	UFUNCTION(BlueprintCallable, Category = "HeightMap")
-	static UTexture2D* CreateHeightMapTexture(const TArray<float>& HeightMapData, int32 Width, int32 Height);
-
-	//Function to generate PNG grayscale from texture2D
-	UFUNCTION(BlueprintCallable, Category = "HeightMap")
-	static void SaveTextureToFile(UTexture2D* Texture, const FString& FilePath);
+	static TArray<float> GenerateHeightMapCPU(const int32 MapSize);
 	
 	//Main Function
 	UFUNCTION(BlueprintCallable, Category = "HeightMap")
-	static void CreateHeightMap(int32 MapSize);
+	static void CreateHeightMap(const int32 MapSize);
 	
-	static TArray<float> HeightMap;
+	//Function to generate texture2D, using an array<float>
+	UFUNCTION(BlueprintCallable, Category = "HeightMap")
+	static UTexture2D* CreateHeightMapTexture(const TArray<float>& HeightMapData,const int32 Width,const int32 Height);
+#pragma endregion
 
+#pragma region Utilities
+	UFUNCTION(BlueprintCallable, Category = "HeightMap")
+	static void SaveTextureToFile(UTexture2D* Texture, const FString& FilePath);
+	
+	static TArray<uint16> ConvertFloatArrayToUint16(const TArray<float>& FloatData);
 private:
 	static FTransform GetNewTransform();
-	
+	static void DestroyLastLandscape();
+#pragma endregion
 };
