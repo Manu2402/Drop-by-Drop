@@ -28,9 +28,11 @@ class DROPBYDROP_API UGeneratorHeightMapLibrary : public UBlueprintFunctionLibra
 	//Param LandScape
 	static ALandscape* StaticLandscape;
 	static int32 WorldPartitionGridSize;
-	static int32 Kilometers;
+	static float Kilometers;
 	static bool bKilometers;
 	static bool bDestroyLastLandscape;
+
+	static int32 ReferenceSize;
 #pragma endregion
 	
 public:
@@ -48,21 +50,21 @@ public:
 	}
 	
 	UFUNCTION(BlueprintCallable,Category ="HeightMap")
-	static void SetKilometers(const int32 NewKilometers)
+	static void SetKilometers(const float NewKilometers)
 	{
 		Kilometers = NewKilometers;
 	}
 	
 	UFUNCTION(BlueprintCallable, Category="HeightMap")
-	static void SetbKilometers(const bool NewbKilometers)
+	static void SetbKilometers(const bool bNewbKilometers)
 	{
-		bKilometers = NewbKilometers;
+		bKilometers = bNewbKilometers;
 	} 
 
 	UFUNCTION(BlueprintCallable, Category="Heightmap")
-	static void SetbDestroyLastLandscape(const bool NewbDestroyLastLandscape)
+	static void SetbDestroyLastLandscape(const bool bNewbDestroyLastLandscape)
 	{
-		bDestroyLastLandscape = NewbDestroyLastLandscape;
+		bDestroyLastLandscape = bNewbDestroyLastLandscape;
 	}
 	
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")

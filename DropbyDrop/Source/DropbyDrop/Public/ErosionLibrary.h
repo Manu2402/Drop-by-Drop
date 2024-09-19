@@ -132,14 +132,12 @@ public:
 	static void SetHeights(const TArray<float>& NewHeights);
 	static TArray<float> GetHeights();
 
-	//UFUNCTION(BlueprintCallable) Useless!
-	//TArray<float> GenerateVirtualGrid(const TArray<float> MapHeightsValues, const int32 MapSize, const int32 NewCellSize);
-
 	static void ErosionHandler(const int32& GridSize);
-
+	static TArray<float> GenerateVirtualGrid(const TArray<float>& MapHeightsValues, const int32& MapSize, const int32& NewCellSize);
+	
 private:
-	// TArray<float> MapHeights;
-	static TArray<float> GridHeights;
+	static TArray<float> MapHeights; // Original heightmap
+	static TArray<float> GridHeights; // Mapped heightmap
 	
 	static TArray<FVector2D> Points; // pI
 	static TArray<float> Weights; // wI

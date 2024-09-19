@@ -11,6 +11,7 @@ float UErosionLibrary::Evaporation = 0.02f; // pEvaporation
 float UErosionLibrary::MaxPath = 64; // pMaxPath 
 int32 UErosionLibrary::ErosionRadius = 4; // pRadius 
 
+TArray<float> UErosionLibrary::MapHeights = TArray<float>();
 TArray<float> UErosionLibrary::GridHeights = TArray<float>(); 
 TArray<FVector2D> UErosionLibrary::Points = TArray<FVector2D>();
 TArray<float> UErosionLibrary::Weights = TArray<float>();
@@ -49,64 +50,62 @@ MapSize = 3; (3x3 grid)
 */
 #pragma endregion
 
-// Useless!
+TArray<float> UErosionLibrary::GenerateVirtualGrid(const TArray<float>& MapHeightsValues, const int32& MapSize, const int32& NewCellSize)
+{
+	// NewCellSize = 1 --> 1x1 cells.
+	// NewCellSize = 2 --> 2x2 cells.
+	// NewCellSize = 3 --> 3x3 cells...
 
-// TArray<float> UErosionComponent::GenerateVirtualGrid(const TArray<float> MapHeightsValues, const int32 MapSize, const int32 NewCellSize = 1)
-// {
-// 	// NewCellSize = 1 --> 1x1 cells.
-// 	// NewCellSize = 2 --> 2x2 cells.
-// 	// NewCellSize = 3 --> 3x3 cells...
-//
-// 	MapHeights = MapHeightsValues;
-//
-// 	if (NewCellSize < 1)
-// 	{
-// 		UE_LOG(LogTemp, Error, TEXT("The cell size must be greater than zero!"));
-// 		return TArray<float>(); // Error when the TArray size is equal to zero.
-// 	}
-//
-// 	if (NewCellSize == 1)
-// 	{
-// 		return MapHeights; // Unique valid case at the time.
-// 	}
-//
-// 	TArray<float> NewHeights;
-//
-// 	// fmod(float x, float y) returns the module about division between two floating numbers.
-// 	if (std::fmod(MapSize / (NewCellSize * NewCellSize), 1.0) != 0.f)
-// 	{
-// 		// Isn't an error (maybe), but this case will be handled in a different way.
-// 		return TArray<float>();
-// 	}
-//
-// 	const int32 NewHeightsLength = MapHeights.Num() / (NewCellSize * NewCellSize);
-// 	NewHeights.Reserve(NewHeightsLength);
-//
-// 	int32 Index = 0;
-// 	for (int32 Y = 0; Y < MapSize; Y += NewCellSize)
-// 	{
-// 		for (int32 X = 0; X < MapSize; X += NewCellSize)
-// 		{
-// 			const int32 CurrentIndex = X + Y * MapSize;
-// 			float CurrentValue = 0;
-//
-// 			for (int32 Z = 0; Z < NewCellSize; Z++)
-// 			{
-// 				for (int32 W = 0; W < NewCellSize; W++)
-// 				{
-// 					CurrentValue += MapHeights[CurrentIndex + (MapSize * Z) + W];
-// 				}
-// 			}
-//
-// 			CurrentValue /= (NewCellSize * NewCellSize);
-//
-// 			NewHeights.Add(CurrentValue);
-// 			Index++;
-// 		}
-// 	}
-//
-// 	return NewHeights;
-// }
+	MapHeights = MapHeightsValues;
+
+	if (NewCellSize < 1)
+	{
+		UE_LOG(LogTemp, Error, TEXT("The cell size must be greater than zero!"));
+		return TArray<float>(); // Error when the TArray size is equal to zero.
+	}
+
+	if (NewCellSize == 1)
+	{
+		return MapHeights; // Unique valid case at the time.
+	}
+
+	TArray<float> NewHeights;
+
+	// fmod(float x, float y) returns the module about division between two floating numbers.
+	if (std::fmod(MapSize / (NewCellSize * NewCellSize), 1.0) != 0.f)
+	{
+		// Isn't an error (maybe), but this case will be handled in a different way.
+		return TArray<float>();
+	}
+
+	const int32 NewHeightsLength = MapHeights.Num() / (NewCellSize * NewCellSize);
+	NewHeights.Reserve(NewHeightsLength);
+
+	int32 Index = 0;
+	for (int32 Y = 0; Y < MapSize; Y += NewCellSize)
+	{
+		for (int32 X = 0; X < MapSize; X += NewCellSize)
+		{
+			const int32 CurrentIndex = X + Y * MapSize;
+			float CurrentValue = 0;
+
+			for (int32 Z = 0; Z < NewCellSize; Z++)
+			{
+				for (int32 W = 0; W < NewCellSize; W++)
+				{
+					CurrentValue += MapHeights[CurrentIndex + (MapSize * Z) + W];
+				}
+			}
+
+			CurrentValue /= (NewCellSize * NewCellSize);
+
+			NewHeights.Add(CurrentValue);
+			Index++;
+		}
+	}
+
+	return NewHeights;
+}
 
 FDrop UErosionLibrary::GenerateDropInitialParams(const int32& GridSize) // GridSize = MapSize / CellSize
 {
@@ -465,6 +464,6 @@ void UErosionLibrary::ErosionHandler(const int32& GridSize)
 		//UE_LOG(LogTemp, Warning, TEXT("DROP IS DEAD!"));
 		//UE_LOG(LogTemp, Warning, TEXT("-----------------------------------------------------------"));
 	}
-	
+
 	//UE_LOG(LogTemp, Warning, TEXT("EROSION ENDED!"));
 }

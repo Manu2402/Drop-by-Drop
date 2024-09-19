@@ -21,27 +21,36 @@ int32 UGeneratorHeightMapLibrary::NumOctaves = 8;
 float UGeneratorHeightMapLibrary::Persistence = 0.45f;
 float UGeneratorHeightMapLibrary::Lacunarity = 2.f;
 float UGeneratorHeightMapLibrary::InitialScale = 1.8f;
-int32 UGeneratorHeightMapLibrary::Size = 505;
+int32 UGeneratorHeightMapLibrary::Size = 512;
 float UGeneratorHeightMapLibrary::MaxHeightDifference = 1;
 TArray<float> UGeneratorHeightMapLibrary::HeightMap;
 
 //LandScapeParam
 ALandscape* UGeneratorHeightMapLibrary::StaticLandscape = nullptr;
-int32 UGeneratorHeightMapLibrary::Kilometers = 1;
+float UGeneratorHeightMapLibrary::Kilometers = 1;
 bool UGeneratorHeightMapLibrary::bKilometers = false;
 int32 UGeneratorHeightMapLibrary::WorldPartitionGridSize = 4;
 bool UGeneratorHeightMapLibrary::bDestroyLastLandscape = true;
+
+int32 UGeneratorHeightMapLibrary::ReferenceSize = 512;
+
 #pragma endregion
 
 #pragma region Erosion
 void UGeneratorHeightMapLibrary::GenerateErosion()
 {
-	UErosionLibrary::SetHeights(HeightMap);
+	// 1024 to 512 --> 2
+	// 2048 to 512 --> 4
+	// 4096 to 512 --> 8
 
-	UErosionLibrary::ErosionHandler(Size);
+	UErosionLibrary::SetHeights(UErosionLibrary::GenerateVirtualGrid(HeightMap, Size, Size / ReferenceSize));
+	UErosionLibrary::ErosionHandler(ReferenceSize);
 
 	TArray<uint16> ErodedHeightmapU16 = ConvertFloatArrayToUint16(UErosionLibrary::GetHeights());
 
+	Kilometers = Size / 1000; //1024 --> 1.024
+	bKilometers = true;
+	
 	// Generate new landscape.
 	const FTransform LandscapeTransform = GetNewTransform();
 
@@ -344,11 +353,11 @@ FTransform UGeneratorHeightMapLibrary::GetNewTransform()
 
 void UGeneratorHeightMapLibrary::DestroyLastLandscape()
 {
-	if(bDestroyLastLandscape)
+	if (bDestroyLastLandscape)
 	{
-		if(StaticLandscape != nullptr)
+		if (StaticLandscape != nullptr)
 		{
-		StaticLandscape->Destroy();
+			StaticLandscape->Destroy();
 		}
 	}
 }
