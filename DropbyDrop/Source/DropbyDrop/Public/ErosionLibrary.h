@@ -126,12 +126,27 @@ public:
 	{
 		ErosionRadius = NewErosionRadius;
 	}// pRadius
+
+	static float BaseErosionStrength; // pMaxPath
+	static float ReferenceLandscapeSizeX;
+	static float ReferenceLandscapeSizeY;
+	static float BaseNumDrops;
+	static int ScaledNumDrops;
+	static float ScaledErosionStrength;
+	static float ScalingFactor;
+	static float ScaledInertia;
+	static float ScaledDepositionSpeed;
+	static float ScaledErosionSpeed;
+	static float ScaledErosionRadius;
+	static float BaseMaxPath;
+	static float ScaledMaxPath;
 #pragma endregion
 
 public:	
 	static void SetHeights(const TArray<float>& NewHeights);
 	static TArray<float> GetHeights();
 
+	static void ScaleErosionParameters(int LandscapeSizeX, int LandscapeSizeY);
 	//UFUNCTION(BlueprintCallable) Useless!
 	//TArray<float> GenerateVirtualGrid(const TArray<float> MapHeightsValues, const int32 MapSize, const int32 NewCellSize);
 

@@ -1,6 +1,6 @@
 #include "ErosionLibrary.h"
 
-int32 UErosionLibrary::ErosionCycles = 100000;
+int32 UErosionLibrary::ErosionCycles = 50000;
 float UErosionLibrary::Inertia = 0.3; // pInertia
 float UErosionLibrary::Capacity = 8; // pCapacity
 float UErosionLibrary::MinimalSlope = 0.01f; // pMinSlope
@@ -15,9 +15,23 @@ TArray<float> UErosionLibrary::GridHeights = TArray<float>();
 TArray<FVector2D> UErosionLibrary::Points = TArray<FVector2D>();
 TArray<float> UErosionLibrary::Weights = TArray<float>();
 
+float UErosionLibrary::BaseErosionStrength = 4.f;
+float UErosionLibrary::BaseNumDrops = 50000;
+float UErosionLibrary:: ReferenceLandscapeSizeX = 505.0f;
+float UErosionLibrary::ReferenceLandscapeSizeY = 505.0f;
+float UErosionLibrary::BaseMaxPath = 64;
+int UErosionLibrary::ScaledNumDrops = 1;
+float UErosionLibrary::ScaledErosionStrength = 1;
+float UErosionLibrary::ScaledMaxPath = 1;
+float UErosionLibrary::ScaledInertia = 1;
+float UErosionLibrary::ScaledDepositionSpeed = 1;
+float UErosionLibrary::ScaledErosionSpeed = 1;
+float UErosionLibrary::ScaledErosionRadius = 1;
+
+
 UErosionLibrary::UErosionLibrary()
 {
-	const int32 SampledPointsInRadius = (2 * ErosionRadius + 1) * (2 * ErosionRadius + 1);
+	const int32 SampledPointsInRadius = (2 * ScaledErosionRadius + 1) * (2 * ScaledErosionRadius + 1);
 	Weights.Reserve(SampledPointsInRadius);
 	Points.Reserve(SampledPointsInRadius);
 }
@@ -31,6 +45,26 @@ void UErosionLibrary::SetHeights(const TArray<float>& NewHeights)
 TArray<float> UErosionLibrary::GetHeights()
 {
 	return GridHeights;
+}
+
+void UErosionLibrary::ScaleErosionParameters(int LandscapeSizeX, int LandscapeSizeY)
+{
+	// Calcola il fattore di scala in base all'area del landscape corrente rispetto a quello di riferimento
+	const float AreaRatio = (LandscapeSizeX * LandscapeSizeY) / (ReferenceLandscapeSizeX * ReferenceLandscapeSizeY);
+
+	// Scala il numero di gocce in base all'area
+	ScaledNumDrops = FMath::RoundToInt(BaseNumDrops * AreaRatio);
+	
+	// Scala la forza dell'erosione in modo inverso rispetto alla dimensione (paesaggi più grandi hanno meno erosione per goccia)
+	ScaledErosionStrength = BaseErosionStrength * FMath::Sqrt((ReferenceLandscapeSizeX * ReferenceLandscapeSizeY) / (LandscapeSizeX * LandscapeSizeY));
+
+	// Un'ipotesi: il percorso può essere proporzionale alla radice quadrata dell'area del landscape.
+	ScaledMaxPath = FMath::RoundToInt(BaseMaxPath * AreaRatio); 
+	// Opzionalmente: regola altri parametri come la diffusione dell'acqua, ecc., qui
+	ScaledInertia = Inertia * FMath::Sqrt(AreaRatio);
+	ScaledDepositionSpeed = DepositionSpeed * FMath::Sqrt(AreaRatio);
+	ScaledErosionSpeed = ErosionSpeed * FMath::Sqrt(AreaRatio);
+	ScaledErosionRadius = ErosionRadius * FMath::Sqrt(AreaRatio);
 }
 
 #pragma region Example
@@ -48,7 +82,7 @@ MapSize = 3; (3x3 grid)
 
 */
 #pragma endregion
-
+#pragma  region Useless!
 // Useless!
 
 // TArray<float> UErosionComponent::GenerateVirtualGrid(const TArray<float> MapHeightsValues, const int32 MapSize, const int32 NewCellSize = 1)
@@ -107,6 +141,7 @@ MapSize = 3; (3x3 grid)
 //
 // 	return NewHeights;
 // }
+#pragma endregion
 
 FDrop UErosionLibrary::GenerateDropInitialParams(const int32& GridSize) // GridSize = MapSize / CellSize
 {
@@ -211,9 +246,9 @@ void UErosionLibrary::SetPointsPositionInRadius(const FVector2D& DropPosition, c
 	// pRadius = 3 --> 49
 	// ..................
 
-	for (int32 Y = -ErosionRadius; Y <= ErosionRadius; Y++)
+	for (int32 Y = -ScaledErosionRadius; Y <= ScaledErosionRadius; Y++)
 	{
-		for (int32 X = -ErosionRadius; X <= ErosionRadius; X++)
+		for (int32 X = -ScaledErosionRadius; X <= ScaledErosionRadius; X++)
 		{
 			const float PosX = FMath::Floor(DropPosition.X) + X;
 			const float PosY = FMath::Floor(DropPosition.Y) + Y;
@@ -231,7 +266,7 @@ void UErosionLibrary::SetPointsPositionInRadius(const FVector2D& DropPosition, c
 
 float UErosionLibrary::GetRelativeWeightOnPoint(const FVector2D& DropPosition, const FVector2D& PointPosition)
 {
-	return FMath::Max(0, ErosionRadius - (PointPosition - DropPosition).Length());
+	return FMath::Max(0, ScaledErosionRadius - (PointPosition - DropPosition).Length());
 }
 
 TArray<float> UErosionLibrary::GetErosionOnPoints(const float& ErosionFactor)
@@ -298,9 +333,10 @@ EOutOfBoundResult UErosionLibrary::GetOutOfBoundResult(const FVector2D& IntegerP
 
 void UErosionLibrary::Erosion(FDrop& Drop, const int32& GridSize)
 {
+	
 	float Sediment = 0;
 
-	for (int32 Cycle = 0; Cycle < MaxPath; Cycle++)
+	for (int32 Cycle = 0; Cycle < MaxPath; Cycle++)  
 	{
 		// Phase zero: drop position information.
 		FVector2D IntegerPosOld = FVector2D(FMath::Floor(Drop.Position.X), FMath::Floor(Drop.Position.Y)); // (x, y)
@@ -336,7 +372,7 @@ void UErosionLibrary::Erosion(FDrop& Drop, const int32& GridSize)
 		//UE_LOG(LogTemp, Warning, TEXT("Gradient on Drop's position: (%f, %f)"), DropPositionGradient.X, DropPositionGradient.Y);
 
 		// Phase three: inertia blends.
-		Drop.Direction = Drop.Direction * Inertia - DropPositionGradient * (1 - Inertia);
+		Drop.Direction = Drop.Direction * ScaledInertia - DropPositionGradient * (1 - ScaledInertia);
 
 		//UE_LOG(LogTemp, Warning, TEXT("New direction: (%f, %f)"), Drop.Direction.X, Drop.Direction.Y);
 
@@ -382,8 +418,8 @@ void UErosionLibrary::Erosion(FDrop& Drop, const int32& GridSize)
 		// Phase six: deposit and erosion calculus.
 
 		// Capacity calculus.
-		const float C = FMath::Max(-HeightsDifference, MinimalSlope) * Drop.Velocity * Drop.Water * Capacity;
-
+		//const float C = FMath::Max(-HeightsDifference, MinimalSlope) * Drop.Velocity * Drop.Water * Capacity;  //QUIIII
+		const float C = FMath::Max(-HeightsDifference, MinimalSlope) * Drop.Velocity * Drop.Water * (Capacity * ScaledErosionStrength); 
 		//UE_LOG(LogTemp, Warning, TEXT("C: %f"), C);
 
 		const bool bDropHasMovingUp = HeightsDifference > 0;
@@ -391,14 +427,15 @@ void UErosionLibrary::Erosion(FDrop& Drop, const int32& GridSize)
 		
 		if (bDropHasMovingUp || bDropHasToDeposit)
 		{
-			float Deposit = bDropHasMovingUp ? FMath::Min(HeightsDifference, Sediment) : (Sediment - C) * DepositionSpeed;
+			float Deposit = bDropHasMovingUp ? FMath::Min(HeightsDifference, Sediment) : (Sediment - C) * ScaledDepositionSpeed;
 			Sediment -= Deposit;
 			
 			ComputeDepositOnPoints(IntegerPosOld, OffsetPosOld, Deposit, GridSize);
 		}
 		else
 		{
-			float Erosion = FMath::Min((C - Sediment) * ErosionSpeed, -HeightsDifference);
+			//float Erosion = FMath::Min((C - Sediment) * ErosionSpeed, -HeightsDifference); QUIIII
+			float Erosion = FMath::Min((C - Sediment) * ScaledErosionSpeed * ScaledErosionStrength, -HeightsDifference);
 
 			TArray<float> ErosionValues = GetErosionOnPoints(Erosion);
 
@@ -457,7 +494,8 @@ void UErosionLibrary::InitWeights(const FVector2D& DropPosition, const int32& Gr
 
 void UErosionLibrary::ErosionHandler(const int32& GridSize)
 {
-	for (int32 Index = 0; Index < ErosionCycles; Index++)
+	//ScaleErosionParameters(GridSize, GridSize);
+	for (int32 Index = 0; Index < ErosionCycles; Index++) //DA EROSION CYCLES A ScaledNumDrops
 	{
 		FDrop Drop = GenerateDropInitialParams(GridSize);
 		Erosion(Drop, GridSize);

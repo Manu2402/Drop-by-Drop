@@ -275,7 +275,7 @@ ALandscape* UGeneratorHeightMapLibrary::GenerateLandscape(const FTransform& Land
 	// Assign an appropriate material if needed
 	Landscape->SetActorTransform(LandscapeTransform);
 
-	UE_LOG(LogTemp, Error, TEXT("NumSubSections: %d; SubSectionSizeQuads:%d; MaxX,Y: %d;"), NumSubsections,
+	UE_LOG(LogTemp, Log, TEXT("NumSubSections: %d; SubSectionSizeQuads:%d; MaxX,Y: %d;"), NumSubsections,
 	       SubSectionSizeQuads, MaxY);
 
 	Landscape->Import(
