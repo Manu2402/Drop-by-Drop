@@ -27,8 +27,7 @@ TArray<float> UGeneratorHeightMapLibrary::HeightMap;
 
 //LandScapeParam
 ALandscape* UGeneratorHeightMapLibrary::StaticLandscape = nullptr;
-int32 UGeneratorHeightMapLibrary::Kilometers = 1;
-bool UGeneratorHeightMapLibrary::bKilometers = false;
+float UGeneratorHeightMapLibrary::Kilometers = 1;
 int32 UGeneratorHeightMapLibrary::WorldPartitionGridSize = 4;
 bool UGeneratorHeightMapLibrary::bDestroyLastLandscape = true;
 #pragma endregion
@@ -323,19 +322,11 @@ bool UGeneratorHeightMapLibrary::SetLandscapeSizeParam(int32& SubSectionSizeQuad
 #pragma region Utilities
 FTransform UGeneratorHeightMapLibrary::GetNewTransform()
 {
-	FVector NewScale;
-	if (bKilometers)
-	{
-		const FVector CurrentScale = FVector(100, 100, 100);
-		const float CurrentSizeInUnits = Size * CurrentScale.X;
-		const float DesiredSizeInUnits = Kilometers * 1000.0f * 100.0f;
-		const float ScaleFactor = DesiredSizeInUnits / CurrentSizeInUnits;
-		NewScale = CurrentScale * ScaleFactor;
-	}
-	else
-	{
-		NewScale = FVector(100, 100, 100);
-	}
+	const FVector CurrentScale = FVector(100, 100, 100);
+	const float CurrentSizeInUnits = Size * CurrentScale.X;
+	const float DesiredSizeInUnits = Kilometers * 1000.0f * 100.0f;
+	const float ScaleFactor = DesiredSizeInUnits / CurrentSizeInUnits;
+	const FVector NewScale = CurrentScale * ScaleFactor;
 
 	const FTransform LandscapeTransform =
 		FTransform(FQuat(FRotator::ZeroRotator), FVector(-100800, -100800, 17200), NewScale);
