@@ -8,7 +8,7 @@
 #include "GeneratorHeightMapLibrary.generated.h"
 
 UCLASS()
-class DROPBYDROP_API UGeneratorHeightMapLibrary : public UBlueprintFunctionLibrary
+class UGeneratorHeightMapLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 
@@ -46,11 +46,19 @@ public:
 	{
 		WorldPartitionGridSize = NewWorldPartitionGridSize;
 	}
+	static int32 GetWorldPartitionGridSize()
+	{
+		return WorldPartitionGridSize;
+	}
 	
 	UFUNCTION(BlueprintCallable,Category ="HeightMap")
 	static void SetKilometers(const int32 NewKilometers)
 	{
 		Kilometers = NewKilometers;
+	}
+	static int32 GetKilometers()
+	{
+		return Kilometers;
 	}
 	
 	UFUNCTION(BlueprintCallable, Category="HeightMap")
@@ -66,9 +74,14 @@ public:
 	}
 	
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
-	static void SetSeed(const int32 NewSeed)
+	static void SetSeed(int32 NewSeed)
 	{
 		Seed = NewSeed;
+		UE_LOG(LogTemp, Log, TEXT("Seed: %d"), Seed);
+	}
+	static int32 GetSeed()
+	{
+		return Seed;
 	}
 
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
@@ -76,11 +89,19 @@ public:
 	{
 		bRandomizeSeed = bNewRandomizeSeed;
 	}
+	static bool GetRandomizeSeed()
+	{
+		return bRandomizeSeed;
+	}
 
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	static void SetNumOctaves(const int32 NewNumOctaves)
 	{
 		NumOctaves = NewNumOctaves;
+	}
+	static int32 GetOctaves()
+	{
+		return NumOctaves;
 	}
 
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
@@ -88,17 +109,29 @@ public:
 	{
 		Persistence = NewPersistence;
 	}
+	static float GetPersistence()
+	{
+		return Persistence;
+	}
 
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	static void SetLacunarity(const float NewLacunarity)
 	{
 		Lacunarity = NewLacunarity;
 	}
+	static float GetLacunarity()
+	{
+		return Lacunarity;
+	}
 
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	static void SetInitialScale(const float NewInitialScale)
 	{
 		InitialScale = NewInitialScale;
+	}
+	static float GetInitialScale()
+	{
+		return InitialScale;
 	}
 	
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
@@ -118,6 +151,11 @@ public:
 	{
 		MaxHeightDifference = NewMaxHeightDifference;
 	}
+	static float GetMaxHeightDifference()
+	{
+		return MaxHeightDifference;
+	}
+	
 #pragma endregion
 
 #pragma region Erosion

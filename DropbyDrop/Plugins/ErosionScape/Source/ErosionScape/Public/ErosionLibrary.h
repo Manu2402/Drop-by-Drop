@@ -36,7 +36,7 @@ enum EOutOfBoundResult : uint8
 };
 
 UCLASS(Blueprintable)
-class DROPBYDROP_API UErosionLibrary : public UBlueprintFunctionLibrary
+class UErosionLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 
@@ -54,6 +54,10 @@ public:
 	{
 		ErosionCycles = NewErosionCycles;
 	}
+	static int32 GetErosionCycles()
+	{
+		return ErosionCycles;
+	}
 	
 	//UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1")) // [0, 1]
 	static float Inertia; // pInertia
@@ -61,6 +65,10 @@ public:
 	static void SetInertia(const float& NewInertia)
 	{
 		Inertia = NewInertia;
+	}
+	static float GetInertia()
+	{
+		return Inertia;
 	}
 	
 	//UPROPERTY(EditAnywhere)
@@ -70,6 +78,10 @@ public:
 	{
 		Capacity = NewCapacity;
 	}
+	static float GetCapacity()
+	{
+		return Capacity;
+	}
 	
 	//UPROPERTY(EditAnywhere)
 	static float MinimalSlope; // pMinSlope
@@ -77,6 +89,10 @@ public:
 	static void SetMinimalSlope(const float& NewMinimalSlope)
 	{
 		MinimalSlope = NewMinimalSlope;
+	}
+	static float GetMinimalSlope()
+	{
+		return MinimalSlope;
 	}
 	
 	//UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1"))
@@ -86,6 +102,10 @@ public:
 	{
 		DepositionSpeed = NewDepositionSpeed;
 	}
+	static float GetDepositionSpeed()
+	{
+		return DepositionSpeed;
+	}
 	
 	//UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1"))
 	static float ErosionSpeed; // pErosion
@@ -94,6 +114,11 @@ public:
 	{
 		ErosionSpeed = NewErosionSpeed;
 	}
+	static float GetErosionSpeed()
+	{
+		return ErosionSpeed;
+	}
+	
 	
 	//UPROPERTY(EditAnywhere)
 	static float Gravity; // pGravity
@@ -101,6 +126,10 @@ public:
 	static void SetGravity(const float& NewGravity)
 	{
 		Gravity = NewGravity;
+	}
+	static float GetGravity()
+	{
+		return Gravity;
 	}
 	
 	//UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1"))
@@ -110,6 +139,10 @@ public:
 	{
 		Evaporation = NewEvaporation;
 	}
+	static float GetEvaporation()
+	{
+		return Evaporation;
+	}
 	
 	//UPROPERTY(EditAnywhere)
 	static float MaxPath; // pMaxPath
@@ -117,6 +150,10 @@ public:
 	static void SetMaxPath(const float& NewMaxPath)
 	{
 		MaxPath = NewMaxPath;
+	}
+	static float GetMaxPath()
+	{
+		return MaxPath;
 	}
 	
 	//UPROPERTY(EditAnywhere)
@@ -126,6 +163,10 @@ public:
 	{
 		ErosionRadius = NewErosionRadius;
 	}// pRadius
+	static int32 GetErosionRadius()
+	{
+		return ErosionRadius;
+	}
 #pragma endregion
 
 public:	
