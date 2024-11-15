@@ -28,8 +28,7 @@ void FErosionScapeModule::StartupModule()
 	FErosionScapeStyle::ReloadTextures();
 
 	FErosionScapeCommands::Register();
-
-
+	
 	PluginCommands = MakeShareable(new FUICommandList);
 
 	PluginCommands->MapAction(
@@ -49,7 +48,7 @@ void FErosionScapeModule::StartupModule()
 
 void FErosionScapeModule::ShutdownModule()
 {
-	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
+	// This function may be called during shutdown to clean up your module. For modules that support dynamic reloading,
 	// we call this function before unloading the module.
 
 	UToolMenus::UnRegisterStartupCallback(this);
@@ -608,6 +607,8 @@ TSharedRef<SWidget> FErosionScapeModule::CreateLandScapeColumn()
 			];
 }
 
+TSharedPtr<SEditableTextBox> TemplateNameTextBox;
+
 TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 {
 	return SNew(SVerticalBox)
@@ -898,9 +899,36 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 						return FReply::Handled();
 					})
 				]
+			]
+			// Save Button + Name Textbox 
+			+ SVerticalBox::Slot()
+			.Padding(5)
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SButton)
+					.Text(FText::FromString("Save"))
+					.OnClicked_Lambda([]()
+					{
+						UGeneratorHeightMapLibrary::SaveErosionTemplate(TemplateNameTextBox->GetText().ToString(),
+							UErosionLibrary::GetErosionCycles(), UErosionLibrary::GetInertia(), UErosionLibrary::GetCapacity(),
+							UErosionLibrary::GetMinimalSlope(), UErosionLibrary::GetDepositionSpeed(), UErosionLibrary::GetErosionCycles(),
+							UErosionLibrary::GetGravity(), UErosionLibrary::GetEvaporation(), UErosionLibrary::GetMaxPath(),
+							UErosionLibrary::GetErosionRadius());
+						return FReply::Handled();
+					})
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SAssignNew(TemplateNameTextBox, SEditableTextBox)
+					.MinDesiredWidth(70.0f)
+				]
 			];
 }
-
 
 #undef LOCTEXT_NAMESPACE
 

@@ -7,6 +7,42 @@
 #include "Landscape.h"
 #include "GeneratorHeightMapLibrary.generated.h"
 
+USTRUCT()
+struct FErosionTemplateRow : public FTableRowBase
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 ErosionCyclesField;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float InertiaField;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 CapacityField;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MinSlopeField;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float DepositionSpeedField;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float ErosionSpeedField;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 GravityField;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float EvaporationField;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 MaxPathField;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 ErosionRadiusField;
+};
+
 UCLASS()
 class UGeneratorHeightMapLibrary : public UBlueprintFunctionLibrary
 {
@@ -32,6 +68,8 @@ class UGeneratorHeightMapLibrary : public UBlueprintFunctionLibrary
 	static bool bKilometers;
 	static bool bDestroyLastLandscape;
 #pragma endregion
+
+	static UDataTable* ErosionTemplatesDataTable;
 	
 public:
 #pragma region Get/Set Param
@@ -164,6 +202,14 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category ="Heightmap")
 	static void ErodeLandscapeProxy(ALandscapeProxy* LandscapeProxy);
+
+	UFUNCTION(BlueprintCallable, Category = "Erosion")
+	static void SaveErosionTemplate(const FString& TemplateName, const int32 ErosionCyclesValue,
+									const float InertiaValue, const int32 CapacityValue,
+									const float MinSlopeValue, const float DepositionSpeedValue,
+									const float ErosionSpeedValue, const int32 GravityValue,
+									const float EvaporationValue, const int32 MaxPathValue,
+									const int32 ErosionRadiusValue);
 #pragma endregion
 
 #pragma region Landscape

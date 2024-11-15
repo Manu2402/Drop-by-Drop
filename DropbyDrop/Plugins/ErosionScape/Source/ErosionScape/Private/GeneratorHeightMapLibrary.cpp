@@ -31,6 +31,8 @@ int32 UGeneratorHeightMapLibrary::Kilometers = 1;
 bool UGeneratorHeightMapLibrary::bKilometers = false;
 int32 UGeneratorHeightMapLibrary::WorldPartitionGridSize = 4;
 bool UGeneratorHeightMapLibrary::bDestroyLastLandscape = true;
+
+UDataTable* UGeneratorHeightMapLibrary::ErosionTemplatesDataTable = nullptr;
 #pragma endregion
 
 #pragma region Erosion
@@ -71,6 +73,40 @@ void UGeneratorHeightMapLibrary::ErodeLandscapeProxy(ALandscapeProxy* LandscapeP
 	LandscapeProxy->GetComponents<ULandscapeComponent>(LandscapeComponents);
 
 	//TODO: Finish the method.
+}
+
+void UGeneratorHeightMapLibrary::SaveErosionTemplate(const FString& TemplateName, const int32 ErosionCyclesValue,
+													 const float InertiaValue, const int32 CapacityValue,
+													 const float MinSlopeValue, const float DepositionSpeedValue,
+													 const float ErosionSpeedValue, const int32 GravityValue,
+													 const float EvaporationValue, const int32 MaxPathValue,
+													 const int32 ErosionRadiusValue)
+{
+	UE_LOG(LogTemp, Warning, TEXT("%s, %d, %f, %d, %f, %f, %f, %d, %f, %d, %d"), *TemplateName,
+		ErosionCyclesValue, InertiaValue, CapacityValue, MinSlopeValue, DepositionSpeedValue, ErosionSpeedValue,
+		GravityValue, EvaporationValue, MaxPathValue, ErosionRadiusValue)
+
+	// Row fields.
+	FErosionTemplateRow ErosionTemplateRow;
+	ErosionTemplateRow.ErosionCyclesField = ErosionCyclesValue;
+	ErosionTemplateRow.InertiaField = InertiaValue;
+	ErosionTemplateRow.CapacityField = CapacityValue;
+	ErosionTemplateRow.MinSlopeField = MinSlopeValue;
+	ErosionTemplateRow.DepositionSpeedField = DepositionSpeedValue;
+	ErosionTemplateRow.ErosionSpeedField = ErosionSpeedValue;
+	ErosionTemplateRow.GravityField = GravityValue;
+	ErosionTemplateRow.EvaporationField = EvaporationValue;
+	ErosionTemplateRow.MaxPathField = MaxPathValue;
+	ErosionTemplateRow.ErosionRadiusField = ErosionRadiusValue;
+
+	ErosionTemplatesDataTable = LoadObject<UDataTable>(nullptr, TEXT("/Game/Custom/ErosionTemplates/DT_ErosionTemplate.DT_ErosionTemplate"));
+
+	if(!ErosionTemplatesDataTable)
+	{
+		return;
+	}
+	
+	ErosionTemplatesDataTable->AddRow(FName(TemplateName), ErosionTemplateRow);
 }
 #pragma endregion
 
@@ -308,13 +344,9 @@ bool UGeneratorHeightMapLibrary::SetLandscapeSizeParam(int32& SubSectionSizeQuad
 
 	if (MaxX != HeightmapSize || MaxY != HeightmapSize)
 	{
-		UE_LOG(LogTemp, Error,
-			   TEXT("Dimensioni calcolate (%d x %d) non corrispondono alla dimensione dell'heightmap (%d x %d)."),
-			   MaxX, MaxY, HeightmapSize, HeightmapSize);
+		UE_LOG(LogTemp, Error, TEXT("Dimensioni calcolate (%d x %d) non corrispondono alla dimensione dell'heightmap (%d x %d)."))
 		return false;
 	}
-
-
 	
 	return true;
 }
@@ -337,8 +369,7 @@ FTransform UGeneratorHeightMapLibrary::GetNewTransform()
 		NewScale = FVector(100, 100, 100);
 	}
 
-	const FTransform LandscapeTransform =
-		FTransform(FQuat(FRotator::ZeroRotator), FVector(-100800, -100800, 17200), NewScale);
+	const FTransform LandscapeTransform = FTransform(FQuat(FRotator::ZeroRotator), FVector(-100800, -100800, 17200), NewScale);
 	return LandscapeTransform;
 }
 
@@ -348,7 +379,7 @@ void UGeneratorHeightMapLibrary::DestroyLastLandscape()
 	{
 		if(StaticLandscape != nullptr)
 		{
-		StaticLandscape->Destroy();
+			StaticLandscape->Destroy();
 		}
 	}
 }
@@ -467,4 +498,3 @@ void UGeneratorHeightMapLibrary::SaveTextureToFile(UTexture2D* Texture, const FS
 	}
 }
 #pragma endregion
-
