@@ -927,7 +927,30 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 					SAssignNew(TemplateNameTextBox, SEditableTextBox)
 					.MinDesiredWidth(70.0f)
 				]
-			];
+			]
+				// Load Button + Name Textbox 
+				+ SVerticalBox::Slot()
+				.Padding(5)
+				.AutoHeight()
+				[
+					SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(SButton)
+								.Text(FText::FromString("Load"))
+								.OnClicked_Lambda([]()
+								{
+									FErosionTemplateRow* SearchedRow = UGeneratorHeightMapLibrary::LoadErosionTemplate(FName(TemplateNameTextBox->GetText().ToString()));
+									if (SearchedRow)
+									{
+										UGeneratorHeightMapLibrary::LoadRowIntoErosionFields(SearchedRow);
+									}
+
+									return FReply::Handled();
+								})
+						]
+				];
 }
 
 #undef LOCTEXT_NAMESPACE

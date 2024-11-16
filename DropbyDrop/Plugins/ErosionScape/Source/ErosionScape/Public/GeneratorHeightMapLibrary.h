@@ -210,6 +210,11 @@ public:
 									const float ErosionSpeedValue, const int32 GravityValue,
 									const float EvaporationValue, const int32 MaxPathValue,
 									const int32 ErosionRadiusValue);
+
+	static FErosionTemplateRow* LoadErosionTemplate(const FName& TemplateName);
+
+	static bool LoadRowIntoErosionFields(const FErosionTemplateRow* TemplateDatas);
+	
 #pragma endregion
 
 #pragma region Landscape

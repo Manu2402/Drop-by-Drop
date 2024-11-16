@@ -119,7 +119,6 @@ public:
 		return ErosionSpeed;
 	}
 	
-	
 	//UPROPERTY(EditAnywhere)
 	static float Gravity; // pGravity
 	UFUNCTION(BlueprintCallable, Category = "Erosion")

@@ -82,10 +82,6 @@ void UGeneratorHeightMapLibrary::SaveErosionTemplate(const FString& TemplateName
 													 const float EvaporationValue, const int32 MaxPathValue,
 													 const int32 ErosionRadiusValue)
 {
-	UE_LOG(LogTemp, Warning, TEXT("%s, %d, %f, %d, %f, %f, %f, %d, %f, %d, %d"), *TemplateName,
-		ErosionCyclesValue, InertiaValue, CapacityValue, MinSlopeValue, DepositionSpeedValue, ErosionSpeedValue,
-		GravityValue, EvaporationValue, MaxPathValue, ErosionRadiusValue)
-
 	// Row fields.
 	FErosionTemplateRow ErosionTemplateRow;
 	ErosionTemplateRow.ErosionCyclesField = ErosionCyclesValue;
@@ -107,6 +103,40 @@ void UGeneratorHeightMapLibrary::SaveErosionTemplate(const FString& TemplateName
 	}
 	
 	ErosionTemplatesDataTable->AddRow(FName(TemplateName), ErosionTemplateRow);
+}
+
+FErosionTemplateRow* UGeneratorHeightMapLibrary::LoadErosionTemplate(const FName& RowName)
+{
+	FString ContextString = TEXT("DataTable Context");
+	ErosionTemplatesDataTable = LoadObject<UDataTable>(nullptr, TEXT("/Game/Custom/ErosionTemplates/DT_ErosionTemplate.DT_ErosionTemplate"));
+
+	if (!ErosionTemplatesDataTable)
+	{
+		return nullptr;
+	}
+
+	FErosionTemplateRow* RowData = ErosionTemplatesDataTable->FindRow<FErosionTemplateRow>(RowName, ContextString);
+	if (!RowData)
+	{
+		return nullptr;
+	}
+
+	return RowData;
+}
+bool UGeneratorHeightMapLibrary::LoadRowIntoErosionFields(const FErosionTemplateRow* TemplateDatas)
+{
+	UErosionLibrary::SetErosion(TemplateDatas->ErosionCyclesField);
+	UErosionLibrary::SetInertia(TemplateDatas->InertiaField);
+	UErosionLibrary::SetCapacity(TemplateDatas->CapacityField);
+	UErosionLibrary::SetMinimalSlope(TemplateDatas->MinSlopeField);
+	UErosionLibrary::SetDepositionSpeed(TemplateDatas->DepositionSpeedField);
+	UErosionLibrary::SetErosionSpeed(TemplateDatas->ErosionSpeedField);
+	UErosionLibrary::SetGravity(TemplateDatas->GravityField);
+	UErosionLibrary::SetEvaporation(TemplateDatas->EvaporationField);
+	UErosionLibrary::SetMaxPath(TemplateDatas->MaxPathField);
+	UErosionLibrary::SetErosionRadius(TemplateDatas->ErosionRadiusField);
+
+	return true;
 }
 #pragma endregion
 
