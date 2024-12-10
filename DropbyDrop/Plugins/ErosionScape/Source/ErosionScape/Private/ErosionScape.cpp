@@ -117,8 +117,8 @@ void FErosionScapeModule::AddTemplate(const FString& Param)
 		return;
 	}
 
-	ErosionTemplates.Add(Template);
-	CurrentErosionTemplate = Template;
+	ErosionTemplatesOptions.Add(Template);
+	CurrentErosionTemplateOptions = Template;
 }
 
 bool FErosionScapeModule::SaveErosionTemplates(UDataTable* ErosionTemplatesDataTable) const
@@ -127,7 +127,7 @@ bool FErosionScapeModule::SaveErosionTemplates(UDataTable* ErosionTemplatesDataT
 	{
 		return false;
 	}
-	
+
 	UPackage* ErostionTemplatesPackage = ErosionTemplatesDataTable->GetPackage();
 	if (!ErostionTemplatesPackage)
 	{
@@ -974,18 +974,29 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 									return FReply::Handled();
 								}
 
-								UGeneratorHeightMapLibrary::SaveErosionTemplate(ErosionTemplates, TemplateNameTextBox->GetText().ToString(),
+								const FString TemplateNameString = TemplateNameTextBox->GetText().ToString();
+
+								UGeneratorHeightMapLibrary::SaveErosionTemplate(ErosionTemplates, TemplateNameString,
 									UErosionLibrary::GetErosionCycles(), UErosionLibrary::GetInertia(), UErosionLibrary::GetCapacity(),
 									UErosionLibrary::GetMinimalSlope(), UErosionLibrary::GetDepositionSpeed(), UErosionLibrary::GetErosionSpeed(),
 									UErosionLibrary::GetGravity(), UErosionLibrary::GetEvaporation(), UErosionLibrary::GetMaxPath(),
 									UErosionLibrary::GetErosionRadius());
 
-								if (!ErosionTemplates)
+								// Check for duplicates (unfortunately i can't use the "options" in the ComboBox as set)
+								for (const auto& CurrentParam : ErosionTemplatesOptions)
 								{
-									return FReply::Handled();
+									if (!CurrentParam.IsValid())
+									{
+										continue;
+									}
+
+									if (CurrentParam->Equals(TemplateNameString))
+									{
+										return FReply::Handled();
+									}
 								}
 
-								AddTemplate(TemplateNameTextBox->GetText().ToString());
+								AddTemplate(TemplateNameString);
 								SaveErosionTemplates(ErosionTemplates);
 
 								return FReply::Handled();
@@ -1014,7 +1025,7 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 						.Text(FText::FromString("Load"))
 						.OnClicked_Lambda([this]()
 							{
-								FErosionTemplateRow* SearchedRow = UGeneratorHeightMapLibrary::LoadErosionTemplate(FName(*CurrentErosionTemplate));
+								FErosionTemplateRow* SearchedRow = UGeneratorHeightMapLibrary::LoadErosionTemplate(FName(*CurrentErosionTemplateOptions));
 								if (SearchedRow)
 								{
 									UGeneratorHeightMapLibrary::LoadRowIntoErosionFields(SearchedRow);
@@ -1034,13 +1045,13 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 						.Padding(10)
 						[
 							SNew(SComboBox<TSharedPtr<FString>>)
-								.OptionsSource(&ErosionTemplates)
+								.OptionsSource(&ErosionTemplatesOptions)
 								.OnGenerateWidget_Lambda([this](TSharedPtr<FString> SetValue) -> TSharedRef<SWidget>
 									{
-										CurrentErosionTemplate = SetValue;
+										CurrentErosionTemplateOptions = SetValue;
 
 										return SNew(STextBlock)
-											.Text(FText::FromString(*CurrentErosionTemplate));
+											.Text(FText::FromString(*CurrentErosionTemplateOptions));
 									})
 								.OnSelectionChanged_Lambda([this](TSharedPtr<FString> NewValue, ESelectInfo::Type)
 									{
@@ -1049,14 +1060,14 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 											return;
 										}
 
-										CurrentErosionTemplate = NewValue;
+										CurrentErosionTemplateOptions = NewValue;
 									})
 								[
 									SNew(STextBlock)
 										.Text_Lambda([this]() -> FText
 											{
-												return CurrentErosionTemplate.IsValid()
-													? FText::FromString(*CurrentErosionTemplate)
+												return CurrentErosionTemplateOptions.IsValid()
+													? FText::FromString(*CurrentErosionTemplateOptions)
 													: FText::FromString("Empty");
 											})
 								]

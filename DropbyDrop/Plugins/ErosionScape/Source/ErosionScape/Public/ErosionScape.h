@@ -27,8 +27,8 @@ private:
 	TSharedRef<SWidget> CreateErosionColumn();
 	TSharedRef<class SDockTab> OnSpawnPluginTab(const class FSpawnTabArgs& SpawnTabArgs);
 
-	TArray<TSharedPtr<FString>> ErosionTemplates;
-	TSharedPtr<FString> CurrentErosionTemplate;
+	TArray<TSharedPtr<FString>> ErosionTemplatesOptions;
+	TSharedPtr<FString> CurrentErosionTemplateOptions;
 	void SetUpTemplates(const UDataTable* ErosionTemplatesDataTable);
 	void AddTemplate(const FString& Param);
 	bool SaveErosionTemplates(UDataTable* ErosionTemplatesDataTable) const;

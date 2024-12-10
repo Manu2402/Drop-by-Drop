@@ -203,7 +203,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	static void ErodeLandscapeProxy(ALandscapeProxy* LandscapeProxy);
 
-	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static bool SaveErosionTemplate(UDataTable* ErosionTemplates, 
 		const FString& TemplateName, const int32 ErosionCyclesValue,
 		const float InertiaValue, const int32 CapacityValue,
