@@ -75,7 +75,7 @@ void UGeneratorHeightMapLibrary::ErodeLandscapeProxy(ALandscapeProxy* LandscapeP
 	//TODO: Finish the method.
 }
 
-void UGeneratorHeightMapLibrary::SaveErosionTemplate(const FString& TemplateName, const int32 ErosionCyclesValue,
+bool UGeneratorHeightMapLibrary::SaveErosionTemplate(UDataTable* ErosionTemplates, const FString& TemplateName, const int32 ErosionCyclesValue,
 													 const float InertiaValue, const int32 CapacityValue,
 													 const float MinSlopeValue, const float DepositionSpeedValue,
 													 const float ErosionSpeedValue, const int32 GravityValue,
@@ -94,16 +94,9 @@ void UGeneratorHeightMapLibrary::SaveErosionTemplate(const FString& TemplateName
 	ErosionTemplateRow.EvaporationField = EvaporationValue;
 	ErosionTemplateRow.MaxPathField = MaxPathValue;
 	ErosionTemplateRow.ErosionRadiusField = ErosionRadiusValue;
-
-	// Code repetition.
-	ErosionTemplatesDataTable = LoadObject<UDataTable>(nullptr, TEXT("/Game/Custom/ErosionTemplates/DT_ErosionTemplate.DT_ErosionTemplate"));
-
-	if(!ErosionTemplatesDataTable)
-	{
-		return;
-	}
 	
-	ErosionTemplatesDataTable->AddRow(FName(TemplateName), ErosionTemplateRow);
+	ErosionTemplates->AddRow(FName(TemplateName), ErosionTemplateRow);
+	return true;
 }
 
 FErosionTemplateRow* UGeneratorHeightMapLibrary::LoadErosionTemplate(const FName& RowName)

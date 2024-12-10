@@ -204,7 +204,8 @@ public:
 	static void ErodeLandscapeProxy(ALandscapeProxy* LandscapeProxy);
 
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
-	static void SaveErosionTemplate(const FString& TemplateName, const int32 ErosionCyclesValue,
+	static bool SaveErosionTemplate(UDataTable* ErosionTemplates, 
+		const FString& TemplateName, const int32 ErosionCyclesValue,
 		const float InertiaValue, const int32 CapacityValue,
 		const float MinSlopeValue, const float DepositionSpeedValue,
 		const float ErosionSpeedValue, const int32 GravityValue,
@@ -212,7 +213,6 @@ public:
 		const int32 ErosionRadiusValue);
 
 	static FErosionTemplateRow* LoadErosionTemplate(const FName& TemplateName);
-
 	static bool LoadRowIntoErosionFields(const FErosionTemplateRow* TemplateDatas);
 
 #pragma endregion

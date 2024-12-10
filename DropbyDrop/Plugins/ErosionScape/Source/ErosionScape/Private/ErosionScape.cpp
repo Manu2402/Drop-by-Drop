@@ -15,12 +15,11 @@
 #include "Widgets/Input/SSlider.h" // Per SSlider
 #include "Widgets/Input/SNumericEntryBox.h" // Per SNumericEntryBox
 #include "Widgets/DeclarativeSyntaxSupport.h" // Per SNew
+#include "Subsystems/EditorAssetSubsystem.h"
 
 static const FName ErosionScapeTabName("ErosionScape");
 
 #define LOCTEXT_NAMESPACE "FErosionScapeModule"
-
-
 
 void FErosionScapeModule::StartupModule()
 {
@@ -47,19 +46,7 @@ void FErosionScapeModule::StartupModule()
 		.SetDisplayName(LOCTEXT("FErosionScapeTabTitle", "ErosionScape"))
 		.SetMenuType(ETabSpawnerMenuType::Hidden);
 
-	UDataTable* ErosionTemplatesDataTable = LoadObject<UDataTable>(nullptr, TEXT("/Game/Custom/ErosionTemplates/DT_ErosionTemplate.DT_ErosionTemplate"));
-	if (!ErosionTemplatesDataTable)
-	{
-		return;
-	}
-
-	SetUpTemplates(ErosionTemplatesDataTable);
-
-	/*Options.Add(MakeShared<FString>("Pippo"));
-	Options.Add(MakeShared<FString>("Pluto"));
-	Options.Add(MakeShared<FString>("Paperino"));
-
-	SelectedOption = Options[0];*/
+	SetUpTemplates(GetErosionTemplates());
 }
 
 void FErosionScapeModule::ShutdownModule()
@@ -80,6 +67,8 @@ void FErosionScapeModule::ShutdownModule()
 
 TSharedRef<SDockTab> FErosionScapeModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
 {
+	AssetSubsystem = GEditor->GetEditorSubsystem<UEditorAssetSubsystem>();
+
 	return SNew(SDockTab)
 		.TabRole(ETabRole::NomadTab)
 		[
@@ -122,15 +111,43 @@ void FErosionScapeModule::SetUpTemplates(const UDataTable* ErosionTemplatesDataT
 void FErosionScapeModule::AddTemplate(const FString& Param)
 {
 	TSharedPtr<FString> Template = MakeShared<FString>(Param);
+
+	if (!Template)
+	{
+		return;
+	}
+
 	ErosionTemplates.Add(Template);
 	CurrentErosionTemplate = Template;
+}
+
+bool FErosionScapeModule::SaveErosionTemplates(UDataTable* ErosionTemplatesDataTable) const
+{
+	if (!AssetSubsystem)
+	{
+		return false;
+	}
+	
+	UPackage* ErostionTemplatesPackage = ErosionTemplatesDataTable->GetPackage();
+	if (!ErostionTemplatesPackage)
+	{
+		return false;
+	}
+
+	ErostionTemplatesPackage->MarkPackageDirty();
+
+	return AssetSubsystem->SaveLoadedAsset(ErosionTemplatesDataTable);
+}
+
+UDataTable* FErosionScapeModule::GetErosionTemplates() const
+{
+	return LoadObject<UDataTable>(nullptr, TEXT("/Game/Custom/ErosionTemplates/DT_ErosionTemplate.DT_ErosionTemplate"));
 }
 
 void FErosionScapeModule::PluginButtonClicked()
 {
 	FGlobalTabmanager::Get()->TryInvokeTab(ErosionScapeTabName);
 }
-
 
 void FErosionScapeModule::RegisterMenus()
 {
@@ -951,13 +968,26 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 						.Text(FText::FromString("Save"))
 						.OnClicked_Lambda([this]()
 							{
-								UGeneratorHeightMapLibrary::SaveErosionTemplate(TemplateNameTextBox->GetText().ToString(),
+								UDataTable* ErosionTemplates = GetErosionTemplates();
+								if (!ErosionTemplates)
+								{
+									return FReply::Handled();
+								}
+
+								UGeneratorHeightMapLibrary::SaveErosionTemplate(ErosionTemplates, TemplateNameTextBox->GetText().ToString(),
 									UErosionLibrary::GetErosionCycles(), UErosionLibrary::GetInertia(), UErosionLibrary::GetCapacity(),
 									UErosionLibrary::GetMinimalSlope(), UErosionLibrary::GetDepositionSpeed(), UErosionLibrary::GetErosionSpeed(),
 									UErosionLibrary::GetGravity(), UErosionLibrary::GetEvaporation(), UErosionLibrary::GetMaxPath(),
 									UErosionLibrary::GetErosionRadius());
 
+								if (!ErosionTemplates)
+								{
+									return FReply::Handled();
+								}
+
 								AddTemplate(TemplateNameTextBox->GetText().ToString());
+								SaveErosionTemplates(ErosionTemplates);
+
 								return FReply::Handled();
 							})
 				]
@@ -1027,7 +1057,7 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 											{
 												return CurrentErosionTemplate.IsValid()
 													? FText::FromString(*CurrentErosionTemplate)
-													: FText::FromString("NO SELECTION");
+													: FText::FromString("Empty");
 											})
 								]
 						]

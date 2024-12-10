@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
+using UnrealBuildTool.Rules;
 
 public class ErosionScape : ModuleRules
 {
@@ -29,9 +30,8 @@ public class ErosionScape : ModuleRules
 				"CoreUObject", 
 				"Engine", 
 				"InputCore", 
-				"RenderCore", // Aggiungi questo
-				"RHI", // Aggiungi questo
-				// ... add other public dependencies that you statically link with here ...
+				"RenderCore",
+				"RHI",
 			}
 			);
 			

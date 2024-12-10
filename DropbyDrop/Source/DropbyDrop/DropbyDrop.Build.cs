@@ -8,7 +8,7 @@ public class DropbyDrop : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "RHI", "RenderCore", "ProceduralMeshComponent", "Landscape"  });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "RHI", "RenderCore", "ProceduralMeshComponent", "Landscape", "EditorScriptingUtilities" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "Slate",
 			"SlateCore",
