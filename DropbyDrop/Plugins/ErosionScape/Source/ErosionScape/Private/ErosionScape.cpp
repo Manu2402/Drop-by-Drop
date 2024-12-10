@@ -20,6 +20,8 @@ static const FName ErosionScapeTabName("ErosionScape");
 
 #define LOCTEXT_NAMESPACE "FErosionScapeModule"
 
+
+
 void FErosionScapeModule::StartupModule()
 {
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
@@ -28,7 +30,7 @@ void FErosionScapeModule::StartupModule()
 	FErosionScapeStyle::ReloadTextures();
 
 	FErosionScapeCommands::Register();
-	
+
 	PluginCommands = MakeShareable(new FUICommandList);
 
 	PluginCommands->MapAction(
@@ -40,10 +42,24 @@ void FErosionScapeModule::StartupModule()
 		FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FErosionScapeModule::RegisterMenus));
 
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(ErosionScapeTabName,
-	                                                  FOnSpawnTab::CreateRaw(
-		                                                  this, &FErosionScapeModule::OnSpawnPluginTab))
-	                        .SetDisplayName(LOCTEXT("FErosionScapeTabTitle", "ErosionScape"))
-	                        .SetMenuType(ETabSpawnerMenuType::Hidden);
+		FOnSpawnTab::CreateRaw(
+			this, &FErosionScapeModule::OnSpawnPluginTab))
+		.SetDisplayName(LOCTEXT("FErosionScapeTabTitle", "ErosionScape"))
+		.SetMenuType(ETabSpawnerMenuType::Hidden);
+
+	UDataTable* ErosionTemplatesDataTable = LoadObject<UDataTable>(nullptr, TEXT("/Game/Custom/ErosionTemplates/DT_ErosionTemplate.DT_ErosionTemplate"));
+	if (!ErosionTemplatesDataTable)
+	{
+		return;
+	}
+
+	SetUpTemplates(ErosionTemplatesDataTable);
+
+	/*Options.Add(MakeShared<FString>("Pippo"));
+	Options.Add(MakeShared<FString>("Pluto"));
+	Options.Add(MakeShared<FString>("Paperino"));
+
+	SelectedOption = Options[0];*/
 }
 
 void FErosionScapeModule::ShutdownModule()
@@ -69,25 +85,45 @@ TSharedRef<SDockTab> FErosionScapeModule::OnSpawnPluginTab(const FSpawnTabArgs& 
 		[
 			// Colonna HeightMap
 			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Fill)
-			[
-				CreateHeightMapColumn()
-			]
-			+SHorizontalBox::Slot()
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Fill)
-			[
-				CreateLandScapeColumn() // Metodi per le altre colonne
-			]
-			+ SHorizontalBox::Slot()
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Fill)
-			[
-				CreateErosionColumn() // Metodi per le altre colonne
-			]
+				+ SHorizontalBox::Slot()
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill)
+				[
+					CreateHeightMapColumn()
+				]
+				+ SHorizontalBox::Slot()
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill)
+				[
+					CreateLandScapeColumn() // Metodi per le altre colonne
+				]
+				+ SHorizontalBox::Slot()
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill)
+				[
+					CreateErosionColumn() // Metodi per le altre colonne
+				]
 		];
+}
+
+void FErosionScapeModule::SetUpTemplates(const UDataTable* ErosionTemplatesDataTable)
+{
+	for (const auto& CurrentParam : ErosionTemplatesDataTable->GetRowNames())
+	{
+		if (CurrentParam.ToString().Equals("None"))
+		{
+			continue;
+		}
+
+		AddTemplate(CurrentParam.ToString());
+	}
+}
+
+void FErosionScapeModule::AddTemplate(const FString& Param)
+{
+	TSharedPtr<FString> Template = MakeShared<FString>(Param);
+	ErosionTemplates.Add(Template);
+	CurrentErosionTemplate = Template;
 }
 
 void FErosionScapeModule::PluginButtonClicked()
@@ -122,489 +158,491 @@ void FErosionScapeModule::RegisterMenus()
 	}
 }
 
+
+
 TSharedRef<SWidget> FErosionScapeModule::CreateHeightMapColumn()
 {
 	auto CreateNumericEntryWithHover = [](const FString& Label, float MinValue, float MaxValue, float DefaultValue,
-	                                      TFunction<void(float)> OnValueChanged)
-	{
-		// Variabile per mantenere il valore attuale
-		TSharedPtr<float> CurrentValue = MakeShareable(new float(DefaultValue));
+		TFunction<void(float)> OnValueChanged)
+		{
+			// Variabile per mantenere il valore attuale
+			TSharedPtr<float> CurrentValue = MakeShareable(new float(DefaultValue));
 
-		return SNew(SVerticalBox)
+			return SNew(SVerticalBox)
 				+ SVerticalBox::Slot()
 				.AutoHeight()
 				[
 					SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						SNew(STextBlock)
-						.Text(FText::FromString(Label))
-					]
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						SNew(SNumericEntryBox<float>)
-						                             .Value_Lambda([CurrentValue]() -> TOptional<float>
-						                             {
-							                             return TOptional<float>(*CurrentValue);
-						                             })
-						                             .OnValueCommitted_Lambda(
-							                             [OnValueChanged, CurrentValue](
-							                             float NewValue, ETextCommit::Type CommitType)
-							                             {
-								                             *CurrentValue = NewValue; // Aggiorna il valore attuale
-								                             OnValueChanged(NewValue);
-							                             })
-						                             .OnValueChanged_Lambda(
-							                             [OnValueChanged, CurrentValue](float NewValue)
-							                             {
-								                             *CurrentValue = NewValue; // Aggiorna il valore attuale
-								                             OnValueChanged(NewValue);
-							                             })
-						                             .MinValue(MinValue)
-						                             .MaxValue(MaxValue)
-						                             .AllowSpin(true)
- // Permette l'uso delle frecce per aumentare/diminuire il valore
-						                             .Delta(0.1f) // Imposta il passo di incremento/decremento
-						                             .Visibility(EVisibility::Visible)
- // Assicurati che il NumericEntryBox sia visibile
-						                             .IsEnabled(true) // Abilita il NumericEntryBox
-					]
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(STextBlock)
+								.Text(FText::FromString(Label))
+						]
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(SNumericEntryBox<float>)
+								.Value_Lambda([CurrentValue]() -> TOptional<float>
+									{
+										return TOptional<float>(*CurrentValue);
+									})
+								.OnValueCommitted_Lambda(
+									[OnValueChanged, CurrentValue](
+										float NewValue, ETextCommit::Type CommitType)
+									{
+										*CurrentValue = NewValue; // Aggiorna il valore attuale
+										OnValueChanged(NewValue);
+									})
+								.OnValueChanged_Lambda(
+									[OnValueChanged, CurrentValue](float NewValue)
+									{
+										*CurrentValue = NewValue; // Aggiorna il valore attuale
+										OnValueChanged(NewValue);
+									})
+								.MinValue(MinValue)
+								.MaxValue(MaxValue)
+								.AllowSpin(true)
+								// Permette l'uso delle frecce per aumentare/diminuire il valore
+								.Delta(0.1f) // Imposta il passo di incremento/decremento
+								.Visibility(EVisibility::Visible)
+								// Assicurati che il NumericEntryBox sia visibile
+								.IsEnabled(true) // Abilita il NumericEntryBox
+						]
 				]
 				// Mouse events to allow dragging to modify value
 				+ SVerticalBox::Slot()
 				.AutoHeight()
 				[
 					SNew(SBox)
-					          .WidthOverride(200) // Imposta una larghezza fissa o adattiva
-					          .HeightOverride(20) // Imposta un'altezza fissa o adattiva
-					          .HAlign(HAlign_Fill)
-					          .VAlign(VAlign_Center)
-					[
-						SNew(SOverlay) // Utilizza SOverlay per sovrapporre il mouse
-						+ SOverlay::Slot()
+						.WidthOverride(200) // Imposta una larghezza fissa o adattiva
+						.HeightOverride(20) // Imposta un'altezza fissa o adattiva
+						.HAlign(HAlign_Fill)
+						.VAlign(VAlign_Center)
 						[
-							SNew(SBorder)
-							             .BorderImage(FCoreStyle::Get().GetBrush("NoBorder")) // Nessun bordo visibile
-							             .HAlign(HAlign_Fill)
-							             .VAlign(VAlign_Center)
-							             .OnMouseMove_Lambda(
-								             [OnValueChanged, MinValue, MaxValue, CurrentValue](
-								             const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
-								             {
-									             // Calcola il valore basato sulla posizione del mouse
-									             FVector2D LocalMousePos = MouseEvent.GetScreenSpacePosition() -
-										             MyGeometry.GetAbsolutePosition();
-									             float NewValue = FMath::Clamp(
-										             LocalMousePos.X / MyGeometry.GetLocalSize().X * (MaxValue -
-											             MinValue) + MinValue, MinValue, MaxValue);
+							SNew(SOverlay) // Utilizza SOverlay per sovrapporre il mouse
+								+ SOverlay::Slot()
+								[
+									SNew(SBorder)
+										.BorderImage(FCoreStyle::Get().GetBrush("NoBorder")) // Nessun bordo visibile
+										.HAlign(HAlign_Fill)
+										.VAlign(VAlign_Center)
+										.OnMouseMove_Lambda(
+											[OnValueChanged, MinValue, MaxValue, CurrentValue](
+												const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+											{
+												// Calcola il valore basato sulla posizione del mouse
+												FVector2D LocalMousePos = MouseEvent.GetScreenSpacePosition() -
+													MyGeometry.GetAbsolutePosition();
+												float NewValue = FMath::Clamp(
+													LocalMousePos.X / MyGeometry.GetLocalSize().X * (MaxValue -
+														MinValue) + MinValue, MinValue, MaxValue);
 
-									             // Aggiorna il valore attuale e chiama la funzione di callback
-									             *CurrentValue = NewValue;
-									             OnValueChanged(NewValue);
+												// Aggiorna il valore attuale e chiama la funzione di callback
+												*CurrentValue = NewValue;
+												OnValueChanged(NewValue);
 
-									             return FReply::Handled();
-								             })
+												return FReply::Handled();
+											})
+								]
 						]
-					]
 				];
-	};
+		};
 	auto UpdateSeedValue = [](int32 NewValue)
-	{
-		UGeneratorHeightMapLibrary::SetSeed(NewValue);
-		UE_LOG(LogTemp, Log, TEXT("New Seed: %d"), NewValue);
-	};
+		{
+			UGeneratorHeightMapLibrary::SetSeed(NewValue);
+			UE_LOG(LogTemp, Log, TEXT("New Seed: %d"), NewValue);
+		};
 
 	auto UpdateRandomSeed = [](bool bIsRandom)
-	{
-		UGeneratorHeightMapLibrary::SetRandomizeSeed(bIsRandom);
-		UE_LOG(LogTemp, Log, TEXT("Randomize Seed: %s"), bIsRandom ? TEXT("True") : TEXT("False"));
-	};
+		{
+			UGeneratorHeightMapLibrary::SetRandomizeSeed(bIsRandom);
+			UE_LOG(LogTemp, Log, TEXT("Randomize Seed: %s"), bIsRandom ? TEXT("True") : TEXT("False"));
+		};
 
 	auto CreateHeightMap = []()
-	{
-		int32 MapSize = UGeneratorHeightMapLibrary::GetMapSize();
-		UGeneratorHeightMapLibrary::CreateHeightMap(MapSize);
-		UE_LOG(LogTemp, Log, TEXT("Creating HeightMap with MapSize: %d"), MapSize);
-	};
+		{
+			int32 MapSize = UGeneratorHeightMapLibrary::GetMapSize();
+			UGeneratorHeightMapLibrary::CreateHeightMap(MapSize);
+			UE_LOG(LogTemp, Log, TEXT("Creating HeightMap with MapSize: %d"), MapSize);
+		};
 
 	return SNew(SVerticalBox)
 
-			// Nome della colonna
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(STextBlock)
+		// Nome della colonna
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(STextBlock)
 				.Text(FText::FromString("HeightMap"))
 				.Font(FCoreStyle::GetDefaultFontStyle("Bold", 12))
-			]
+		]
 
-			// Randomize Seed Checkbox
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
+		// Randomize Seed Checkbox
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString("Randomize Seed"))
+						.Text(FText::FromString("Randomize Seed"))
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SCheckBox)
-					.IsChecked_Lambda([]() -> ECheckBoxState
-					{
-						return UGeneratorHeightMapLibrary::GetRandomizeSeed()
-							       ? ECheckBoxState::Checked
-							       : ECheckBoxState::Unchecked;
-					})
-					.OnCheckStateChanged_Lambda([UpdateRandomSeed](ECheckBoxState NewState)
-					{
-						UpdateRandomSeed(NewState == ECheckBoxState::Checked);
-					})
+						.IsChecked_Lambda([]() -> ECheckBoxState
+							{
+								return UGeneratorHeightMapLibrary::GetRandomizeSeed()
+									? ECheckBoxState::Checked
+									: ECheckBoxState::Unchecked;
+							})
+						.OnCheckStateChanged_Lambda([UpdateRandomSeed](ECheckBoxState NewState)
+							{
+								UpdateRandomSeed(NewState == ECheckBoxState::Checked);
+							})
 				]
-			]
+		]
 
-			// Seed
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
+		// Seed
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString("Seed"))
+						.Text(FText::FromString("Seed"))
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<int32>)
-					                             .Value_Lambda([]() -> TOptional<int32>
-					                             {
-						                             return TOptional<int32>(UGeneratorHeightMapLibrary::GetSeed());
-					                             })
-					                             .OnValueChanged_Lambda([UpdateSeedValue](int32 NewValue)
-					                             {
-						                             UpdateSeedValue(NewValue);
-					                             })
-					                             .MinValue(0) // Imposta un valore minimo, se necessario
-					                             .MaxValue(TOptional<int32>(10000))
-					// Imposta un valore massimo, modifica se necessario
+						.Value_Lambda([]() -> TOptional<int32>
+							{
+								return TOptional<int32>(UGeneratorHeightMapLibrary::GetSeed());
+							})
+						.OnValueChanged_Lambda([UpdateSeedValue](int32 NewValue)
+							{
+								UpdateSeedValue(NewValue);
+							})
+						.MinValue(0) // Imposta un valore minimo, se necessario
+						.MaxValue(TOptional<int32>(10000))
+						// Imposta un valore massimo, modifica se necessario
 				]
-			]
+		]
 
-			// Octaves
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
+		// Octaves
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString("Octaves"))
+						.Text(FText::FromString("Octaves"))
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<int32>)
-					                             .Value_Lambda([]() -> TOptional<int32>
-					                             {
-						                             return TOptional<int32>(UGeneratorHeightMapLibrary::GetOctaves());
-					                             })
-					                             .OnValueChanged_Lambda([](int32 NewValue)
-					                             {
-						                             UGeneratorHeightMapLibrary::SetNumOctaves(NewValue);
-					                             })
-					                             .MinValue(1) // Imposta un valore minimo
-					                             .MaxValue(TOptional<int32>(8)) // Imposta un valore massimo
+						.Value_Lambda([]() -> TOptional<int32>
+							{
+								return TOptional<int32>(UGeneratorHeightMapLibrary::GetOctaves());
+							})
+						.OnValueChanged_Lambda([](int32 NewValue)
+							{
+								UGeneratorHeightMapLibrary::SetNumOctaves(NewValue);
+							})
+						.MinValue(1) // Imposta un valore minimo
+						.MaxValue(TOptional<int32>(8)) // Imposta un valore massimo
 				]
-			]
+		]
 
-			// Persistence
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				/*CreateNumericEntryWithHover(
-					 "Persistence",
-					 0.0f, 1.0f,
-					 UGeneratorHeightMapLibrary::GetPersistence(),
-					 [](float NewValue) { UGeneratorHeightMapLibrary::SetPersistence(NewValue); }
-				 )*/
-				SNew(SHorizontalBox)
+		// Persistence
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			/*CreateNumericEntryWithHover(
+				 "Persistence",
+				 0.0f, 1.0f,
+				 UGeneratorHeightMapLibrary::GetPersistence(),
+				 [](float NewValue) { UGeneratorHeightMapLibrary::SetPersistence(NewValue); }
+			 )*/
+			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString("Persistance"))
+						.Text(FText::FromString("Persistance"))
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
-					                             .Value_Lambda([]() -> TOptional<float>
-					                             {
-						                             return TOptional<float>(
-							                             UGeneratorHeightMapLibrary::GetPersistence());
-					                             })
-					                             .OnValueChanged_Lambda([](float NewValue)
-					                             {
-						                             UGeneratorHeightMapLibrary::SetPersistence(NewValue);
-					                             })
-					                             .MinValue(1) // Imposta un valore minimo
-					                             .MaxValue(TOptional<float>(8)) // Imposta un valore massimo
+						.Value_Lambda([]() -> TOptional<float>
+							{
+								return TOptional<float>(
+									UGeneratorHeightMapLibrary::GetPersistence());
+							})
+						.OnValueChanged_Lambda([](float NewValue)
+							{
+								UGeneratorHeightMapLibrary::SetPersistence(NewValue);
+							})
+						.MinValue(1) // Imposta un valore minimo
+						.MaxValue(TOptional<float>(8)) // Imposta un valore massimo
 				]
 
-			]
+		]
 
-			// Lacunarity
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
+		// Lacunarity
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString("Lacunarity"))
+						.Text(FText::FromString("Lacunarity"))
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
-					                             .Value_Lambda([]() -> TOptional<float>
-					                             {
-						                             return TOptional<float>(
-							                             UGeneratorHeightMapLibrary::GetLacunarity());
-					                             })
-					                             .OnValueChanged_Lambda([](float NewValue)
-					                             {
-						                             UGeneratorHeightMapLibrary::SetLacunarity(NewValue);
-					                             })
-					                             .MinValue(0.0f) // Imposta un valore minimo
-					                             .MaxValue(TOptional<float>(10.0f)) // Imposta un valore massimo
+						.Value_Lambda([]() -> TOptional<float>
+							{
+								return TOptional<float>(
+									UGeneratorHeightMapLibrary::GetLacunarity());
+							})
+						.OnValueChanged_Lambda([](float NewValue)
+							{
+								UGeneratorHeightMapLibrary::SetLacunarity(NewValue);
+							})
+						.MinValue(0.0f) // Imposta un valore minimo
+						.MaxValue(TOptional<float>(10.0f)) // Imposta un valore massimo
 				]
-			]
+		]
 
-			// InitialScale
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
+		// InitialScale
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString("Initial Scale"))
+						.Text(FText::FromString("Initial Scale"))
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
-					                             .Value_Lambda([]() -> TOptional<float>
-					                             {
-						                             return TOptional<float>(
-							                             UGeneratorHeightMapLibrary::GetInitialScale());
-					                             })
-					                             .OnValueChanged_Lambda([](float NewValue)
-					                             {
-						                             UGeneratorHeightMapLibrary::SetInitialScale(NewValue);
-					                             })
-					                             .MinValue(0.0f) // Imposta un valore minimo
-					                             .MaxValue(TOptional<float>(100.0f)) // Imposta un valore massimo
+						.Value_Lambda([]() -> TOptional<float>
+							{
+								return TOptional<float>(
+									UGeneratorHeightMapLibrary::GetInitialScale());
+							})
+						.OnValueChanged_Lambda([](float NewValue)
+							{
+								UGeneratorHeightMapLibrary::SetInitialScale(NewValue);
+							})
+						.MinValue(0.0f) // Imposta un valore minimo
+						.MaxValue(TOptional<float>(100.0f)) // Imposta un valore massimo
 				]
-			]
+		]
 
-			// MaxHeightDifference
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
+		// MaxHeightDifference
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString("Max Height Difference"))
+						.Text(FText::FromString("Max Height Difference"))
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
-					                             .Value_Lambda([]() -> TOptional<float>
-					                             {
-						                             return TOptional<float>(
-							                             UGeneratorHeightMapLibrary::GetMaxHeightDifference());
-					                             })
-					                             .OnValueChanged_Lambda([](float NewValue)
-					                             {
-						                             UGeneratorHeightMapLibrary::SetMaxHeightDifference(NewValue);
-					                             })
-					                             .MinValue(0.0f) // Imposta un valore minimo
-					                             .MaxValue(TOptional<float>(1000.0f)) // Imposta un valore massimo
+						.Value_Lambda([]() -> TOptional<float>
+							{
+								return TOptional<float>(
+									UGeneratorHeightMapLibrary::GetMaxHeightDifference());
+							})
+						.OnValueChanged_Lambda([](float NewValue)
+							{
+								UGeneratorHeightMapLibrary::SetMaxHeightDifference(NewValue);
+							})
+						.MinValue(0.0f) // Imposta un valore minimo
+						.MaxValue(TOptional<float>(1000.0f)) // Imposta un valore massimo
 				]
-			]
+		]
 
-			// Create HeightMap button
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
+		// Create HeightMap button
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SButton)
-					.Text(FText::FromString("Create HeightMap"))
-					.OnClicked_Lambda([]() // Correggi la lambda se necessario
-					{
-						// Passa il MapSize al metodo CreateHeightMap
-						int32 MapSize = UGeneratorHeightMapLibrary::GetMapSize();
-						UGeneratorHeightMapLibrary::CreateHeightMap(MapSize);
-						return FReply::Handled();
-					})
+						.Text(FText::FromString("Create HeightMap"))
+						.OnClicked_Lambda([]() // Correggi la lambda se necessario
+							{
+								// Passa il MapSize al metodo CreateHeightMap
+								int32 MapSize = UGeneratorHeightMapLibrary::GetMapSize();
+								UGeneratorHeightMapLibrary::CreateHeightMap(MapSize);
+								return FReply::Handled();
+							})
 				]
-			];
+		];
 }
 
 TSharedRef<SWidget> FErosionScapeModule::CreateLandScapeColumn()
 {
 	FString HeightMapPath = FPaths::ProjectDir() + TEXT("Saved/HeightMap/HeightMap.png");
 	return SNew(SVerticalBox)
-			// Colonna Landscape
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(STextBlock)
+		// Colonna Landscape
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(STextBlock)
 				.Text(LOCTEXT("LandscapeLabel", "Landscape"))
 				.Font(FCoreStyle::GetDefaultFontStyle("Bold", 12)) // Font grassetto
-			]
-			// Flag Destroy Last Landscape
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(SCheckBox)
+		]
+		// Flag Destroy Last Landscape
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SCheckBox)
 				.OnCheckStateChanged_Lambda([](ECheckBoxState NewState)
-				{
-					UGeneratorHeightMapLibrary::SetbDestroyLastLandscape(static_cast<bool>(ECheckBoxState::Checked));
-				})
+					{
+						UGeneratorHeightMapLibrary::SetbDestroyLastLandscape(static_cast<bool>(ECheckBoxState::Checked));
+					})
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString("Destroy Last Landscape"))
+						.Text(FText::FromString("Destroy Last Landscape"))
 				]
-			]
-			// World Partition Grid Size
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
+		]
+		// World Partition Grid Size
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString("World Partition Grid Size"))
+						.Text(FText::FromString("World Partition Grid Size"))
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
-					.Value_Lambda([]() -> TOptional<float>
-					{
-						return TOptional<float>(UGeneratorHeightMapLibrary::GetWorldPartitionGridSize());
-					})
-					.OnValueChanged_Lambda([](float NewValue)
-					{
-						UGeneratorHeightMapLibrary::SetWorldPartitionGridSize(NewValue);
-					})
+						.Value_Lambda([]() -> TOptional<float>
+							{
+								return TOptional<float>(UGeneratorHeightMapLibrary::GetWorldPartitionGridSize());
+							})
+						.OnValueChanged_Lambda([](float NewValue)
+							{
+								UGeneratorHeightMapLibrary::SetWorldPartitionGridSize(NewValue);
+							})
 				]
-			]
-			// Kilometers
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
+		]
+		// Kilometers
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString("Kilometers"))
+						.Text(FText::FromString("Kilometers"))
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
-					.Value_Lambda([]() -> TOptional<float>
-					{
-						return TOptional<float>(UGeneratorHeightMapLibrary::GetKilometers());
-					})
-					.OnValueChanged_Lambda([](float NewValue)
-					{
-						UGeneratorHeightMapLibrary::SetKilometers(NewValue);
-					})
+						.Value_Lambda([]() -> TOptional<float>
+							{
+								return TOptional<float>(UGeneratorHeightMapLibrary::GetKilometers());
+							})
+						.OnValueChanged_Lambda([](float NewValue)
+							{
+								UGeneratorHeightMapLibrary::SetKilometers(NewValue);
+							})
 				]
-			]
+		]
 
 
-			// Bottone Create Landscape
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox) // Aggiungi un contenitore orizzontale
+		// Bottone Create Landscape
+		+SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox) // Aggiungi un contenitore orizzontale
 				+ SHorizontalBox::Slot()
 				.AutoWidth() // Imposta la larghezza automatica
 				[
 					SNew(SButton)
-					.Text(FText::FromString("Create LandScape"))
-					.OnClicked_Lambda([HeightMapPath]() // Correggi la lambda se necessario
-					{
-						if (FPaths::FileExists(HeightMapPath))
-						{
-							// Chiama il metodo con il percorso del file
-							UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(*HeightMapPath);
-						}
-						else
-						{
-							UE_LOG(LogTemp, Warning, TEXT("Il file HeightMap.png non esiste: %s"), *HeightMapPath);
-						}
-						return FReply::Handled();
-					})
+						.Text(FText::FromString("Create LandScape"))
+						.OnClicked_Lambda([HeightMapPath]() // Correggi la lambda se necessario
+							{
+								if (FPaths::FileExists(HeightMapPath))
+								{
+									// Chiama il metodo con il percorso del file
+									UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(*HeightMapPath);
+								}
+								else
+								{
+									UE_LOG(LogTemp, Warning, TEXT("Il file HeightMap.png non esiste: %s"), *HeightMapPath);
+								}
+								return FReply::Handled();
+							})
 				]
-			]
-			// Bottone Split in Proxies
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox) // Aggiungi un contenitore orizzontale
+		]
+		// Bottone Split in Proxies
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox) // Aggiungi un contenitore orizzontale
 				+ SHorizontalBox::Slot()
 				.AutoWidth() // Imposta la larghezza automatica
 				[
 					SNew(SButton)
-					.Text(FText::FromString("Split In Proxies"))
-					.OnClicked_Lambda([]() // Correggi la lambda se necessario
-					{
-						// Passa il MapSize al metodo CreateHeightMap
-						UGeneratorHeightMapLibrary::SplitLandscapeIntoProxies();
-						return FReply::Handled();
-					})
+						.Text(FText::FromString("Split In Proxies"))
+						.OnClicked_Lambda([]() // Correggi la lambda se necessario
+							{
+								// Passa il MapSize al metodo CreateHeightMap
+								UGeneratorHeightMapLibrary::SplitLandscapeIntoProxies();
+								return FReply::Handled();
+							})
 				]
-			];
+		];
 }
 
 TSharedPtr<SEditableTextBox> TemplateNameTextBox;
@@ -612,345 +650,389 @@ TSharedPtr<SEditableTextBox> TemplateNameTextBox;
 TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 {
 	return SNew(SVerticalBox)
-			// Colonna Erosion
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(STextBlock)
+		// Colonna Erosion
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(STextBlock)
 				.Text(LOCTEXT("ErosionLabel", "Erosion"))
 				.Font(FCoreStyle::GetDefaultFontStyle("Bold", 12)) // Font grassetto
-			]
-			// ErosionCycles
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
+		]
+		// ErosionCycles
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString("Erosion Cycles"))
+						.Text(FText::FromString("Erosion Cycles"))
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<int32>)
-					.Value_Lambda([]() -> TOptional<int32>
-					{
-						return TOptional<int32>(UErosionLibrary::GetErosionCycles());
-					})
-					.OnValueChanged_Lambda([](int32 NewValue)
-					{
-						UErosionLibrary::SetErosion(NewValue);
-					})
+						.Value_Lambda([]() -> TOptional<int32>
+							{
+								return TOptional<int32>(UErosionLibrary::GetErosionCycles());
+							})
+						.OnValueChanged_Lambda([](int32 NewValue)
+							{
+								UErosionLibrary::SetErosion(NewValue);
+							})
 				]
-			]
-			// Inertia
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
+		]
+		// Inertia
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString("Inertia"))
+						.Text(FText::FromString("Inertia"))
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
-					.Value_Lambda([]() -> TOptional<float>
-					{
-						return TOptional<float>(UErosionLibrary::GetInertia());
-					})
-					.OnValueChanged_Lambda([](float NewValue)
-					{
-						UErosionLibrary::SetInertia(NewValue);
-					})
+						.Value_Lambda([]() -> TOptional<float>
+							{
+								return TOptional<float>(UErosionLibrary::GetInertia());
+							})
+						.OnValueChanged_Lambda([](float NewValue)
+							{
+								UErosionLibrary::SetInertia(NewValue);
+							})
 				]
-			]
-			// Capacity
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
+		]
+		// Capacity
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString("Capacity"))
+						.Text(FText::FromString("Capacity"))
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<int32>)
-					.Value_Lambda([]() -> TOptional<int32>
-					{
-						return TOptional<int32>(UErosionLibrary::GetCapacity());
-					})
-					.OnValueChanged_Lambda([](int32 NewValue)
-					{
-						UErosionLibrary::SetCapacity(NewValue);
-					})
+						.Value_Lambda([]() -> TOptional<int32>
+							{
+								return TOptional<int32>(UErosionLibrary::GetCapacity());
+							})
+						.OnValueChanged_Lambda([](int32 NewValue)
+							{
+								UErosionLibrary::SetCapacity(NewValue);
+							})
 				]
-			]
-			// MinimalSlope
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
+		]
+		// MinimalSlope
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString("Minimal Slope"))
+						.Text(FText::FromString("Minimal Slope"))
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
-					.Value_Lambda([]() -> TOptional<float>
-					{
-						return TOptional<float>(UErosionLibrary::GetMinimalSlope());
-					})
-					.OnValueChanged_Lambda([](float NewValue)
-					{
-						UErosionLibrary::SetMinimalSlope(NewValue);
-					})
+						.Value_Lambda([]() -> TOptional<float>
+							{
+								return TOptional<float>(UErosionLibrary::GetMinimalSlope());
+							})
+						.OnValueChanged_Lambda([](float NewValue)
+							{
+								UErosionLibrary::SetMinimalSlope(NewValue);
+							})
 				]
-			]
-			// DepositionSpeed
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
+		]
+		// DepositionSpeed
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString("Deposition Speed"))
+						.Text(FText::FromString("Deposition Speed"))
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
-					.Value_Lambda([]() -> TOptional<float>
-					{
-						return TOptional<float>(UErosionLibrary::GetDepositionSpeed());
-					})
-					.OnValueChanged_Lambda([](float NewValue)
-					{
-						UErosionLibrary::SetDepositionSpeed(NewValue);
-					})
+						.Value_Lambda([]() -> TOptional<float>
+							{
+								return TOptional<float>(UErosionLibrary::GetDepositionSpeed());
+							})
+						.OnValueChanged_Lambda([](float NewValue)
+							{
+								UErosionLibrary::SetDepositionSpeed(NewValue);
+							})
 				]
-			]
-			// ErosionSpeed
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
+		]
+		// ErosionSpeed
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString("Erosion Speed"))
+						.Text(FText::FromString("Erosion Speed"))
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
-					.Value_Lambda([]() -> TOptional<float>
-					{
-						return TOptional<float>(UErosionLibrary::GetErosionSpeed());
-					})
-					.OnValueChanged_Lambda([](float NewValue)
-					{
-						UErosionLibrary::SetErosionSpeed(NewValue);
-					})
+						.Value_Lambda([]() -> TOptional<float>
+							{
+								return TOptional<float>(UErosionLibrary::GetErosionSpeed());
+							})
+						.OnValueChanged_Lambda([](float NewValue)
+							{
+								UErosionLibrary::SetErosionSpeed(NewValue);
+							})
 				]
-			]
-			// Gravity
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
+		]
+		// Gravity
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString("Gravity"))
+						.Text(FText::FromString("Gravity"))
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<int32>)
-					.Value_Lambda([]() -> TOptional<int32>
-					{
-						return TOptional<int32>(UErosionLibrary::GetGravity());
-					})
-					.OnValueChanged_Lambda([](int32 NewValue)
-					{
-						UErosionLibrary::SetGravity(NewValue);
-					})
+						.Value_Lambda([]() -> TOptional<int32>
+							{
+								return TOptional<int32>(UErosionLibrary::GetGravity());
+							})
+						.OnValueChanged_Lambda([](int32 NewValue)
+							{
+								UErosionLibrary::SetGravity(NewValue);
+							})
 				]
-			]
-			// Evaporation
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
+		]
+		// Evaporation
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString("Evaporation"))
+						.Text(FText::FromString("Evaporation"))
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
-					.Value_Lambda([]() -> TOptional<float>
-					{
-						return TOptional<float>(UErosionLibrary::GetEvaporation());
-					})
-					.OnValueChanged_Lambda([](float NewValue)
-					{
-						UErosionLibrary::SetEvaporation(NewValue);
-					})
+						.Value_Lambda([]() -> TOptional<float>
+							{
+								return TOptional<float>(UErosionLibrary::GetEvaporation());
+							})
+						.OnValueChanged_Lambda([](float NewValue)
+							{
+								UErosionLibrary::SetEvaporation(NewValue);
+							})
 				]
-			]
-			// MaxPath
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
+		]
+		// MaxPath
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString("Max Path"))
+						.Text(FText::FromString("Max Path"))
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<int32>)
-					.Value_Lambda([]() -> TOptional<int32>
-					{
-						return TOptional<int32>(UErosionLibrary::GetMaxPath());
-					})
-					.OnValueChanged_Lambda([](int32 NewValue)
-					{
-						UErosionLibrary::SetMaxPath(NewValue);
-					})
+						.Value_Lambda([]() -> TOptional<int32>
+							{
+								return TOptional<int32>(UErosionLibrary::GetMaxPath());
+							})
+						.OnValueChanged_Lambda([](int32 NewValue)
+							{
+								UErosionLibrary::SetMaxPath(NewValue);
+							})
 				]
-			]
-			// ErosionRadius
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
+		]
+		// ErosionRadius
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString("Erosion Radius"))
+						.Text(FText::FromString("Erosion Radius"))
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<int32>)
-					.Value_Lambda([]() -> TOptional<int32>
-					{
-						return TOptional<int32>(UErosionLibrary::GetErosionRadius());
-					})
-					.OnValueChanged_Lambda([](int32 NewValue)
-					{
-						UErosionLibrary::SetErosionRadius(NewValue);
-					})
+						.Value_Lambda([]() -> TOptional<int32>
+							{
+								return TOptional<int32>(UErosionLibrary::GetErosionRadius());
+							})
+						.OnValueChanged_Lambda([](int32 NewValue)
+							{
+								UErosionLibrary::SetErosionRadius(NewValue);
+							})
 				]
-			]
-			// Bottone Erosion
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox) // Aggiungi un contenitore orizzontale
+		]
+		// Erosion Button
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox) // Aggiungi un contenitore orizzontale
 				+ SHorizontalBox::Slot()
 				.AutoWidth() // Imposta la larghezza automatica
 				[
 					SNew(SButton)
-					.Text(FText::FromString("Erosion"))
-					.OnClicked_Lambda([]() // Correggi la lambda se necessario
-					{
-						// Chiama il metodo Erosion qui, se necessario
-						UGeneratorHeightMapLibrary::GenerateErosion(); // Assicurati di definire questo metodo
-						return FReply::Handled();
-					})
+						.Text(FText::FromString("Erosion"))
+						.OnClicked_Lambda([]() // Correggi la lambda se necessario
+							{
+								// Chiama il metodo Erosion qui, se necessario
+								UGeneratorHeightMapLibrary::GenerateErosion(); // Assicurati di definire questo metodo
+								return FReply::Handled();
+							})
 				]
-			]
-			// Save Button + Name Textbox 
-			+ SVerticalBox::Slot()
-			.Padding(5)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
+		]
+		// Save Button + Name Textbox 
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SButton)
-					.Text(FText::FromString("Save"))
-					.OnClicked_Lambda([]()
-					{
-						UGeneratorHeightMapLibrary::SaveErosionTemplate(TemplateNameTextBox->GetText().ToString(),
-							UErosionLibrary::GetErosionCycles(), UErosionLibrary::GetInertia(), UErosionLibrary::GetCapacity(),
-							UErosionLibrary::GetMinimalSlope(), UErosionLibrary::GetDepositionSpeed(), UErosionLibrary::GetErosionCycles(),
-							UErosionLibrary::GetGravity(), UErosionLibrary::GetEvaporation(), UErosionLibrary::GetMaxPath(),
-							UErosionLibrary::GetErosionRadius());
-						return FReply::Handled();
-					})
+						.Text(FText::FromString("Save"))
+						.OnClicked_Lambda([this]()
+							{
+								UGeneratorHeightMapLibrary::SaveErosionTemplate(TemplateNameTextBox->GetText().ToString(),
+									UErosionLibrary::GetErosionCycles(), UErosionLibrary::GetInertia(), UErosionLibrary::GetCapacity(),
+									UErosionLibrary::GetMinimalSlope(), UErosionLibrary::GetDepositionSpeed(), UErosionLibrary::GetErosionSpeed(),
+									UErosionLibrary::GetGravity(), UErosionLibrary::GetEvaporation(), UErosionLibrary::GetMaxPath(),
+									UErosionLibrary::GetErosionRadius());
+
+								AddTemplate(TemplateNameTextBox->GetText().ToString());
+								return FReply::Handled();
+							})
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SAssignNew(TemplateNameTextBox, SEditableTextBox)
-					.MinDesiredWidth(70.0f)
+						.MinDesiredWidth(70.0f)
 				]
-			]
-				// Load Button + Name Textbox 
-				+ SVerticalBox::Slot()
-				.Padding(5)
-				.AutoHeight()
-				[
-					SNew(SHorizontalBox)
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						[
-							SNew(SButton)
-								.Text(FText::FromString("Load"))
-								.OnClicked_Lambda([]()
-								{
-									FErosionTemplateRow* SearchedRow = UGeneratorHeightMapLibrary::LoadErosionTemplate(FName(TemplateNameTextBox->GetText().ToString()));
-									if (SearchedRow)
-									{
-										UGeneratorHeightMapLibrary::LoadRowIntoErosionFields(SearchedRow);
-									}
+		]
 
-									return FReply::Handled();
-								})
+		// ComboBox + Load
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(5)
+		[
+			SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(5)
+				.VAlign(VAlign_Center)
+				[
+					SNew(SButton)
+						.Text(FText::FromString("Load"))
+						.OnClicked_Lambda([this]()
+							{
+								FErosionTemplateRow* SearchedRow = UGeneratorHeightMapLibrary::LoadErosionTemplate(FName(*CurrentErosionTemplate));
+								if (SearchedRow)
+								{
+									UGeneratorHeightMapLibrary::LoadRowIntoErosionFields(SearchedRow);
+								}
+
+								return FReply::Handled();
+							})
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(5)
+				.VAlign(VAlign_Center)
+				[
+					SNew(SVerticalBox)
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(10)
+						[
+							SNew(SComboBox<TSharedPtr<FString>>)
+								.OptionsSource(&ErosionTemplates)
+								.OnGenerateWidget_Lambda([this](TSharedPtr<FString> SetValue) -> TSharedRef<SWidget>
+									{
+										CurrentErosionTemplate = SetValue;
+
+										return SNew(STextBlock)
+											.Text(FText::FromString(*CurrentErosionTemplate));
+									})
+								.OnSelectionChanged_Lambda([this](TSharedPtr<FString> NewValue, ESelectInfo::Type)
+									{
+										if (!NewValue.IsValid())
+										{
+											return;
+										}
+
+										CurrentErosionTemplate = NewValue;
+									})
+								[
+									SNew(STextBlock)
+										.Text_Lambda([this]() -> FText
+											{
+												return CurrentErosionTemplate.IsValid()
+													? FText::FromString(*CurrentErosionTemplate)
+													: FText::FromString("NO SELECTION");
+											})
+								]
 						]
-				];
+				]
+		];
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -50,7 +50,7 @@ public:
 	//UPROPERTY(EditAnywhere)
 	static int32 ErosionCycles; // erosionCycles
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
-	static void SetErosion(const int32& NewErosionCycles)
+	static void SetErosion(const int32 NewErosionCycles)
 	{
 		ErosionCycles = NewErosionCycles;
 	}
@@ -62,7 +62,7 @@ public:
 	//UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1")) // [0, 1]
 	static float Inertia; // pInertia
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
-	static void SetInertia(const float& NewInertia)
+	static void SetInertia(const float NewInertia)
 	{
 		Inertia = NewInertia;
 	}
@@ -74,7 +74,7 @@ public:
 	//UPROPERTY(EditAnywhere)
 	static float Capacity; // pCapacity
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
-	static void SetCapacity(const float& NewCapacity)
+	static void SetCapacity(const float NewCapacity)
 	{
 		Capacity = NewCapacity;
 	}
@@ -86,7 +86,7 @@ public:
 	//UPROPERTY(EditAnywhere)
 	static float MinimalSlope; // pMinSlope
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
-	static void SetMinimalSlope(const float& NewMinimalSlope)
+	static void SetMinimalSlope(const float NewMinimalSlope)
 	{
 		MinimalSlope = NewMinimalSlope;
 	}
@@ -98,7 +98,7 @@ public:
 	//UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1"))
 	static float DepositionSpeed; // pDeposition
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
-	static void SetDepositionSpeed(const float& NewDepositionSpeed)
+	static void SetDepositionSpeed(const float NewDepositionSpeed)
 	{
 		DepositionSpeed = NewDepositionSpeed;
 	}
@@ -110,7 +110,7 @@ public:
 	//UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1"))
 	static float ErosionSpeed; // pErosion
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
-	static void SetErosionSpeed(const float& NewErosionSpeed)
+	static void SetErosionSpeed(const float NewErosionSpeed)
 	{
 		ErosionSpeed = NewErosionSpeed;
 	}
@@ -122,7 +122,7 @@ public:
 	//UPROPERTY(EditAnywhere)
 	static float Gravity; // pGravity
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
-	static void SetGravity(const float& NewGravity)
+	static void SetGravity(const float NewGravity)
 	{
 		Gravity = NewGravity;
 	}
@@ -134,7 +134,7 @@ public:
 	//UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1"))
 	static float Evaporation; // pEvaporation
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
-	static void SetEvaporation(const float& NewEvaporation)
+	static void SetEvaporation(const float NewEvaporation)
 	{
 		Evaporation = NewEvaporation;
 	}
@@ -146,7 +146,7 @@ public:
 	//UPROPERTY(EditAnywhere)
 	static float MaxPath; // pMaxPath
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
-	static void SetMaxPath(const float& NewMaxPath)
+	static void SetMaxPath(const float NewMaxPath)
 	{
 		MaxPath = NewMaxPath;
 	}
@@ -158,7 +158,7 @@ public:
 	//UPROPERTY(EditAnywhere)
 	static int32 ErosionRadius;
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
-	static void SetErosionRadius(const int32& NewErosionRadius)
+	static void SetErosionRadius(const int32 NewErosionRadius)
 	{
 		ErosionRadius = NewErosionRadius;
 	}// pRadius
@@ -175,7 +175,7 @@ public:
 	//UFUNCTION(BlueprintCallable) Useless!
 	//TArray<float> GenerateVirtualGrid(const TArray<float> MapHeightsValues, const int32 MapSize, const int32 NewCellSize);
 
-	static void ErosionHandler(const int32& GridSize);
+	static void ErosionHandler(const int32 GridSize);
 
 private:
 	// TArray<float> MapHeights;
@@ -185,29 +185,29 @@ private:
 	static TArray<float> Weights; // wI
 
 #pragma region InitDrop
-	static FDrop GenerateDropInitialParams(const int32& GridSize);
-	static FDrop SetDropInitialParams(const int32& GridSize, const FVector2D& Position, const FVector2D& Direction, const float& Velocity, const float& Water);
+	static FDrop GenerateDropInitialParams(const int32 GridSize);
+	static FDrop SetDropInitialParams(const int32 GridSize, const FVector2D& Position, const FVector2D& Direction, const float Velocity, const float Water);
 #pragma endregion
 
-	static void Erosion(FDrop& Drop, const int32& GridSize);
+	static void Erosion(FDrop Drop, const int32 GridSize);
 
-	static void InitWeights(const FVector2D& DropPosition, const int32& GridSize);
+	static void InitWeights(const FVector2D& DropPosition, const int32 GridSize);
 
 #pragma region ErosionSubFunctions
-	static FVector2D GetGradient(const float& P1, const float& P2, const float& P3, const float& P4);
-	static FVector2D GetPairedLinearInterpolation(const FVector2D& OffsetPosition, const float& F1, const float& F2, const float& F3, const float& F4);
-	static FPositionHeights GetPositionHeights(const FVector2D& IntegerPosition, const int32& GridSize);
+	static FVector2D GetGradient(const float P1, const float P2, const float P3, const float P4);
+	static FVector2D GetPairedLinearInterpolation(const FVector2D& OffsetPosition, const float F1, const float F2, const float F3, const float F4);
+	static FPositionHeights GetPositionHeights(const FVector2D& IntegerPosition, const int32 GridSize);
 	static float GetBilinearInterpolation(const FVector2D& OffsetPosition, const FPositionHeights& PositionHeights);
 #pragma endregion
 
-	static void SetPointsPositionInRadius(const FVector2D& DropPosition, const int32& GridSize);
+	static void SetPointsPositionInRadius(const FVector2D& DropPosition, const int32 GridSize);
 
 #pragma region WeightsSubFunctions
 	static float GetRelativeWeightOnPoint(const FVector2D& DropPosition, const FVector2D& PointPosition);
 #pragma endregion
 
-	static TArray<float> GetErosionOnPoints(const float& ErosionFactor);
-	static void ComputeDepositOnPoints(const FVector2D& IntegerPosition, const FVector2D& OffsetPosition, const float& Deposit, const int32& GridSize);
+	static TArray<float> GetErosionOnPoints(const float ErosionFactor);
+	static void ComputeDepositOnPoints(const FVector2D& IntegerPosition, const FVector2D& OffsetPosition, const float Deposit, const int32 GridSize);
 
-	static EOutOfBoundResult GetOutOfBoundResult(const FVector2D& IntegerPosition, const int32& GridSize);
+	static EOutOfBoundResult GetOutOfBoundResult(const FVector2D& IntegerPosition, const int32 GridSize);
 };

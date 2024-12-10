@@ -11,7 +11,7 @@ USTRUCT()
 struct FErosionTemplateRow : public FTableRowBase
 {
 	GENERATED_BODY()
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 ErosionCyclesField;
 
@@ -50,7 +50,7 @@ class UGeneratorHeightMapLibrary : public UBlueprintFunctionLibrary
 
 #pragma  region Param
 	//Param HeightMap
-		
+
 	static TArray<float> HeightMap;
 	static int32 Seed;					//"Seed used to initialize the random number generator."
 	static bool bRandomizeSeed;			//Determines whether a random seed is generated for each heightmap. If false, the specified Seed value will be used.
@@ -60,7 +60,7 @@ class UGeneratorHeightMapLibrary : public UBlueprintFunctionLibrary
 	static float InitialScale;			//The initial scale applied to the Perlin noise calculation. Controls the overall size of features in the heightmap.
 	static int32 Size;					//Size of the PNG
 	static float MaxHeightDifference;	//The max difference of the range [0,1]
-	
+
 	//Param LandScape
 	static ALandscape* StaticLandscape;
 	static int32 WorldPartitionGridSize;
@@ -70,16 +70,16 @@ class UGeneratorHeightMapLibrary : public UBlueprintFunctionLibrary
 #pragma endregion
 
 	static UDataTable* ErosionTemplatesDataTable;
-	
+
 public:
 #pragma region Get/Set Param
-	UFUNCTION(BlueprintCallable, Category ="HeightMap")
+	UFUNCTION(BlueprintCallable, Category = "HeightMap")
 	static void SetNewStaticLandscape(ALandscape* NewStaticLandscape)
 	{
 		StaticLandscape = NewStaticLandscape;
 	}
-	
-	UFUNCTION(BlueprintCallable,Category ="HeightMap")
+
+	UFUNCTION(BlueprintCallable, Category = "HeightMap")
 	static void SetWorldPartitionGridSize(const int32 NewWorldPartitionGridSize)
 	{
 		WorldPartitionGridSize = NewWorldPartitionGridSize;
@@ -88,8 +88,8 @@ public:
 	{
 		return WorldPartitionGridSize;
 	}
-	
-	UFUNCTION(BlueprintCallable,Category ="HeightMap")
+
+	UFUNCTION(BlueprintCallable, Category = "HeightMap")
 	static void SetKilometers(const int32 NewKilometers)
 	{
 		Kilometers = NewKilometers;
@@ -98,19 +98,19 @@ public:
 	{
 		return Kilometers;
 	}
-	
-	UFUNCTION(BlueprintCallable, Category="HeightMap")
+
+	UFUNCTION(BlueprintCallable, Category = "HeightMap")
 	static void SetbKilometers(const bool NewbKilometers)
 	{
 		bKilometers = NewbKilometers;
-	} 
+	}
 
-	UFUNCTION(BlueprintCallable, Category="Heightmap")
+	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	static void SetbDestroyLastLandscape(const bool NewbDestroyLastLandscape)
 	{
 		bDestroyLastLandscape = NewbDestroyLastLandscape;
 	}
-	
+
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	static void SetSeed(int32 NewSeed)
 	{
@@ -171,19 +171,19 @@ public:
 	{
 		return InitialScale;
 	}
-	
+
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	static void SetSize(const int32 NewSize)
 	{
 		Size = NewSize;
 	}
-	
+
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	static int32 GetMapSize()
 	{
 		return Size;
 	}
-	
+
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	static void SetMaxHeightDifference(const float NewMaxHeightDifference) //[0,1]
 	{
@@ -193,62 +193,60 @@ public:
 	{
 		return MaxHeightDifference;
 	}
-	
+
 #pragma endregion
 
 #pragma region Erosion
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void GenerateErosion();
-	
-	UFUNCTION(BlueprintCallable, Category ="Heightmap")
+
+	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	static void ErodeLandscapeProxy(ALandscapeProxy* LandscapeProxy);
 
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void SaveErosionTemplate(const FString& TemplateName, const int32 ErosionCyclesValue,
-									const float InertiaValue, const int32 CapacityValue,
-									const float MinSlopeValue, const float DepositionSpeedValue,
-									const float ErosionSpeedValue, const int32 GravityValue,
-									const float EvaporationValue, const int32 MaxPathValue,
-									const int32 ErosionRadiusValue);
+		const float InertiaValue, const int32 CapacityValue,
+		const float MinSlopeValue, const float DepositionSpeedValue,
+		const float ErosionSpeedValue, const int32 GravityValue,
+		const float EvaporationValue, const int32 MaxPathValue,
+		const int32 ErosionRadiusValue);
 
 	static FErosionTemplateRow* LoadErosionTemplate(const FName& TemplateName);
 
 	static bool LoadRowIntoErosionFields(const FErosionTemplateRow* TemplateDatas);
-	
+
 #pragma endregion
 
 #pragma region Landscape
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	static void GenerateLandscapeFromPNG(const FString& HeightmapPath);
-	
+
 	UFUNCTION(BlueprintCallable, Category = "HeightMap")
 	static void SplitLandscapeIntoProxies();
-	
-	static bool SetLandscapeSizeParam(int32& SubSectionSizeQuads, int32& NumSubsections, int32& MaxX, int32& MaxY);
-	
-	static ALandscape* GenerateLandscape(const FTransform& LandscapeTransform, TArray<uint16>& Heightmap);
-	
 
+	static bool SetLandscapeSizeParam(int32& SubSectionSizeQuads, int32& NumSubsections, int32& MaxX, int32& MaxY);
+
+	static ALandscape* GenerateLandscape(const FTransform& LandscapeTransform, TArray<uint16>& Heightmap);
 #pragma endregion
 
 #pragma region Heightmap
 	// Function to generate heightmap on CPU, generates a heightmap as a float array with the specified map size using Perlin noise.
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	static TArray<float> GenerateHeightMapCPU(const int32 MapSize);
-	
+
 	//Main Function
 	UFUNCTION(BlueprintCallable, Category = "HeightMap")
 	static void CreateHeightMap(const int32 MapSize);
-	
+
 	//Function to generate texture2D, using an array<float>
 	UFUNCTION(BlueprintCallable, Category = "HeightMap")
-	static UTexture2D* CreateHeightMapTexture(const TArray<float>& HeightMapData,const int32 Width,const int32 Height);
+	static UTexture2D* CreateHeightMapTexture(const TArray<float>& HeightMapData, const int32 Width, const int32 Height);
 #pragma endregion
 
 #pragma region Utilities
 	UFUNCTION(BlueprintCallable, Category = "HeightMap")
 	static void SaveTextureToFile(UTexture2D* Texture, const FString& FilePath);
-	
+
 	static TArray<uint16> ConvertFloatArrayToUint16(const TArray<float>& FloatData);
 private:
 	static FTransform GetNewTransform();
