@@ -24,7 +24,10 @@ float UGeneratorHeightMapLibrary::InitialScale = 1.8f;
 int32 UGeneratorHeightMapLibrary::Size = 505;
 float UGeneratorHeightMapLibrary::MaxHeightDifference = 1;
 TArray<float> UGeneratorHeightMapLibrary::HeightMap;
-
+//External Heightmap Param
+float UGeneratorHeightMapLibrary::ScalingX = 100;
+float UGeneratorHeightMapLibrary::ScalingY = 100;
+float UGeneratorHeightMapLibrary::ScalingZ = 100;
 //LandScapeParam
 ALandscape* UGeneratorHeightMapLibrary::StaticLandscape = nullptr;
 int32 UGeneratorHeightMapLibrary::Kilometers = 1;
@@ -45,7 +48,7 @@ void UGeneratorHeightMapLibrary::GenerateErosion()
 	TArray<uint16> ErodedHeightmapU16 = ConvertFloatArrayToUint16(UErosionLibrary::GetHeights());
 
 	// Generate new landscape.
-	const FTransform LandscapeTransform = GetNewTransform();
+	const FTransform LandscapeTransform = GetNewTransform(false);
 
 	DestroyLastLandscape();
 	StaticLandscape = GenerateLandscape(LandscapeTransform, ErodedHeightmapU16);
@@ -235,6 +238,159 @@ UTexture2D* UGeneratorHeightMapLibrary::CreateHeightMapTexture(const TArray<floa
 
 	return Texture;
 }
+TArray<uint16> UGeneratorHeightMapLibrary::LoadHeightmapFromPNG(const FString& FilePath)
+{
+	TArray<uint16> Heightmap;
+
+    // Carica la texture
+    UTexture2D* Texture = FImageUtils::ImportFileAsTexture2D(FilePath);
+    if (!Texture)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to load PNG file: %s"), *FilePath);
+        return Heightmap;
+    }
+
+    // Ottieni i dati della texture
+    FTexture2DMipMap& MipMap = Texture->GetPlatformData()->Mips[0];
+    const void* MipData = MipMap.BulkData.LockReadOnly();
+    int32 Width = MipMap.SizeX;
+    int32 Height = MipMap.SizeY;
+
+    UE_LOG(LogTemp, Log, TEXT("Loaded PNG: Width=%d, Height=%d"), Width, Height);
+
+    uint32 MinPixel = TNumericLimits<uint32>::Max();
+    uint32 MaxPixel = TNumericLimits<uint32>::Min();
+
+    Heightmap.SetNum(Width * Height);
+
+    // Rilevamento del formato e lettura dei valori
+    if (Texture->GetPixelFormat() == PF_R8G8B8A8) // RGBA formato
+    {
+        const uint8* PixelData = static_cast<const uint8*>(MipData);
+        for (int32 i = 0; i < Width * Height; ++i)
+        {
+            // Usa solo il canale R come valore di altezza
+            uint8 RedValue = PixelData[i * 4];
+            Heightmap[i] = static_cast<uint16>(RedValue << 8); // Scala a 16 bit
+            MinPixel = FMath::Min<uint32>(MinPixel, Heightmap[i]);
+            MaxPixel = FMath::Max<uint32>(MaxPixel, Heightmap[i]);
+        }
+    }
+    else if (Texture->GetPixelFormat() == PF_G16) // Grayscale 16 bit
+    {
+        const uint16* PixelData = static_cast<const uint16*>(MipData);
+        for (int32 i = 0; i < Width * Height; ++i)
+        {
+            Heightmap[i] = PixelData[i];
+            MinPixel = FMath::Min<uint32>(MinPixel, Heightmap[i]);
+            MaxPixel = FMath::Max<uint32>(MaxPixel, Heightmap[i]);
+        }
+    }
+    else if (Texture->GetPixelFormat() == PF_R32_FLOAT) // Grayscale 32 bit float
+    {
+        const float* PixelData = static_cast<const float*>(MipData);
+        for (int32 i = 0; i < Width * Height; ++i)
+        {
+            Heightmap[i] = static_cast<uint16>(PixelData[i] * 65535.0f); // Normalizza a 16 bit
+            MinPixel = FMath::Min<uint32>(MinPixel, Heightmap[i]);
+            MaxPixel = FMath::Max<uint32>(MaxPixel, Heightmap[i]);
+        }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("Unsupported pixel format in PNG!"));
+        MipMap.BulkData.Unlock();
+        return Heightmap;
+    }
+
+    MipMap.BulkData.Unlock();
+
+    UE_LOG(LogTemp, Log, TEXT("Heightmap Min: %u, Max: %u"), MinPixel, MaxPixel);
+
+    // Debug dei primi 10 valori
+    for (int32 i = 0; i < FMath::Min(10, Heightmap.Num()); ++i)
+    {
+        UE_LOG(LogTemp, Log, TEXT("Heightmap[%d]: %u"), i, Heightmap[i]);
+    }
+
+    return Heightmap;
+}
+void CompareHeightmaps(const FString& RawFilePath, const TArray<uint16>& GeneratedHeightmap, int32 Width, int32 Height)
+{
+	// Leggi il file RAW esportato da Unreal
+	TArray<uint8> RawData; // Caricheremo i dati grezzi come uint8
+	if (!FFileHelper::LoadFileToArray(RawData, *RawFilePath))
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to load RAW file: %s"), *RawFilePath);
+		return;
+	}
+
+	// Assicuriamoci che la dimensione corrisponda a Width * Height * 2 (uint16 = 2 byte)
+	const uint64 ExpectedSize = static_cast<uint64>(Width) * static_cast<uint64>(Height) * sizeof(uint16);
+	if (RawData.Num() != ExpectedSize)
+	{
+		UE_LOG(LogTemp, Error, TEXT("RAW file size does not match the expected size: %llu vs %llu"),
+			   static_cast<uint64>(RawData.Num()), ExpectedSize);
+		return;
+	}
+
+	// Converti il TArray<uint8> in TArray<uint16>
+	TArray<uint16> UnrealHeightmap;
+	UnrealHeightmap.SetNum(Width * Height);
+	FMemory::Memcpy(UnrealHeightmap.GetData(), RawData.GetData(), RawData.Num());
+
+	// Confronta i valori
+	for (int32 i = 0; i < FMath::Min(10, UnrealHeightmap.Num()); ++i)
+	{
+		UE_LOG(LogTemp, Log, TEXT("RAW[%d]: %d, Generated[%d]: %d"),
+			   i, UnrealHeightmap[i], i, GeneratedHeightmap[i]);
+	}
+}
+TArray<uint16> UGeneratorHeightMapLibrary::ResizeHeightmapBilinear(
+	const TArray<uint16>& InputHeightmap, 
+	int32 SrcWidth, int32 SrcHeight, 
+	int32 TargetWidth, int32 TargetHeight)
+{
+	TArray<uint16> ResizedHeightmap;
+	ResizedHeightmap.SetNum(TargetWidth * TargetHeight);
+
+	for (int32 Y = 0; Y < TargetHeight; ++Y)
+	{
+		for (int32 X = 0; X < TargetWidth; ++X)
+		{
+			// Calcola la posizione nella heightmap originale
+			float SrcX = static_cast<float>(X) / TargetWidth * SrcWidth;
+			float SrcY = static_cast<float>(Y) / TargetHeight * SrcHeight;
+
+			int32 X0 = FMath::FloorToInt(SrcX);
+			int32 Y0 = FMath::FloorToInt(SrcY);
+			int32 X1 = FMath::Min(X0 + 1, SrcWidth - 1);
+			int32 Y1 = FMath::Min(Y0 + 1, SrcHeight - 1);
+
+			// Peso per l'interpolazione bilineare
+			float Fx = SrcX - X0;
+			float Fy = SrcY - Y0;
+
+			// Calcolo dei valori interpolati
+			uint16 P00 = InputHeightmap[Y0 * SrcWidth + X0];
+			uint16 P10 = InputHeightmap[Y0 * SrcWidth + X1];
+			uint16 P01 = InputHeightmap[Y1 * SrcWidth + X0];
+			uint16 P11 = InputHeightmap[Y1 * SrcWidth + X1];
+
+			uint16 InterpolatedValue = static_cast<uint16>(
+				(1 - Fx) * (1 - Fy) * P00 +
+				Fx * (1 - Fy) * P10 +
+				(1 - Fx) * Fy * P01 +
+				Fx * Fy * P11
+			);
+
+			ResizedHeightmap[Y * TargetWidth + X] = InterpolatedValue;
+		}
+	}
+
+	return ResizedHeightmap;
+}
+
 #pragma endregion
 
 #pragma region Landscape
@@ -254,7 +410,7 @@ void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& Heightm
 	
 	TArray<uint16> HeightData = ConvertFloatArrayToUint16(HeightMap);
 
-	const FTransform LandscapeTransform = GetNewTransform();
+	const FTransform LandscapeTransform = GetNewTransform(false);
 
 	DestroyLastLandscape();
 	StaticLandscape = GenerateLandscape(LandscapeTransform, HeightData);
@@ -269,7 +425,29 @@ void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& Heightm
 	}
 	
 }
+ALandscape* UGeneratorHeightMapLibrary::CreateLandscapeFromOtherHeightMap(const FString& FilePath)
+{
+	// Step 1: Caricare la heightmap dal file PNG
+	TArray<uint16> Heightmap = LoadHeightmapFromPNG(FilePath);
+	FString HeightMapPath = FPaths::ProjectDir() + TEXT("Saved/HeightMap/raw.r16");
+	CompareHeightmaps(HeightMapPath, Heightmap, 505, 505);
+	if (Heightmap.Num() == 0)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to load heightmap from PNG file: %s"), *FilePath);
+		return nullptr;
+	}
+	const FTransform LandscapeTransform = GetNewTransform(true);
+	// Step 2: Generare il landscape utilizzando la heightmap caricata
+	ALandscape* Landscape = GenerateLandscape(LandscapeTransform, Heightmap);
+	if (!Landscape)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to generate landscape from heightmap."));
+		return nullptr;
+	}
 
+	UE_LOG(LogTemp, Log, TEXT("Landscape successfully created from PNG: %s"), *FilePath);
+	return Landscape;
+}
 void UGeneratorHeightMapLibrary::SplitLandscapeIntoProxies()
 {
 	if (!StaticLandscape) return;
@@ -380,9 +558,15 @@ bool UGeneratorHeightMapLibrary::SetLandscapeSizeParam(int32& SubSectionSizeQuad
 #pragma endregion
 
 #pragma region Utilities
-FTransform UGeneratorHeightMapLibrary::GetNewTransform()
+FTransform UGeneratorHeightMapLibrary::GetNewTransform(bool bExternalHeightmap)
 {
 	FVector NewScale;
+	if(bExternalHeightmap)
+	{
+		NewScale = FVector(ScalingX, ScalingY, ScalingZ);
+		const FTransform LandscapeTransform = FTransform(FQuat(FRotator::ZeroRotator), FVector(-100800, -100800, 17200), NewScale);
+		return LandscapeTransform;
+	}
 	if (bKilometers)
 	{
 		const FVector CurrentScale = FVector(100, 100, 100);
@@ -394,6 +578,7 @@ FTransform UGeneratorHeightMapLibrary::GetNewTransform()
 	else
 	{
 		NewScale = FVector(100, 100, 100);
+		//NewScale = FVector(16887.37, 16887.37, 798.44);
 	}
 
 	const FTransform LandscapeTransform = FTransform(FQuat(FRotator::ZeroRotator), FVector(-100800, -100800, 17200), NewScale);
@@ -524,4 +709,94 @@ void UGeneratorHeightMapLibrary::SaveTextureToFile(UTexture2D* Texture, const FS
 		UE_LOG(LogTemp, Error, TEXT("Exception during compression or saving: %hc"), *e.what());
 	}
 }
+/*
+void UGeneratorHeightMapLibrary::ExportAssetLandScape()
+{
+	UE_LOG(LogTemp, Warning, TEXT("ExportAssetLandScape called"));
+	
+	const FString DestinationPath = FPaths::ProjectDir() / TEXT("Saved/FBX/test.fbx");
+	bool bOutSuccess;
+	FString OutInfoMessage;
+	UObject* AssetToExport = StaticLandscape;
+
+	const FString Extension = FPaths::GetExtension(DestinationPath).ToLower();
+	UExporter* Exporter = UExporter::FindExporter(AssetToExport, *Extension);
+	if (FModuleManager::Get().IsModuleLoaded("FBX"))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("FBX module is loaded"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("FBX module is NOT loaded"));
+	}
+	for (TObjectIterator<UExporter> It; It; ++It)
+	{
+		UExporter* ExporterCandidate = *It;
+		UE_LOG(LogTemp, Warning, TEXT("Exporter: %s, Formats: %s"),
+			*ExporterCandidate->GetName(),
+			*FString::Join(ExporterCandidate->FormatExtension, TEXT(", ")));
+	}
+	if(AssetToExport == nullptr)
+	{
+		bOutSuccess = false;
+		OutInfoMessage = FString::Printf(TEXT("Export Asset Failed - AsssetToExport is not valid"));
+		return;
+	}
+	
+	if(Exporter == nullptr)
+	{
+		bOutSuccess = false;
+		OutInfoMessage = FString::Printf(TEXT("Export Asset Failed - No Exporter found for extension"));
+		return;
+	}
+	UAssetExportTask* ExportTask = NewObject<UAssetExportTask>();
+	FGCObjectScopeGuard ExportTaskGuard(ExportTask);
+
+	Exporter->ExportTask = ExportTask;
+	ExportTask->Exporter = Exporter;
+
+	//parameters
+	ExportTask->Object = AssetToExport;
+	ExportTask->Filename = DestinationPath;
+	ExportTask->bReplaceIdentical = true;
+	ExportTask->bPrompt = false; //No pop-up
+	ExportTask->bAutomated = true;
+	ExportTask->bUseFileArchive = false;
+	ExportTask->bWriteEmptyFiles = false;
+	ExportTask->bSelected = false; 
+	ExportTask->IgnoreObjectList = TArray<TObjectPtr<UObject>>(); //For Assets tht have multiple obj
+
+	//Set the exporter parameters
+	if(Extension == "fbx")
+	{
+		//FBX OPTIONS!
+		UFbxExportOption* Options = NewObject<UFbxExportOption>();
+		Options->FbxExportCompatibility = EFbxExportCompatibility::FBX_2013;
+		Options->bASCII = false;
+		Options->bForceFrontXAxis = false;
+		Options->VertexColor = true;
+		Options->LevelOfDetail = true;
+		Options->Collision = true;
+		Options->bExportMorphTargets = true;
+		Options->bExportPreviewMesh = false;
+		Options->MapSkeletalMotionToRoot = false;
+		Options->bExportLocalTime = true;
+
+		//Link it to the task
+		ExportTask->Options = Options;
+	}
+
+	bOutSuccess = UExporter::RunAssetExportTask(ExportTask);
+
+	if(!bOutSuccess)
+	{
+		OutInfoMessage = FString::Printf(TEXT("Export Asset Failed - Errors: '%s"), *FString::Join(ExportTask->Errors, TEXT(", ")));
+		return;
+	}
+	bOutSuccess = true;
+	OutInfoMessage = FString::Printf(TEXT("Export Asset Successed"));
+} */
+
+
+
 #pragma endregion

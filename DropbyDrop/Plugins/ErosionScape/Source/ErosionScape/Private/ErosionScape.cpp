@@ -510,7 +510,84 @@ TSharedRef<SWidget> FErosionScapeModule::CreateHeightMapColumn()
 						.MaxValue(TOptional<float>(1000.0f)) // Imposta un valore massimo
 				]
 		]
-
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+						.Text(FText::FromString("Scale X"))
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SNumericEntryBox<float>)
+						.Value_Lambda([]() -> TOptional<float>
+							{
+								return TOptional<float>(
+									UGeneratorHeightMapLibrary::GetScalingX());
+							})
+						.OnValueChanged_Lambda([](float NewValue)
+							{
+								UGeneratorHeightMapLibrary::SetScalingX(NewValue);
+							})
+				]
+		]
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+						.Text(FText::FromString("Scale Y"))
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SNumericEntryBox<float>)
+						.Value_Lambda([]() -> TOptional<float>
+							{
+								return TOptional<float>(
+									UGeneratorHeightMapLibrary::GetScalingY());
+							})
+						.OnValueChanged_Lambda([](float NewValue)
+							{
+								UGeneratorHeightMapLibrary::SetScalingY(NewValue);
+							})
+				]
+		]
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+						.Text(FText::FromString("Scale Z"))
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SNumericEntryBox<float>)
+						.Value_Lambda([]() -> TOptional<float>
+							{
+								return TOptional<float>(
+									UGeneratorHeightMapLibrary::GetScalingZ());
+							})
+						.OnValueChanged_Lambda([](float NewValue)
+							{
+								UGeneratorHeightMapLibrary::SetScalingZ(NewValue);
+							})
+				]
+		]
 		// Create HeightMap button
 		+ SVerticalBox::Slot()
 		.Padding(5)
@@ -530,7 +607,37 @@ TSharedRef<SWidget> FErosionScapeModule::CreateHeightMapColumn()
 								return FReply::Handled();
 							})
 				]
+		]
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(STextBlock)
+				.Text(FText::FromString("External HeightMap"))
+				.Font(FCoreStyle::GetDefaultFontStyle("Bold", 12))
+		]
+		
+	+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SButton)
+						.Text(FText::FromString("Create HeightMap from png"))
+						.OnClicked_Lambda([]() // Correggi la lambda se necessario
+							{
+								// Passa il MapSize al metodo CreateHeightMap
+								int32 MapSize = UGeneratorHeightMapLibrary::GetMapSize();
+								FString HeightMapPath = FPaths::ProjectDir() + TEXT("Saved/HeightMap/heightmaptest.png");
+								UGeneratorHeightMapLibrary::CreateLandscapeFromOtherHeightMap(HeightMapPath);
+								return FReply::Handled();
+							})
+				]
 		];
+	//Saved/HeightMap/Heightmap.png
 }
 
 TSharedRef<SWidget> FErosionScapeModule::CreateLandScapeColumn()
@@ -660,6 +767,7 @@ TSharedRef<SWidget> FErosionScapeModule::CreateLandScapeColumn()
 							})
 				]
 		];
+	
 }
 
 TSharedPtr<SEditableTextBox> TemplateNameTextBox;

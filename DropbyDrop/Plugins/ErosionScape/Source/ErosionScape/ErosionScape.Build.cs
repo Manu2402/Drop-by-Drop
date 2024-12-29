@@ -1,7 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
-using UnrealBuildTool.Rules;
+
 
 public class ErosionScape : ModuleRules
 {
@@ -32,6 +32,8 @@ public class ErosionScape : ModuleRules
 				"InputCore", 
 				"RenderCore",
 				"RHI",
+				"UnrealEd",
+				"EditorScriptingUtilities",
 			}
 			);
 			
@@ -54,6 +56,12 @@ public class ErosionScape : ModuleRules
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
+		
+		// Add FBX only if the target is the editor
+		if (Target.bBuildEditor == true)
+		{
+			PrivateDependencyModuleNames.Add("FBX");
+		}
 		
 		
 		DynamicallyLoadedModuleNames.AddRange(

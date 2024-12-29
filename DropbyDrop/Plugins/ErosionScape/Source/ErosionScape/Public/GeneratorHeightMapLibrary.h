@@ -61,6 +61,10 @@ class UGeneratorHeightMapLibrary : public UBlueprintFunctionLibrary
 	static int32 Size;					//Size of the PNG
 	static float MaxHeightDifference;	//The max difference of the range [0,1]
 
+	//Param External HeightMap
+	static float ScalingX;
+	static float ScalingY;
+	static float ScalingZ;
 	//Param LandScape
 	static ALandscape* StaticLandscape;
 	static int32 WorldPartitionGridSize;
@@ -194,6 +198,33 @@ public:
 		return MaxHeightDifference;
 	}
 
+	UFUNCTION(BlueprintCallable, Category = "Heightmap")
+	static void SetScalingX(const float NewScalingX)
+	{
+		ScalingX = NewScalingX;
+	}
+	static float GetScalingX()
+	{
+		return ScalingX;
+	}
+	UFUNCTION(BlueprintCallable, Category = "Heightmap")
+	static void SetScalingY(const float NewScalingY)
+	{
+		ScalingY = NewScalingY;
+	}
+	static float GetScalingY()
+	{
+		return ScalingY;
+	}
+	UFUNCTION(BlueprintCallable, Category = "Heightmap")
+	static void SetScalingZ(const float NewScalingZ)
+	{
+		ScalingZ = NewScalingZ;
+	}
+	static float GetScalingZ()
+	{
+		return ScalingZ;
+	}
 #pragma endregion
 
 #pragma region Erosion
@@ -220,6 +251,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	static void GenerateLandscapeFromPNG(const FString& HeightmapPath);
 
+	static ALandscape* CreateLandscapeFromOtherHeightMap(const FString& FilePath);
+
 	UFUNCTION(BlueprintCallable, Category = "HeightMap")
 	static void SplitLandscapeIntoProxies();
 
@@ -240,6 +273,9 @@ public:
 	//Function to generate texture2D, using an array<float>
 	UFUNCTION(BlueprintCallable, Category = "HeightMap")
 	static UTexture2D* CreateHeightMapTexture(const TArray<float>& HeightMapData, const int32 Width, const int32 Height);
+
+	static TArray<uint16> LoadHeightmapFromPNG(const FString& FilePath);
+	static TArray<uint16> ResizeHeightmapBilinear( const TArray<uint16>& InputHeightmap, int32 SrcWidth, int32 SrcHeight, int32 TargetWidth, int32 TargetHeight);
 #pragma endregion
 
 #pragma region Utilities
@@ -247,8 +283,10 @@ public:
 	static void SaveTextureToFile(UTexture2D* Texture, const FString& FilePath);
 
 	static TArray<uint16> ConvertFloatArrayToUint16(const TArray<float>& FloatData);
+	//static void ExportAssetLandScape();
+
 private:
-	static FTransform GetNewTransform();
+	static FTransform GetNewTransform(bool bExternalHeightmap);
 	static void DestroyLastLandscape();
 #pragma endregion
 };
