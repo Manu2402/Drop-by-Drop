@@ -65,6 +65,7 @@ class UGeneratorHeightMapLibrary : public UBlueprintFunctionLibrary
 	static float ScalingX;
 	static float ScalingY;
 	static float ScalingZ;
+	static bool bIsExternalHeightMap;
 	//Param LandScape
 	static ALandscape* StaticLandscape;
 	static int32 WorldPartitionGridSize;
@@ -251,7 +252,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	static void GenerateLandscapeFromPNG(const FString& HeightmapPath);
 
-	static ALandscape* CreateLandscapeFromOtherHeightMap(const FString& FilePath);
+	static void CreateLandscapeFromOtherHeightMap(const FString& FilePath);
 
 	UFUNCTION(BlueprintCallable, Category = "HeightMap")
 	static void SplitLandscapeIntoProxies();
@@ -274,7 +275,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "HeightMap")
 	static UTexture2D* CreateHeightMapTexture(const TArray<float>& HeightMapData, const int32 Width, const int32 Height);
 
-	static TArray<uint16> LoadHeightmapFromPNG(const FString& FilePath);
+	static void LoadHeightmapFromPNG(const FString& FilePath, TArray<uint16>& OutHeightmap, TArray<float>& OutNormalizedHeightmap);
 	static TArray<uint16> ResizeHeightmapBilinear( const TArray<uint16>& InputHeightmap, int32 SrcWidth, int32 SrcHeight, int32 TargetWidth, int32 TargetHeight);
 #pragma endregion
 

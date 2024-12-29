@@ -28,12 +28,13 @@ TArray<float> UGeneratorHeightMapLibrary::HeightMap;
 float UGeneratorHeightMapLibrary::ScalingX = 100;
 float UGeneratorHeightMapLibrary::ScalingY = 100;
 float UGeneratorHeightMapLibrary::ScalingZ = 100;
+bool UGeneratorHeightMapLibrary::bIsExternalHeightMap = false;
 //LandScapeParam
 ALandscape* UGeneratorHeightMapLibrary::StaticLandscape = nullptr;
 int32 UGeneratorHeightMapLibrary::Kilometers = 1;
-bool UGeneratorHeightMapLibrary::bKilometers = false;
+bool UGeneratorHeightMapLibrary::bKilometers = true;
 int32 UGeneratorHeightMapLibrary::WorldPartitionGridSize = 4;
-bool UGeneratorHeightMapLibrary::bDestroyLastLandscape = true;
+bool UGeneratorHeightMapLibrary::bDestroyLastLandscape = false;
 
 UDataTable* UGeneratorHeightMapLibrary::ErosionTemplatesDataTable = nullptr;
 #pragma endregion
@@ -48,7 +49,7 @@ void UGeneratorHeightMapLibrary::GenerateErosion()
 	TArray<uint16> ErodedHeightmapU16 = ConvertFloatArrayToUint16(UErosionLibrary::GetHeights());
 
 	// Generate new landscape.
-	const FTransform LandscapeTransform = GetNewTransform(false);
+	const FTransform LandscapeTransform = GetNewTransform(bIsExternalHeightMap);
 
 	DestroyLastLandscape();
 	StaticLandscape = GenerateLandscape(LandscapeTransform, ErodedHeightmapU16);
@@ -206,6 +207,7 @@ TArray<float> UGeneratorHeightMapLibrary::GenerateHeightMapCPU(const int32 MapSi
 			HeightMapValues[i] = HeightMapValues[i] * MaxHeightDifference;
 		}
 	}
+	bIsExternalHeightMap = false;
 	return HeightMapValues;
 }
 
@@ -238,16 +240,17 @@ UTexture2D* UGeneratorHeightMapLibrary::CreateHeightMapTexture(const TArray<floa
 
 	return Texture;
 }
-TArray<uint16> UGeneratorHeightMapLibrary::LoadHeightmapFromPNG(const FString& FilePath)
+void UGeneratorHeightMapLibrary::LoadHeightmapFromPNG(const FString& FilePath, TArray<uint16>& OutHeightmap, TArray<float>& OutNormalizedHeightmap)
 {
-	TArray<uint16> Heightmap;
+    OutHeightmap.Empty();
+    OutNormalizedHeightmap.Empty();
 
     // Carica la texture
     UTexture2D* Texture = FImageUtils::ImportFileAsTexture2D(FilePath);
     if (!Texture)
     {
         UE_LOG(LogTemp, Error, TEXT("Failed to load PNG file: %s"), *FilePath);
-        return Heightmap;
+        return;
     }
 
     // Ottieni i dati della texture
@@ -261,7 +264,8 @@ TArray<uint16> UGeneratorHeightMapLibrary::LoadHeightmapFromPNG(const FString& F
     uint32 MinPixel = TNumericLimits<uint32>::Max();
     uint32 MaxPixel = TNumericLimits<uint32>::Min();
 
-    Heightmap.SetNum(Width * Height);
+    OutHeightmap.SetNum(Width * Height);
+    OutNormalizedHeightmap.SetNum(Width * Height);
 
     // Rilevamento del formato e lettura dei valori
     if (Texture->GetPixelFormat() == PF_R8G8B8A8) // RGBA formato
@@ -269,11 +273,11 @@ TArray<uint16> UGeneratorHeightMapLibrary::LoadHeightmapFromPNG(const FString& F
         const uint8* PixelData = static_cast<const uint8*>(MipData);
         for (int32 i = 0; i < Width * Height; ++i)
         {
-            // Usa solo il canale R come valore di altezza
             uint8 RedValue = PixelData[i * 4];
-            Heightmap[i] = static_cast<uint16>(RedValue << 8); // Scala a 16 bit
-            MinPixel = FMath::Min<uint32>(MinPixel, Heightmap[i]);
-            MaxPixel = FMath::Max<uint32>(MaxPixel, Heightmap[i]);
+            uint16 HeightValue = static_cast<uint16>(RedValue << 8); // Scala a 16 bit
+            OutHeightmap[i] = HeightValue;
+            MinPixel = FMath::Min<uint32>(MinPixel, HeightValue);
+            MaxPixel = FMath::Max<uint32>(MaxPixel, HeightValue);
         }
     }
     else if (Texture->GetPixelFormat() == PF_G16) // Grayscale 16 bit
@@ -281,9 +285,9 @@ TArray<uint16> UGeneratorHeightMapLibrary::LoadHeightmapFromPNG(const FString& F
         const uint16* PixelData = static_cast<const uint16*>(MipData);
         for (int32 i = 0; i < Width * Height; ++i)
         {
-            Heightmap[i] = PixelData[i];
-            MinPixel = FMath::Min<uint32>(MinPixel, Heightmap[i]);
-            MaxPixel = FMath::Max<uint32>(MaxPixel, Heightmap[i]);
+            OutHeightmap[i] = PixelData[i];
+            MinPixel = FMath::Min<uint32>(MinPixel, OutHeightmap[i]);
+            MaxPixel = FMath::Max<uint32>(MaxPixel, OutHeightmap[i]);
         }
     }
     else if (Texture->GetPixelFormat() == PF_R32_FLOAT) // Grayscale 32 bit float
@@ -291,29 +295,36 @@ TArray<uint16> UGeneratorHeightMapLibrary::LoadHeightmapFromPNG(const FString& F
         const float* PixelData = static_cast<const float*>(MipData);
         for (int32 i = 0; i < Width * Height; ++i)
         {
-            Heightmap[i] = static_cast<uint16>(PixelData[i] * 65535.0f); // Normalizza a 16 bit
-            MinPixel = FMath::Min<uint32>(MinPixel, Heightmap[i]);
-            MaxPixel = FMath::Max<uint32>(MaxPixel, Heightmap[i]);
+            uint16 HeightValue = static_cast<uint16>(PixelData[i] * 65535.0f);
+            OutHeightmap[i] = HeightValue;
+            MinPixel = FMath::Min<uint32>(MinPixel, HeightValue);
+            MaxPixel = FMath::Max<uint32>(MaxPixel, HeightValue);
         }
     }
     else
     {
         UE_LOG(LogTemp, Error, TEXT("Unsupported pixel format in PNG!"));
         MipMap.BulkData.Unlock();
-        return Heightmap;
+        return;
     }
 
     MipMap.BulkData.Unlock();
 
+    // Normalizzazione a float tra 0 e 1
+    for (int32 i = 0; i < OutHeightmap.Num(); ++i)
+    {
+        if (MaxPixel > MinPixel)
+        {
+            OutNormalizedHeightmap[i] = (OutHeightmap[i] - MinPixel) / static_cast<float>(MaxPixel - MinPixel);
+        }
+        else
+        {
+            OutNormalizedHeightmap[i] = 0.0f; // Default a zero se i valori sono uniformi
+        }
+    }
+	bIsExternalHeightMap = true;
     UE_LOG(LogTemp, Log, TEXT("Heightmap Min: %u, Max: %u"), MinPixel, MaxPixel);
 
-    // Debug dei primi 10 valori
-    for (int32 i = 0; i < FMath::Min(10, Heightmap.Num()); ++i)
-    {
-        UE_LOG(LogTemp, Log, TEXT("Heightmap[%d]: %u"), i, Heightmap[i]);
-    }
-
-    return Heightmap;
 }
 void CompareHeightmaps(const FString& RawFilePath, const TArray<uint16>& GeneratedHeightmap, int32 Width, int32 Height)
 {
@@ -410,7 +421,7 @@ void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& Heightm
 	
 	TArray<uint16> HeightData = ConvertFloatArrayToUint16(HeightMap);
 
-	const FTransform LandscapeTransform = GetNewTransform(false);
+	const FTransform LandscapeTransform = GetNewTransform(bIsExternalHeightMap);
 
 	DestroyLastLandscape();
 	StaticLandscape = GenerateLandscape(LandscapeTransform, HeightData);
@@ -425,28 +436,29 @@ void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& Heightm
 	}
 	
 }
-ALandscape* UGeneratorHeightMapLibrary::CreateLandscapeFromOtherHeightMap(const FString& FilePath)
+void UGeneratorHeightMapLibrary::CreateLandscapeFromOtherHeightMap(const FString& FilePath)
 {
 	// Step 1: Caricare la heightmap dal file PNG
-	TArray<uint16> Heightmap = LoadHeightmapFromPNG(FilePath);
+	TArray<uint16> HeightmapInt16;
+	LoadHeightmapFromPNG(FilePath,HeightmapInt16, HeightMap);
 	FString HeightMapPath = FPaths::ProjectDir() + TEXT("Saved/HeightMap/raw.r16");
-	CompareHeightmaps(HeightMapPath, Heightmap, 505, 505);
-	if (Heightmap.Num() == 0)
+	CompareHeightmaps(HeightMapPath, HeightmapInt16, 505, 505);
+	if (HeightmapInt16.Num() == 0)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Failed to load heightmap from PNG file: %s"), *FilePath);
-		return nullptr;
+		return;
 	}
-	const FTransform LandscapeTransform = GetNewTransform(true);
+	const FTransform LandscapeTransform = GetNewTransform(bIsExternalHeightMap);
 	// Step 2: Generare il landscape utilizzando la heightmap caricata
-	ALandscape* Landscape = GenerateLandscape(LandscapeTransform, Heightmap);
-	if (!Landscape)
+	StaticLandscape = GenerateLandscape(LandscapeTransform, HeightmapInt16);
+	if (!StaticLandscape)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Failed to generate landscape from heightmap."));
-		return nullptr;
+		return;
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("Landscape successfully created from PNG: %s"), *FilePath);
-	return Landscape;
+
 }
 void UGeneratorHeightMapLibrary::SplitLandscapeIntoProxies()
 {
@@ -578,7 +590,6 @@ FTransform UGeneratorHeightMapLibrary::GetNewTransform(bool bExternalHeightmap)
 	else
 	{
 		NewScale = FVector(100, 100, 100);
-		//NewScale = FVector(16887.37, 16887.37, 798.44);
 	}
 
 	const FTransform LandscapeTransform = FTransform(FQuat(FRotator::ZeroRotator), FVector(-100800, -100800, 17200), NewScale);

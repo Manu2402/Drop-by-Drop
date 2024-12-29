@@ -510,6 +510,35 @@ TSharedRef<SWidget> FErosionScapeModule::CreateHeightMapColumn()
 						.MaxValue(TOptional<float>(1000.0f)) // Imposta un valore massimo
 				]
 		]
+		// Create HeightMap button
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SButton)
+						.Text(FText::FromString("Create HeightMap"))
+						.OnClicked_Lambda([]() // Correggi la lambda se necessario
+							{
+								// Passa il MapSize al metodo CreateHeightMap
+								int32 MapSize = UGeneratorHeightMapLibrary::GetMapSize();
+								UGeneratorHeightMapLibrary::CreateHeightMap(MapSize);
+								return FReply::Handled();
+							})
+				]
+		]
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(STextBlock)
+				.Text(FText::FromString("External HeightMap"))
+				.Font(FCoreStyle::GetDefaultFontStyle("Bold", 12))
+		]
+		//SCALE
 		+ SVerticalBox::Slot()
 		.Padding(5)
 		.AutoHeight()
@@ -588,35 +617,6 @@ TSharedRef<SWidget> FErosionScapeModule::CreateHeightMapColumn()
 							})
 				]
 		]
-		// Create HeightMap button
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(SButton)
-						.Text(FText::FromString("Create HeightMap"))
-						.OnClicked_Lambda([]() // Correggi la lambda se necessario
-							{
-								// Passa il MapSize al metodo CreateHeightMap
-								int32 MapSize = UGeneratorHeightMapLibrary::GetMapSize();
-								UGeneratorHeightMapLibrary::CreateHeightMap(MapSize);
-								return FReply::Handled();
-							})
-				]
-		]
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(STextBlock)
-				.Text(FText::FromString("External HeightMap"))
-				.Font(FCoreStyle::GetDefaultFontStyle("Bold", 12))
-		]
-		
 	+ SVerticalBox::Slot()
 		.Padding(5)
 		.AutoHeight()
@@ -669,31 +669,7 @@ TSharedRef<SWidget> FErosionScapeModule::CreateLandScapeColumn()
 				]
 		]
 		// World Partition Grid Size
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(STextBlock)
-						.Text(FText::FromString("World Partition Grid Size"))
-				]
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(SNumericEntryBox<float>)
-						.Value_Lambda([]() -> TOptional<float>
-							{
-								return TOptional<float>(UGeneratorHeightMapLibrary::GetWorldPartitionGridSize());
-							})
-						.OnValueChanged_Lambda([](float NewValue)
-							{
-								UGeneratorHeightMapLibrary::SetWorldPartitionGridSize(NewValue);
-							})
-				]
-		]
+		
 		// Kilometers
 		+ SVerticalBox::Slot()
 		.Padding(5)
@@ -745,6 +721,31 @@ TSharedRef<SWidget> FErosionScapeModule::CreateLandScapeColumn()
 									UE_LOG(LogTemp, Warning, TEXT("Il file HeightMap.png non esiste: %s"), *HeightMapPath);
 								}
 								return FReply::Handled();
+							})
+				]
+		]
+		+ SVerticalBox::Slot()
+		.Padding(5)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+						.Text(FText::FromString("World Partition Grid Size"))
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SNumericEntryBox<float>)
+						.Value_Lambda([]() -> TOptional<float>
+							{
+								return TOptional<float>(UGeneratorHeightMapLibrary::GetWorldPartitionGridSize());
+							})
+						.OnValueChanged_Lambda([](float NewValue)
+							{
+								UGeneratorHeightMapLibrary::SetWorldPartitionGridSize(NewValue);
 							})
 				]
 		]
