@@ -12,6 +12,7 @@
 #include "Widgets/Text/STextBlock.h"
 #include "ToolMenus.h"
 #include "Widgets/Input/SNumericEntryBox.h"
+#include "Widgets/Input/SSearchBox.h"
 #include "Widgets/Input/SSlider.h" // Per SSlider
 #include "Widgets/Input/SNumericEntryBox.h" // Per SNumericEntryBox
 #include "Widgets/DeclarativeSyntaxSupport.h" // Per SNew
@@ -112,9 +113,14 @@ void FErosionScapeModule::SetUpTemplates(const UDataTable* ErosionTemplatesDataT
 	}
 }
 
-void FErosionScapeModule::AddTemplate(const FString& Param)
+void FErosionScapeModule::AddTemplate(const FString& TemplateName)
 {
-	TSharedPtr<FString> Template = MakeShared<FString>(Param);
+	if (TemplateName.IsEmpty())
+	{
+		return;
+	}
+
+	TSharedPtr<FString> Template = MakeShared<FString>(TemplateName);
 
 	if (!Template)
 	{
@@ -122,13 +128,27 @@ void FErosionScapeModule::AddTemplate(const FString& Param)
 	}
 
 	ErosionTemplatesOptions.Add(Template);
-	CurrentErosionTemplateOptions = Template;
+	FilteredErosionTemplatesOptions.Add(Template);
+
+	if (!ListView)
+	{
+		return;
+	}
+
+	ListView->RequestListRefresh();
 }
 
-void FErosionScapeModule::RemoveTemplate()
+void FErosionScapeModule::DeleteTemplate()
 {
 	ErosionTemplatesOptions.Remove(CurrentErosionTemplateOptions);
-	CurrentErosionTemplateOptions = ErosionTemplatesOptions[0];
+	FilteredErosionTemplatesOptions.Remove(CurrentErosionTemplateOptions);
+
+	if (!ListView)
+	{
+		return;
+	}
+
+	ListView->RequestListRefresh();
 }
 
 UDataTable* FErosionScapeModule::GetErosionTemplates() const
@@ -1007,12 +1027,14 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 							})
 				]
 		]
+
 		+ SVerticalBox::Slot()
 		.Padding(20)
 		.AutoHeight()
 		[
 			SNullWidget::NullWidget // Void Space.
 		]
+
 		// Save Button + Name Textbox 
 		+ SVerticalBox::Slot()
 		.Padding(5)
@@ -1069,7 +1091,7 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 				]
 		]
 
-		// ComboBox + Load
+		// Load + Remove
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		.Padding(5)
@@ -1102,62 +1124,77 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 						.AutoWidth()
 						[
 							SNew(SButton)
-								.Text(FText::FromString("Remove"))
+								.Text(FText::FromString("Delete"))
 								.OnClicked_Lambda([this]()
 									{
-										UGeneratorHeightMapLibrary::RemoveErosionTemplate(*CurrentErosionTemplateOptions);
-										RemoveTemplate();
+										UGeneratorHeightMapLibrary::DeleteErosionTemplate(*CurrentErosionTemplateOptions);
+										DeleteTemplate();
 
 										return FReply::Handled();
 									})
 						]
 				]
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(5)
-				.VAlign(VAlign_Center)
-				[
-					SNew(SVerticalBox)
-						+ SVerticalBox::Slot()
-						.AutoHeight()
-						.Padding(5)
-						[
-							SNew(SComboBox<TSharedPtr<FString>>)
-								.OptionsSource(&ErosionTemplatesOptions)
-								.OnGenerateWidget_Lambda([this](TSharedPtr<FString> SetValue) -> TSharedRef<SWidget>
-									{
-										CurrentErosionTemplateOptions = SetValue;
+		]
 
-										return SNew(STextBlock)
-											.Text(FText::FromString(*CurrentErosionTemplateOptions));
-									})
-								.OnSelectionChanged_Lambda([this](TSharedPtr<FString> NewValue, ESelectInfo::Type)
-									{
-										if (!NewValue.IsValid())
-										{
-											return;
-										}
+		// Search Box + List View
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(5)
+		[
+			SNew(SSearchBox)
+				.HintText(FText::FromString("Search a template...")) // Query case-sensitive.
+				.OnTextChanged_Lambda([this](const FText& FilterQuery)
+					{
+						FilteredErosionTemplatesOptions.Empty();
 
-										CurrentErosionTemplateOptions = NewValue;
-									})
-								[
-									SNew(STextBlock)
-										.Text_Lambda([this]() -> FText
-											{
-												return CurrentErosionTemplateOptions.IsValid()
-													? FText::FromString(*CurrentErosionTemplateOptions)
-													: FText::FromString("Empty");
-											})
-								]
-						]
-				]
+						if (FilterQuery.IsEmpty())
+						{
+							FilteredErosionTemplatesOptions.Append(ErosionTemplatesOptions);
+							ListView->RequestListRefresh();
+
+							return;
+						}
+
+						for (const TSharedPtr<FString>& ErosionTemplate : ErosionTemplatesOptions)
+						{
+							FString ErosionTemplateName = *ErosionTemplate;
+
+							if (ErosionTemplateName.StartsWith(FilterQuery.ToString()))
+							{
+								FilteredErosionTemplatesOptions.Add(ErosionTemplate);
+							}
+						}
+
+						ListView->RequestListRefresh();
+					})
+		]
+
+		// TEMP
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(5)
+		[
+			SNew(STextBlock)
+				.Text(FText::FromString("Search results will appear here."))
+		]
+
+		+ SVerticalBox::Slot()
+		.FillHeight(1.0f)
+		[
+			SAssignNew(ListView, SListView<TSharedPtr<FString>>)
+				.ListItemsSource(&FilteredErosionTemplatesOptions)
+				.OnGenerateRow_Lambda([](TSharedPtr<FString> Template, const TSharedRef<STableViewBase>& OwnerTable)
+					{
+						return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
+							[
+								SNew(STextBlock).Text(FText::FromString(*Template))
+							];
+					})
+				.OnSelectionChanged_Lambda([this](TSharedPtr<FString> SelectedTemplate, ESelectInfo::Type SelectInfo)
+					{
+						CurrentErosionTemplateOptions = SelectedTemplate;
+					})
 		];
-	//+ SVerticalBox::Slot()
-	//.AutoHeight()
-	//.Padding(5)
-	//[
-	//	// SEARCH BAR
-	//];
 }
 
 #undef LOCTEXT_NAMESPACE

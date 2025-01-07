@@ -214,7 +214,7 @@ public:
 		const int32 ErosionRadiusValue);
 
 	static FErosionTemplateRow* LoadErosionTemplate(const FString& TemplateName);
-	static bool RemoveErosionTemplate(const FString& TemplateName);
+	static bool DeleteErosionTemplate(const FString& TemplateName);
 	static bool SaveErosionTemplates();
 
 	static void LoadRowIntoErosionFields(const FErosionTemplateRow* TemplateDatas);

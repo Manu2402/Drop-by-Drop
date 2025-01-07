@@ -121,7 +121,6 @@ UDataTable* UGeneratorHeightMapLibrary::GetErosionTemplates()
 
 void UGeneratorHeightMapLibrary::SetErosionTemplates(const TCHAR* DataTablePath)
 {
-	// /Game/Custom/ErosionTemplates/DT_ErosionTemplate.DT_ErosionTemplate
 	ErosionTemplatesDataTable = LoadObject<UDataTable>(nullptr, DataTablePath);
 }
 
@@ -139,7 +138,7 @@ void UGeneratorHeightMapLibrary::LoadRowIntoErosionFields(const FErosionTemplate
 	UErosionLibrary::SetErosionRadius(TemplateDatas->ErosionRadiusField);
 }
 
-bool UGeneratorHeightMapLibrary::RemoveErosionTemplate(const FString& TemplateName)
+bool UGeneratorHeightMapLibrary::DeleteErosionTemplate(const FString& TemplateName)
 {
 	ErosionTemplatesDataTable->RemoveRow(FName(TemplateName));
 	return SaveErosionTemplates();

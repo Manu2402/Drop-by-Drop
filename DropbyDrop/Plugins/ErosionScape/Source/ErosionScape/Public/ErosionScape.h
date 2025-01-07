@@ -30,11 +30,14 @@ private:
 	//---------------------------------------------------------------------------------------------
 
 	TArray<TSharedPtr<FString>> ErosionTemplatesOptions;
+	TArray<TSharedPtr<FString>> FilteredErosionTemplatesOptions;
 	TSharedPtr<FString> CurrentErosionTemplateOptions;
+
+	TSharedPtr<SListView<TSharedPtr<FString>>> ListView;
 
 	void SetUpTemplates(const UDataTable* ErosionTemplatesDataTable);
 	void AddTemplate(const FString& Param);
-	void RemoveTemplate();
+	void DeleteTemplate();
 
 	UDataTable* GetErosionTemplates() const;
 	void SetErosionTemplates(const TCHAR* DataTablePath);
