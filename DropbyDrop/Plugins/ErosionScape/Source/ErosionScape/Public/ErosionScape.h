@@ -27,15 +27,19 @@ private:
 	TSharedRef<SWidget> CreateErosionColumn();
 	TSharedRef<class SDockTab> OnSpawnPluginTab(const class FSpawnTabArgs& SpawnTabArgs);
 
+	//---------------------------------------------------------------------------------------------
+
 	TArray<TSharedPtr<FString>> ErosionTemplatesOptions;
 	TSharedPtr<FString> CurrentErosionTemplateOptions;
+
 	void SetUpTemplates(const UDataTable* ErosionTemplatesDataTable);
 	void AddTemplate(const FString& Param);
-	bool SaveErosionTemplates(UDataTable* ErosionTemplatesDataTable) const;
+	void RemoveTemplate();
 
 	UDataTable* GetErosionTemplates() const;
+	void SetErosionTemplates(const TCHAR* DataTablePath);
 
-	class UEditorAssetSubsystem* AssetSubsystem;
+	//---------------------------------------------------------------------------------------------
 
 	TSharedPtr<class FUICommandList> PluginCommands;
 };

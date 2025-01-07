@@ -46,6 +46,7 @@ void FErosionScapeModule::StartupModule()
 		.SetDisplayName(LOCTEXT("FErosionScapeTabTitle", "ErosionScape"))
 		.SetMenuType(ETabSpawnerMenuType::Hidden);
 
+	SetErosionTemplates(TEXT("/Game/Custom/ErosionTemplates/DT_ErosionTemplate.DT_ErosionTemplate")); // DataTablePath.
 	SetUpTemplates(GetErosionTemplates());
 }
 
@@ -67,8 +68,6 @@ void FErosionScapeModule::ShutdownModule()
 
 TSharedRef<SDockTab> FErosionScapeModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
 {
-	AssetSubsystem = GEditor->GetEditorSubsystem<UEditorAssetSubsystem>();
-
 	return SNew(SDockTab)
 		.TabRole(ETabRole::NomadTab)
 		[
@@ -97,6 +96,11 @@ TSharedRef<SDockTab> FErosionScapeModule::OnSpawnPluginTab(const FSpawnTabArgs& 
 
 void FErosionScapeModule::SetUpTemplates(const UDataTable* ErosionTemplatesDataTable)
 {
+	if (!ErosionTemplatesDataTable)
+	{
+		return;
+	}
+
 	for (const auto& CurrentParam : ErosionTemplatesDataTable->GetRowNames())
 	{
 		if (CurrentParam.ToString().Equals("None"))
@@ -121,27 +125,20 @@ void FErosionScapeModule::AddTemplate(const FString& Param)
 	CurrentErosionTemplateOptions = Template;
 }
 
-bool FErosionScapeModule::SaveErosionTemplates(UDataTable* ErosionTemplatesDataTable) const
+void FErosionScapeModule::RemoveTemplate()
 {
-	if (!AssetSubsystem)
-	{
-		return false;
-	}
-
-	UPackage* ErostionTemplatesPackage = ErosionTemplatesDataTable->GetPackage();
-	if (!ErostionTemplatesPackage)
-	{
-		return false;
-	}
-
-	ErostionTemplatesPackage->MarkPackageDirty();
-
-	return AssetSubsystem->SaveLoadedAsset(ErosionTemplatesDataTable);
+	ErosionTemplatesOptions.Remove(CurrentErosionTemplateOptions);
+	CurrentErosionTemplateOptions = ErosionTemplatesOptions[0];
 }
 
 UDataTable* FErosionScapeModule::GetErosionTemplates() const
 {
-	return LoadObject<UDataTable>(nullptr, TEXT("/Game/Custom/ErosionTemplates/DT_ErosionTemplate.DT_ErosionTemplate"));
+	return UGeneratorHeightMapLibrary::GetErosionTemplates();
+}
+
+void FErosionScapeModule::SetErosionTemplates(const TCHAR* DataTablePath)
+{
+	UGeneratorHeightMapLibrary::SetErosionTemplates(DataTablePath);
 }
 
 void FErosionScapeModule::PluginButtonClicked()
@@ -174,8 +171,6 @@ void FErosionScapeModule::RegisterMenus()
 		}
 	}
 }
-
-
 
 TSharedRef<SWidget> FErosionScapeModule::CreateHeightMapColumn()
 {
@@ -304,12 +299,15 @@ TSharedRef<SWidget> FErosionScapeModule::CreateHeightMapColumn()
 			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
+				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
 						.Text(FText::FromString("Randomize Seed"))
 				]
 				+ SHorizontalBox::Slot()
+				.Padding(5)
 				.AutoWidth()
+				.VAlign(VAlign_Center)
 				[
 					SNew(SCheckBox)
 						.IsChecked_Lambda([]() -> ECheckBoxState
@@ -332,12 +330,15 @@ TSharedRef<SWidget> FErosionScapeModule::CreateHeightMapColumn()
 		[
 			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
 						.Text(FText::FromString("Seed"))
 				]
 				+ SHorizontalBox::Slot()
+				.Padding(5)
+				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<int32>)
@@ -362,12 +363,15 @@ TSharedRef<SWidget> FErosionScapeModule::CreateHeightMapColumn()
 		[
 			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
 						.Text(FText::FromString("Octaves"))
 				]
 				+ SHorizontalBox::Slot()
+				.Padding(5)
+				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<int32>)
@@ -397,12 +401,15 @@ TSharedRef<SWidget> FErosionScapeModule::CreateHeightMapColumn()
 			 )*/
 			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
 						.Text(FText::FromString("Persistance"))
 				]
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.Padding(5)
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
@@ -428,12 +435,15 @@ TSharedRef<SWidget> FErosionScapeModule::CreateHeightMapColumn()
 		[
 			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
 						.Text(FText::FromString("Lacunarity"))
 				]
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.Padding(5)
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
@@ -458,12 +468,15 @@ TSharedRef<SWidget> FErosionScapeModule::CreateHeightMapColumn()
 		[
 			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
 						.Text(FText::FromString("Initial Scale"))
 				]
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.Padding(5)
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
@@ -488,12 +501,15 @@ TSharedRef<SWidget> FErosionScapeModule::CreateHeightMapColumn()
 		[
 			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
 						.Text(FText::FromString("Max Height Difference"))
 				]
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.Padding(5)
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
@@ -568,12 +584,15 @@ TSharedRef<SWidget> FErosionScapeModule::CreateLandScapeColumn()
 		[
 			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
 						.Text(FText::FromString("World Partition Grid Size"))
 				]
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.Padding(5)
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
@@ -594,12 +613,15 @@ TSharedRef<SWidget> FErosionScapeModule::CreateLandScapeColumn()
 		[
 			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
 						.Text(FText::FromString("Kilometers"))
 				]
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.Padding(5)
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
@@ -683,12 +705,15 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 		[
 			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
 						.Text(FText::FromString("Erosion Cycles"))
 				]
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.Padding(5)
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<int32>)
@@ -709,12 +734,15 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 		[
 			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
 						.Text(FText::FromString("Inertia"))
 				]
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.Padding(5)
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
@@ -735,12 +763,15 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 		[
 			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
 						.Text(FText::FromString("Capacity"))
 				]
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.Padding(5)
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<int32>)
@@ -761,12 +792,15 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 		[
 			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
 						.Text(FText::FromString("Minimal Slope"))
 				]
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.Padding(5)
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
@@ -787,12 +821,15 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 		[
 			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
 						.Text(FText::FromString("Deposition Speed"))
 				]
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.Padding(5)
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
@@ -813,12 +850,15 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 		[
 			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
 						.Text(FText::FromString("Erosion Speed"))
 				]
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.Padding(5)
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
@@ -839,12 +879,15 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 		[
 			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
 						.Text(FText::FromString("Gravity"))
 				]
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.Padding(5)
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<int32>)
@@ -865,12 +908,15 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 		[
 			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
 						.Text(FText::FromString("Evaporation"))
 				]
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.Padding(5)
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
@@ -891,12 +937,15 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 		[
 			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
 						.Text(FText::FromString("Max Path"))
 				]
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.Padding(5)
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<int32>)
@@ -917,12 +966,15 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 		[
 			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
 						.Text(FText::FromString("Erosion Radius"))
 				]
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.Padding(5)
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<int32>)
@@ -955,6 +1007,12 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 							})
 				]
 		]
+		+ SVerticalBox::Slot()
+		.Padding(20)
+		.AutoHeight()
+		[
+			SNullWidget::NullWidget // Void Space.
+		]
 		// Save Button + Name Textbox 
 		+ SVerticalBox::Slot()
 		.Padding(5)
@@ -962,6 +1020,7 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 		[
 			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(SButton)
@@ -976,7 +1035,7 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 
 								const FString TemplateNameString = TemplateNameTextBox->GetText().ToString();
 
-								UGeneratorHeightMapLibrary::SaveErosionTemplate(ErosionTemplates, TemplateNameString,
+								UGeneratorHeightMapLibrary::SaveErosionTemplate(TemplateNameString,
 									UErosionLibrary::GetErosionCycles(), UErosionLibrary::GetInertia(), UErosionLibrary::GetCapacity(),
 									UErosionLibrary::GetMinimalSlope(), UErosionLibrary::GetDepositionSpeed(), UErosionLibrary::GetErosionSpeed(),
 									UErosionLibrary::GetGravity(), UErosionLibrary::GetEvaporation(), UErosionLibrary::GetMaxPath(),
@@ -997,12 +1056,12 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 								}
 
 								AddTemplate(TemplateNameString);
-								SaveErosionTemplates(ErosionTemplates);
 
 								return FReply::Handled();
 							})
 				]
 				+ SHorizontalBox::Slot()
+				.Padding(5)
 				.AutoWidth()
 				[
 					SAssignNew(TemplateNameTextBox, SEditableTextBox)
@@ -1018,14 +1077,13 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 			SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
-				.Padding(5)
 				.VAlign(VAlign_Center)
 				[
 					SNew(SButton)
 						.Text(FText::FromString("Load"))
 						.OnClicked_Lambda([this]()
 							{
-								FErosionTemplateRow* SearchedRow = UGeneratorHeightMapLibrary::LoadErosionTemplate(FName(*CurrentErosionTemplateOptions));
+								FErosionTemplateRow* SearchedRow = UGeneratorHeightMapLibrary::LoadErosionTemplate(*CurrentErosionTemplateOptions);
 								if (SearchedRow)
 								{
 									UGeneratorHeightMapLibrary::LoadRowIntoErosionFields(SearchedRow);
@@ -1039,10 +1097,30 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 				.Padding(5)
 				.VAlign(VAlign_Center)
 				[
+					SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(SButton)
+								.Text(FText::FromString("Remove"))
+								.OnClicked_Lambda([this]()
+									{
+										UGeneratorHeightMapLibrary::RemoveErosionTemplate(*CurrentErosionTemplateOptions);
+										RemoveTemplate();
+
+										return FReply::Handled();
+									})
+						]
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(5)
+				.VAlign(VAlign_Center)
+				[
 					SNew(SVerticalBox)
 						+ SVerticalBox::Slot()
 						.AutoHeight()
-						.Padding(10)
+						.Padding(5)
 						[
 							SNew(SComboBox<TSharedPtr<FString>>)
 								.OptionsSource(&ErosionTemplatesOptions)
@@ -1074,6 +1152,12 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 						]
 				]
 		];
+	//+ SVerticalBox::Slot()
+	//.AutoHeight()
+	//.Padding(5)
+	//[
+	//	// SEARCH BAR
+	//];
 }
 
 #undef LOCTEXT_NAMESPACE
