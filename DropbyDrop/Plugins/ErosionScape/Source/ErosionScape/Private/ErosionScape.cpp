@@ -1113,7 +1113,7 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 								const FString TemplateNameString = TemplateNameTextBox->GetText().ToString();
 
 								UGeneratorHeightMapLibrary::SaveErosionTemplate(TemplateNameString,
-									UErosionLibrary::GetErosionCycles(), UErosionLibrary::GetInertia(), UErosionLibrary::GetCapacity(),
+									UErosionLibrary::GetErosionCycles(), UErosionLibrary::GetWindDirection(), UErosionLibrary::GetInertia(), UErosionLibrary::GetCapacity(),
 									UErosionLibrary::GetMinimalSlope(), UErosionLibrary::GetDepositionSpeed(), UErosionLibrary::GetErosionSpeed(),
 									UErosionLibrary::GetGravity(), UErosionLibrary::GetEvaporation(), UErosionLibrary::GetMaxPath(),
 									UErosionLibrary::GetErosionRadius());
@@ -1164,6 +1164,7 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 								if (SearchedRow)
 								{
 									UGeneratorHeightMapLibrary::LoadRowIntoErosionFields(SearchedRow);
+									CurrentWindDirection = MakeShared<FString>(WindDirectionEnumPtr->GetNameStringByIndex(SearchedRow->WindDirection));
 								}
 
 								return FReply::Handled();

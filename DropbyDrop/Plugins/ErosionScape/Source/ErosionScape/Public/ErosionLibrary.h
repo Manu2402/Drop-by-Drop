@@ -35,18 +35,18 @@ enum EOutOfBoundResult : uint8
 	Error_Right_Down
 };
 
-UENUM(BlueprintType)
+UENUM()
 enum EWindDirection : uint8
 {
-	Random,
-	Nord,
-	Sud,
-	Est,
-	Ovest,
-	Nord_Ovest,
-	Nord_Est,
-	Sud_Ovest,
-	Sud_Est
+	Random = 0,
+	Nord = 1,
+	Sud = 2,
+	Est = 3,
+	Ovest = 4,
+	Nord_Ovest = 5,
+	Nord_Est = 6,
+	Sud_Ovest = 7,
+	Sud_Est = 8
 };
 
 UCLASS(Blueprintable)

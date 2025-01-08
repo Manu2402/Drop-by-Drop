@@ -15,6 +15,7 @@
 #include "Subsystems/EditorAssetSubsystem.h"
 
 #pragma region InitParam
+
 //Heightmap Param
 int32 UGeneratorHeightMapLibrary::Seed = -4314;
 bool UGeneratorHeightMapLibrary::bRandomizeSeed = false;
@@ -77,6 +78,7 @@ void UGeneratorHeightMapLibrary::ErodeLandscapeProxy(ALandscapeProxy* LandscapeP
 }
 
 bool UGeneratorHeightMapLibrary::SaveErosionTemplate(const FString& TemplateName, const int32 ErosionCyclesValue,
+													 const uint8 WindDirectionValue,
 													 const float InertiaValue, const int32 CapacityValue,
 													 const float MinSlopeValue, const float DepositionSpeedValue,
 													 const float ErosionSpeedValue, const int32 GravityValue,
@@ -86,6 +88,7 @@ bool UGeneratorHeightMapLibrary::SaveErosionTemplate(const FString& TemplateName
 	// Row fields.
 	FErosionTemplateRow ErosionTemplateRow;
 	ErosionTemplateRow.ErosionCyclesField = ErosionCyclesValue;
+	ErosionTemplateRow.WindDirection = WindDirectionValue;
 	ErosionTemplateRow.InertiaField = InertiaValue;
 	ErosionTemplateRow.CapacityField = CapacityValue;
 	ErosionTemplateRow.MinSlopeField = MinSlopeValue;
@@ -127,6 +130,8 @@ void UGeneratorHeightMapLibrary::SetErosionTemplates(const TCHAR* DataTablePath)
 void UGeneratorHeightMapLibrary::LoadRowIntoErosionFields(const FErosionTemplateRow* TemplateDatas)
 {
 	UErosionLibrary::SetErosion(TemplateDatas->ErosionCyclesField);
+
+	UErosionLibrary::SetWindDirection(static_cast<EWindDirection>(TemplateDatas->WindDirection));
 	UErosionLibrary::SetInertia(TemplateDatas->InertiaField);
 	UErosionLibrary::SetCapacity(TemplateDatas->CapacityField);
 	UErosionLibrary::SetMinimalSlope(TemplateDatas->MinSlopeField);
