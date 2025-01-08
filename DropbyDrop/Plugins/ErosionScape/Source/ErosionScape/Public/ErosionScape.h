@@ -31,7 +31,7 @@ private:
 
 	TArray<TSharedPtr<FString>> ErosionTemplatesOptions;
 	TArray<TSharedPtr<FString>> FilteredErosionTemplatesOptions;
-	TSharedPtr<FString> CurrentErosionTemplateOptions;
+	TSharedPtr<FString> CurrentErosionTemplateOption;
 
 	TSharedPtr<SListView<TSharedPtr<FString>>> ListView;
 
@@ -41,6 +41,14 @@ private:
 
 	UDataTable* GetErosionTemplates() const;
 	void SetErosionTemplates(const TCHAR* DataTablePath);
+
+	//---------------------------------------------------------------------------------------------
+
+	TArray<TSharedPtr<FString>> WindDirections;
+	TSharedPtr<FString> CurrentWindDirection;
+	UEnum* WindDirectionEnumPtr = nullptr;
+
+	void SetWindDirectionsFromEnum();
 
 	//---------------------------------------------------------------------------------------------
 

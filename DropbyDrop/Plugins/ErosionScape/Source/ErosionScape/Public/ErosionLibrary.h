@@ -35,6 +35,20 @@ enum EOutOfBoundResult : uint8
 	Error_Right_Down
 };
 
+UENUM(BlueprintType)
+enum EWindDirection : uint8
+{
+	Random,
+	Nord,
+	Sud,
+	Est,
+	Ovest,
+	Nord_Ovest,
+	Nord_Est,
+	Sud_Ovest,
+	Sud_Est
+};
+
 UCLASS(Blueprintable)
 class UErosionLibrary : public UBlueprintFunctionLibrary
 {
@@ -47,8 +61,7 @@ public:
 	// int32 CellSize;
 
 #pragma region Parameters
-	//UPROPERTY(EditAnywhere)
-	static int32 ErosionCycles; // erosionCycles
+	static int32 ErosionCycles; // ErosionCycles
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void SetErosion(const int32 NewErosionCycles)
 	{
@@ -59,7 +72,6 @@ public:
 		return ErosionCycles;
 	}
 	
-	//UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1")) // [0, 1]
 	static float Inertia; // pInertia
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void SetInertia(const float NewInertia)
@@ -71,7 +83,6 @@ public:
 		return Inertia;
 	}
 	
-	//UPROPERTY(EditAnywhere)
 	static float Capacity; // pCapacity
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void SetCapacity(const float NewCapacity)
@@ -83,7 +94,6 @@ public:
 		return Capacity;
 	}
 	
-	//UPROPERTY(EditAnywhere)
 	static float MinimalSlope; // pMinSlope
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void SetMinimalSlope(const float NewMinimalSlope)
@@ -95,7 +105,6 @@ public:
 		return MinimalSlope;
 	}
 	
-	//UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1"))
 	static float DepositionSpeed; // pDeposition
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void SetDepositionSpeed(const float NewDepositionSpeed)
@@ -107,7 +116,6 @@ public:
 		return DepositionSpeed;
 	}
 	
-	//UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1"))
 	static float ErosionSpeed; // pErosion
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void SetErosionSpeed(const float NewErosionSpeed)
@@ -119,7 +127,6 @@ public:
 		return ErosionSpeed;
 	}
 	
-	//UPROPERTY(EditAnywhere)
 	static float Gravity; // pGravity
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void SetGravity(const float NewGravity)
@@ -131,7 +138,6 @@ public:
 		return Gravity;
 	}
 	
-	//UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1"))
 	static float Evaporation; // pEvaporation
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void SetEvaporation(const float NewEvaporation)
@@ -143,7 +149,6 @@ public:
 		return Evaporation;
 	}
 	
-	//UPROPERTY(EditAnywhere)
 	static float MaxPath; // pMaxPath
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void SetMaxPath(const float NewMaxPath)
@@ -155,17 +160,28 @@ public:
 		return MaxPath;
 	}
 	
-	//UPROPERTY(EditAnywhere)
-	static int32 ErosionRadius;
+	static int32 ErosionRadius; // pRadius
 	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void SetErosionRadius(const int32 NewErosionRadius)
 	{
 		ErosionRadius = NewErosionRadius;
-	}// pRadius
+	}
 	static int32 GetErosionRadius()
 	{
 		return ErosionRadius;
 	}
+
+	static EWindDirection WindDirection;
+	UFUNCTION(BlueprintCallable, Category = "Erosion")
+	static void SetWindDirection(const EWindDirection NewWindDirection)
+	{
+		WindDirection = NewWindDirection;
+	}
+	static EWindDirection GetWindDirection()
+	{
+		return WindDirection;
+	}
+
 #pragma endregion
 
 public:	
@@ -210,4 +226,5 @@ private:
 	static void ComputeDepositOnPoints(const FVector2D& IntegerPosition, const FVector2D& OffsetPosition, const float Deposit, const int32 GridSize);
 
 	static EOutOfBoundResult GetOutOfBoundResult(const FVector2D& IntegerPosition, const int32 GridSize);
+	static FVector2D MapWindDirection();
 };
