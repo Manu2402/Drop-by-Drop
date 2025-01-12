@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Engine/Texture2D.h"
+#include "ErosionScape.h"
 #include "Misc/FileHelper.h"
 #include "Landscape.h"
 #include "GeneratorHeightMapLibrary.generated.h"
@@ -14,6 +15,9 @@ struct FErosionTemplateRow : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 ErosionCyclesField;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	uint8 WindDirection;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float InertiaField;
@@ -48,6 +52,7 @@ class UGeneratorHeightMapLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 
+private:
 #pragma  region Param
 	//Param HeightMap
 
@@ -235,16 +240,26 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	static void ErodeLandscapeProxy(ALandscapeProxy* LandscapeProxy);
 
-	static bool SaveErosionTemplate(UDataTable* ErosionTemplates, 
-		const FString& TemplateName, const int32 ErosionCyclesValue,
+	// --------------------------------------------------------------------------------------------------
+
+	static bool SaveErosionTemplate(const FString& TemplateName, const int32 ErosionCyclesValue,
+		const uint8 WindDirectionValue,
 		const float InertiaValue, const int32 CapacityValue,
 		const float MinSlopeValue, const float DepositionSpeedValue,
 		const float ErosionSpeedValue, const int32 GravityValue,
 		const float EvaporationValue, const int32 MaxPathValue,
 		const int32 ErosionRadiusValue);
 
-	static FErosionTemplateRow* LoadErosionTemplate(const FName& TemplateName);
-	static bool LoadRowIntoErosionFields(const FErosionTemplateRow* TemplateDatas);
+	static FErosionTemplateRow* LoadErosionTemplate(const FString& TemplateName);
+	static bool DeleteErosionTemplate(const FString& TemplateName);
+	static bool SaveErosionTemplates();
+
+	static void LoadRowIntoErosionFields(const FErosionTemplateRow* TemplateDatas);
+
+	static UDataTable* GetErosionTemplates();
+	static void SetErosionTemplates(const TCHAR* DataTablePath);
+
+	// --------------------------------------------------------------------------------------------------
 
 #pragma endregion
 

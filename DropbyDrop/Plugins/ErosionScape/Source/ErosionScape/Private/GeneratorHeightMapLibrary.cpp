@@ -12,8 +12,10 @@
 #include "LandscapeSubsystem.h"
 #include "Misc/ScopedSlowTask.h"
 #include "WorldPartition/WorldPartitionSubsystem.h"
+#include "Subsystems/EditorAssetSubsystem.h"
 
 #pragma region InitParam
+
 //Heightmap Param
 int32 UGeneratorHeightMapLibrary::Seed = -4314;
 bool UGeneratorHeightMapLibrary::bRandomizeSeed = false;
@@ -79,7 +81,8 @@ void UGeneratorHeightMapLibrary::ErodeLandscapeProxy(ALandscapeProxy* LandscapeP
 	//TODO: Finish the method.
 }
 
-bool UGeneratorHeightMapLibrary::SaveErosionTemplate(UDataTable* ErosionTemplates, const FString& TemplateName, const int32 ErosionCyclesValue,
+bool UGeneratorHeightMapLibrary::SaveErosionTemplate(const FString& TemplateName, const int32 ErosionCyclesValue,
+													 const uint8 WindDirectionValue,
 													 const float InertiaValue, const int32 CapacityValue,
 													 const float MinSlopeValue, const float DepositionSpeedValue,
 													 const float ErosionSpeedValue, const int32 GravityValue,
@@ -89,6 +92,7 @@ bool UGeneratorHeightMapLibrary::SaveErosionTemplate(UDataTable* ErosionTemplate
 	// Row fields.
 	FErosionTemplateRow ErosionTemplateRow;
 	ErosionTemplateRow.ErosionCyclesField = ErosionCyclesValue;
+	ErosionTemplateRow.WindDirection = WindDirectionValue;
 	ErosionTemplateRow.InertiaField = InertiaValue;
 	ErosionTemplateRow.CapacityField = CapacityValue;
 	ErosionTemplateRow.MinSlopeField = MinSlopeValue;
@@ -99,22 +103,15 @@ bool UGeneratorHeightMapLibrary::SaveErosionTemplate(UDataTable* ErosionTemplate
 	ErosionTemplateRow.MaxPathField = MaxPathValue;
 	ErosionTemplateRow.ErosionRadiusField = ErosionRadiusValue;
 	
-	ErosionTemplates->AddRow(FName(TemplateName), ErosionTemplateRow);
-	return true;
+	ErosionTemplatesDataTable->AddRow(FName(TemplateName), ErosionTemplateRow);
+	return SaveErosionTemplates();
 }
 
-FErosionTemplateRow* UGeneratorHeightMapLibrary::LoadErosionTemplate(const FName& RowName)
+FErosionTemplateRow* UGeneratorHeightMapLibrary::LoadErosionTemplate(const FString& RowName)
 {
-	// Code repetition.
 	FString ContextString = TEXT("DataTable Context");
-	ErosionTemplatesDataTable = LoadObject<UDataTable>(nullptr, TEXT("/Game/Custom/ErosionTemplates/DT_ErosionTemplate.DT_ErosionTemplate"));
 
-	if (!ErosionTemplatesDataTable)
-	{
-		return nullptr;
-	}
-
-	FErosionTemplateRow* RowData = ErosionTemplatesDataTable->FindRow<FErosionTemplateRow>(RowName, ContextString);
+	FErosionTemplateRow* RowData = ErosionTemplatesDataTable->FindRow<FErosionTemplateRow>(FName(RowName), ContextString);
 
 	if (!RowData)
 	{
@@ -124,9 +121,21 @@ FErosionTemplateRow* UGeneratorHeightMapLibrary::LoadErosionTemplate(const FName
 	return RowData;
 }
 
-bool UGeneratorHeightMapLibrary::LoadRowIntoErosionFields(const FErosionTemplateRow* TemplateDatas)
+UDataTable* UGeneratorHeightMapLibrary::GetErosionTemplates()
+{
+	return ErosionTemplatesDataTable;
+}
+
+void UGeneratorHeightMapLibrary::SetErosionTemplates(const TCHAR* DataTablePath)
+{
+	ErosionTemplatesDataTable = LoadObject<UDataTable>(nullptr, DataTablePath);
+}
+
+void UGeneratorHeightMapLibrary::LoadRowIntoErosionFields(const FErosionTemplateRow* TemplateDatas)
 {
 	UErosionLibrary::SetErosion(TemplateDatas->ErosionCyclesField);
+
+	UErosionLibrary::SetWindDirection(static_cast<EWindDirection>(TemplateDatas->WindDirection));
 	UErosionLibrary::SetInertia(TemplateDatas->InertiaField);
 	UErosionLibrary::SetCapacity(TemplateDatas->CapacityField);
 	UErosionLibrary::SetMinimalSlope(TemplateDatas->MinSlopeField);
@@ -136,8 +145,25 @@ bool UGeneratorHeightMapLibrary::LoadRowIntoErosionFields(const FErosionTemplate
 	UErosionLibrary::SetEvaporation(TemplateDatas->EvaporationField);
 	UErosionLibrary::SetMaxPath(TemplateDatas->MaxPathField);
 	UErosionLibrary::SetErosionRadius(TemplateDatas->ErosionRadiusField);
+}
 
-	return true;
+bool UGeneratorHeightMapLibrary::DeleteErosionTemplate(const FString& TemplateName)
+{
+	ErosionTemplatesDataTable->RemoveRow(FName(TemplateName));
+	return SaveErosionTemplates();
+}
+
+bool UGeneratorHeightMapLibrary::SaveErosionTemplates()
+{
+	UPackage* ErostionTemplatesPackage = ErosionTemplatesDataTable->GetPackage();
+	if (!ErostionTemplatesPackage)
+	{
+		return false;
+	}
+
+	ErostionTemplatesPackage->MarkPackageDirty();
+
+	return GEditor->GetEditorSubsystem<UEditorAssetSubsystem>()->SaveLoadedAsset(ErosionTemplatesDataTable);
 }
 #pragma endregion
 
