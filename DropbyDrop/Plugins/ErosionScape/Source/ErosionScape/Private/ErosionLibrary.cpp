@@ -12,6 +12,7 @@ float UErosionLibrary::Evaporation = 0.02f; // pEvaporation
 float UErosionLibrary::MaxPath = 64; // pMaxPath 
 int32 UErosionLibrary::ErosionRadius = 4; // pRadius 
 EWindDirection UErosionLibrary::WindDirection = EWindDirection::Est;
+bool UErosionLibrary::WindBias = false;
 
 TArray<float> UErosionLibrary::GridHeights = TArray<float>();
 TArray<FVector2D> UErosionLibrary::Points = TArray<FVector2D>();
@@ -305,10 +306,10 @@ FVector2D UErosionLibrary::MapWindDirection()
 
 	float WindAngle = 0.f;
 
-	if (true) // Add a flag into Slate
+	if (WindBias)
 	{
 		float Mu = 0.f;
-		const float Sigma = 15.f; // Tuned.
+		constexpr float Sigma = 15.f; // Tuned.
 
 		switch (WindDirection)
 		{

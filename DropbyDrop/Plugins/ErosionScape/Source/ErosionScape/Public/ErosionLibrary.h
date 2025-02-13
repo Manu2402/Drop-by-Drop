@@ -182,6 +182,17 @@ public:
 		return WindDirection;
 	}
 
+	static bool WindBias;
+	UFUNCTION(BlueprintCallable, Category = "Erosion")
+	static void SetWindBias(const bool NewWindBias)
+	{
+		WindBias = NewWindBias;
+	}
+	static bool GetWindBias()
+	{
+		return WindBias;
+	}
+
 #pragma endregion
 
 public:	
