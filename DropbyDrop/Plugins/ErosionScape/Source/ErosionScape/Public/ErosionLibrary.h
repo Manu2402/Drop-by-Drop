@@ -205,7 +205,7 @@ private:
 	static FDrop SetDropInitialParams(const int32 GridSize, const FVector2D& Position, const FVector2D& Direction, const float Velocity, const float Water);
 #pragma endregion
 
-	static void Erosion(FDrop Drop, const int32 GridSize);
+	static void Erosion(FDrop& Drop, const int32 GridSize);
 
 	static void InitWeights(const FVector2D& DropPosition, const int32 GridSize);
 

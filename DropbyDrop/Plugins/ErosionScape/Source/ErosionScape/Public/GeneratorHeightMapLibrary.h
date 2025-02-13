@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Engine/Texture2D.h"
-#include "ErosionScape.h"
 #include "Misc/FileHelper.h"
 #include "Landscape.h"
 #include "GeneratorHeightMapLibrary.generated.h"

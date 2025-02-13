@@ -1,4 +1,5 @@
 #include "ErosionLibrary.h"
+#include "Math/UnrealMathUtility.h"
 
 int32 UErosionLibrary::ErosionCycles = 100000;
 float UErosionLibrary::Inertia = 0.3; // pInertia
@@ -10,7 +11,7 @@ float UErosionLibrary::Gravity = 10; // pGravity
 float UErosionLibrary::Evaporation = 0.02f; // pEvaporation 
 float UErosionLibrary::MaxPath = 64; // pMaxPath 
 int32 UErosionLibrary::ErosionRadius = 4; // pRadius 
-EWindDirection UErosionLibrary::WindDirection = EWindDirection::Random;
+EWindDirection UErosionLibrary::WindDirection = EWindDirection::Est;
 
 TArray<float> UErosionLibrary::GridHeights = TArray<float>();
 TArray<FVector2D> UErosionLibrary::Points = TArray<FVector2D>();
@@ -299,35 +300,120 @@ EOutOfBoundResult UErosionLibrary::GetOutOfBoundResult(const FVector2D& IntegerP
 
 FVector2D UErosionLibrary::MapWindDirection()
 {
-	switch (WindDirection)
+	const float MinAngle = 0.f;
+	const float MaxAngle = 360.f;
+
+	float WindAngle = 0.f;
+
+	if (true) // Add a flag into Slate
 	{
+		float Mu = 0.f;
+		const float Sigma = 15.f; // Tuned.
+
+		switch (WindDirection)
+		{
 		case EWindDirection::Nord:
-			return FVector2D(0.f, 1.f);
+			Mu = 90.f;
+			break;
 		case EWindDirection::Sud:
-			return FVector2D(0.f, -1.f);
+			Mu = 270.f;
+			break;
 		case EWindDirection::Est:
-			return FVector2D(1.f, 0.f);
+			Mu = 0.f;
+			break;
 		case EWindDirection::Ovest:
-			return FVector2D(-1.f, 0.f);
+			Mu = 180.f;
+			break;
 		case EWindDirection::Nord_Est:
-			return FVector2D(0.5f, 0.5f);
+			Mu = 45.f;
+			break;
 		case EWindDirection::Nord_Ovest:
-			return FVector2D(-0.5f, 0.5f);
+			Mu = 135.f;
+			break;
 		case EWindDirection::Sud_Est:
-			return FVector2D(0.5f, -0.5f);
+			Mu = 315.f;
+			break;
 		case EWindDirection::Sud_Ovest:
-			return FVector2D(-0.5f, -0.5f);
+			Mu = 225.f;
+			break;
 		case EWindDirection::Random:
 		default:
-			return FVector2D(FMath::RandRange(-1.f, 1.f), FMath::RandRange(-1.f, 1.f));
+			Mu = FMath::RandRange(MinAngle, MaxAngle);
+			break;
+		}
+
+		// Box-Muller algorithm.
+		const float First = FMath::FRandRange(0.f + KINDA_SMALL_NUMBER, 1.f); // Uniformed numbers generation (0, 1] with same probability.
+		const float Second = FMath::FRandRange(0.f + KINDA_SMALL_NUMBER, 1.f);
+
+		// Box-Muller transformation.
+		const float z = FMath::Sqrt(-2.f * FMath::Loge(First)) * FMath::Cos(2.f * PI * Second);
+
+		// Adapting to our normal distribution.
+		WindAngle = Mu + (Sigma * z);
+
+		if (WindAngle < 0)
+		{
+			WindAngle = MaxAngle + FMath::Fmod(WindAngle, MaxAngle);
+		}
+
+		WindAngle = FMath::Fmod(WindAngle, MaxAngle);
 	}
+	else
+	{
+		switch (WindDirection)
+		{
+		case EWindDirection::Nord:
+			WindAngle = 90.f;
+			break;
+		case EWindDirection::Sud:
+			WindAngle = 270.f;
+			break;
+		case EWindDirection::Est:
+			WindAngle = 0.f;
+			break;
+		case EWindDirection::Ovest:
+			WindAngle = 180.f;
+			break;
+		case EWindDirection::Nord_Est:
+			WindAngle = 45.f;
+			break;
+		case EWindDirection::Nord_Ovest:
+			WindAngle = 135.f;
+			break;
+		case EWindDirection::Sud_Est:
+			WindAngle = 315.f;
+			break;
+		case EWindDirection::Sud_Ovest:
+			WindAngle = 225.f;
+			break;
+		case EWindDirection::Random:
+		default:
+			WindAngle = FMath::RandRange(0.f, 360.f);
+			break;
+		}
+	}
+
+#pragma region TEST
+	// FString FilePath = FPaths::ProjectDir() + TEXT("/Saved/Winds/winds.txt");
+
+	// FString ExistingContent;
+	// FFileHelper::LoadFileToString(ExistingContent, *FilePath);
+
+	// ExistingContent += FString::Printf(TEXT("%.2f,"), WindAngle);
+
+	// FFileHelper::SaveStringToFile(ExistingContent, *FilePath);
+#pragma endregion TEST
+
+	const float Strength = FMath::RandRange(0.f, 1.f);
+	return FVector2D(FMath::Cos(WindAngle), FMath::Sin(WindAngle)) * Strength;
 }
 
-void UErosionLibrary::Erosion(FDrop Drop, const int32 GridSize)
+void UErosionLibrary::Erosion(FDrop& Drop, const int32 GridSize)
 {
 	float Sediment = 0;
 
-	for (int32 Cycle = 0; Cycle < MaxPath; Cycle++)
+	for (uint64 Cycle = 0; Cycle < MaxPath; Cycle++)
 	{
 		// Phase zero: drop position information.
 		FVector2D IntegerPosOld = FVector2D(FMath::Floor(Drop.Position.X), FMath::Floor(Drop.Position.Y)); // (x, y)
@@ -484,7 +570,7 @@ void UErosionLibrary::InitWeights(const FVector2D& DropPosition, const int32 Gri
 
 void UErosionLibrary::ErosionHandler(const int32 GridSize)
 {
-	for (int32 Index = 0; Index < ErosionCycles; Index++)
+	for (uint64 Index = 0; Index < ErosionCycles; Index++)
 	{
 		FDrop Drop = GenerateDropInitialParams(GridSize);
 		Erosion(Drop, GridSize);
