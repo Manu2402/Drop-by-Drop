@@ -19,6 +19,11 @@ public:
 	/** This function will be bound to Command (by default it will bring up plugin window) */
 	void PluginButtonClicked();
 
+	static UTexture2D* LoadSavedTexture(const FString& AssetName);
+	static TSharedPtr<FSlateBrush> CreateSlateBrushFromTexture(UTexture2D* Texture);
+	TSharedPtr<FSlateBrush> StoredBrush;
+
+
 private:
 	
 	void RegisterMenus();
@@ -49,6 +54,10 @@ private:
 	UEnum* WindDirectionEnumPtr = nullptr;
 
 	void SetWindDirectionsFromEnum();
+
+	//---------------------------------------------------------------------------------------------
+	
+
 
 	//---------------------------------------------------------------------------------------------
 

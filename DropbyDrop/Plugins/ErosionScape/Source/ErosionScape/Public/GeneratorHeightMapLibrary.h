@@ -293,12 +293,10 @@ public:
 	static TArray<uint16> ResizeHeightmapBilinear( const TArray<uint16>& InputHeightmap, int32 SrcWidth, int32 SrcHeight, int32 TargetWidth, int32 TargetHeight);
 #pragma endregion
 
-#pragma region Utilities
-	UFUNCTION(BlueprintCallable, Category = "HeightMap")
-	static void SaveTextureToFile(UTexture2D* Texture, const FString& FilePath);
+#pragma region Utilitie
 
 	static TArray<uint16> ConvertFloatArrayToUint16(const TArray<float>& FloatData);
-	//static void ExportAssetLandScape();
+	static bool SaveToAsset(UTexture2D* Texture, const FString& AssetName);
 
 private:
 	static FTransform GetNewTransform(bool bExternalHeightmap);
