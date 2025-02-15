@@ -14,9 +14,10 @@
 #include "Widgets/Input/SNumericEntryBox.h"
 #include "Widgets/Input/SSearchBox.h"
 #include "Widgets/Input/SSlider.h" // Per SSlider
-#include "Widgets/Input/SNumericEntryBox.h" // Per SNumericEntryBox
 #include "Widgets/DeclarativeSyntaxSupport.h" // Per SNew
 #include "Subsystems/EditorAssetSubsystem.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 
 static const FName ErosionScapeTabName("ErosionScape");
 
@@ -231,6 +232,28 @@ void FErosionScapeModule::SetWindDirectionsFromEnum()
 	}
 
 	CurrentWindDirection = WindDirections[0];
+}
+
+void FErosionScapeModule::ShowEditorNotification(const FString& Message, const bool bSuccess) const
+{
+	FNotificationInfo Info(FText::FromString(Message));
+	Info.bFireAndForget = true;
+	Info.bUseLargeFont = true;
+
+	if (bSuccess)
+	{
+		Info.ExpireDuration = 2.0f;
+		Info.Image = FCoreStyle::Get().GetBrush(TEXT("NotificationList.Success"));
+	}
+	else
+	{
+		Info.ExpireDuration = 5.0f;
+		Info.Image = FCoreStyle::Get().GetBrush(TEXT("NotificationList.Fail"));
+		Info.bUseThrobber = false;
+		Info.FadeOutDuration = 1.5f;
+	}
+
+	FSlateNotificationManager::Get().AddNotification(Info);
 }
 
 void FErosionScapeModule::PluginButtonClicked()
@@ -629,10 +652,12 @@ TSharedRef<SWidget> FErosionScapeModule::CreateHeightMapColumn()
 				[
 					SNew(SButton)
 						.Text(FText::FromString("Create HeightMap"))
-						.OnClicked_Lambda([]()
+						.OnClicked_Lambda([this]()
 							{
 								int32 MapSize = UGeneratorHeightMapLibrary::GetMapSize();
 								UGeneratorHeightMapLibrary::CreateHeightMap(MapSize);
+								ShowEditorNotification(TEXT("Heightmap successfully generated!"), true);
+
 								return FReply::Handled();
 							})
 				]
@@ -748,12 +773,14 @@ TSharedRef<SWidget> FErosionScapeModule::CreateHeightMapColumn()
 				[
 					SNew(SButton)
 						.Text(FText::FromString("Create HeightMap from png"))
-						.OnClicked_Lambda([]() // Correggi la lambda se necessario
+						.OnClicked_Lambda([this]() // Correggi la lambda se necessario
 							{
 								// Passa il MapSize al metodo CreateHeightMap
 								int32 MapSize = UGeneratorHeightMapLibrary::GetMapSize();
 								FString HeightMapPath = FPaths::ProjectDir() + TEXT("Saved/HeightMap/heightmaptest.png");
 								UGeneratorHeightMapLibrary::CreateLandscapeFromOtherHeightMap(HeightMapPath);
+
+								ShowEditorNotification(TEXT("Heightmap successfully loaded!"), true);
 								return FReply::Handled();
 							})
 				]
@@ -861,16 +888,18 @@ TSharedRef<SWidget> FErosionScapeModule::CreateLandScapeColumn()
 				[
 					SNew(SButton)
 						.Text(FText::FromString("Create LandScape"))
-						.OnClicked_Lambda([HeightMapPath]()
+						.OnClicked_Lambda([this, HeightMapPath]()
 							{
 								if (FPaths::FileExists(HeightMapPath))
 								{
 									UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(*HeightMapPath);
+									ShowEditorNotification(TEXT("Landscape successfully generated!"), true);
 								}
 								else
 								{
-									UE_LOG(LogTemp, Warning, TEXT("Il file HeightMap.png non esiste: %s"), *HeightMapPath);
+									ShowEditorNotification(TEXT("Landscape generation failed: \"Heightmap.png files doesn't exists!\""), false);
 								}
+
 								return FReply::Handled();
 							})
 				]
@@ -911,9 +940,11 @@ TSharedRef<SWidget> FErosionScapeModule::CreateLandScapeColumn()
 				[
 					SNew(SButton)
 						.Text(FText::FromString("Split In Proxies"))
-						.OnClicked_Lambda([]()
+						.OnClicked_Lambda([this]()
 							{
 								UGeneratorHeightMapLibrary::SplitLandscapeIntoProxies();
+								ShowEditorNotification(TEXT("Landscape successfully splitted!"), true);
+
 								return FReply::Handled();
 							})
 				]
@@ -1294,9 +1325,11 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 				[
 					SNew(SButton)
 						.Text(FText::FromString("Erosion"))
-						.OnClicked_Lambda([]()
+						.OnClicked_Lambda([this]()
 							{
 								UGeneratorHeightMapLibrary::GenerateErosion();
+								ShowEditorNotification(TEXT("Erosion successfully applied!"), true);
+
 								return FReply::Handled();
 							})
 				]
@@ -1327,6 +1360,7 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 								UDataTable* ErosionTemplates = GetErosionTemplates();
 								if (!ErosionTemplates)
 								{
+									ShowEditorNotification(TEXT("Template has not been saved: data table doesn't exist!"), false);
 									return FReply::Handled();
 								}
 
@@ -1348,11 +1382,13 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 
 									if (CurrentParam->Equals(TemplateNameString))
 									{
+										ShowEditorNotification(TEXT("Template has not been saved: template already exists!"), false);
 										return FReply::Handled();
 									}
 								}
 
 								AddTemplate(TemplateNameString);
+								ShowEditorNotification(TEXT("Template has been saved!"), true);
 
 								return FReply::Handled();
 							})
@@ -1383,8 +1419,14 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 								FErosionTemplateRow* SearchedRow = UGeneratorHeightMapLibrary::LoadErosionTemplate(*CurrentErosionTemplateOption);
 								if (SearchedRow)
 								{
+									ShowEditorNotification(TEXT("Template has been loaded!"), true);
+
 									UGeneratorHeightMapLibrary::LoadRowIntoErosionFields(SearchedRow);
 									CurrentWindDirection = MakeShared<FString>(WindDirectionEnumPtr->GetNameStringByIndex(SearchedRow->WindDirection));
+								}
+								else
+								{
+									ShowEditorNotification(TEXT("Template has not been loaded: template doesn't exists!"), false);
 								}
 
 								return FReply::Handled();
@@ -1405,6 +1447,8 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 									{
 										UGeneratorHeightMapLibrary::DeleteErosionTemplate(*CurrentErosionTemplateOption);
 										DeleteTemplate();
+
+										ShowEditorNotification(TEXT("Template has been deleted!"), false);
 
 										return FReply::Handled();
 									})
