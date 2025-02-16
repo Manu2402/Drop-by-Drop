@@ -665,7 +665,7 @@ TSharedRef<SWidget> FErosionScapeModule::CreateHeightMapColumn()
 		+ SVerticalBox::Slot()
 		.Padding(5)
 		.AutoHeight()
-		.HAlign(HAlign_Center)  // Centra l'immagine e ne limita la larghezza
+		.HAlign(HAlign_Left)  // Centra l'immagine e ne limita la larghezza
 		[
 			SNew(SBox)
 				.WidthOverride(96)
@@ -814,35 +814,6 @@ TSharedRef<SWidget> FErosionScapeModule::CreateLandScapeColumn()
 				[
 					SNew(STextBlock)
 						.Text(FText::FromString("Destroy Last Landscape"))
-				]
-		]
-		// World Partition Grid Size
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				[
-					SNew(STextBlock)
-						.Text(FText::FromString("World Partition Grid Size"))
-				]
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.Padding(5)
-				.AutoWidth()
-				[
-					SNew(SNumericEntryBox<float>)
-						.Value_Lambda([]() -> TOptional<float>
-							{
-								return TOptional<float>(UGeneratorHeightMapLibrary::GetWorldPartitionGridSize());
-							})
-						.OnValueChanged_Lambda([](float NewValue)
-							{
-								UGeneratorHeightMapLibrary::SetWorldPartitionGridSize(NewValue);
-							})
 				]
 		]
 
