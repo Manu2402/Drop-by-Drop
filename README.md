@@ -15,7 +15,7 @@
 - **Water Erosion Simulation**  
   Apply realistic erosion based on adjustable parameters such as droplet count, erosion radius, sediment capacity, and more.
 
-- 🗂**Template System**  
+- **Template System**  
   Save and load erosion presets to reuse them across multiple landscapes and maintain workflow consistency.
 
 ---
