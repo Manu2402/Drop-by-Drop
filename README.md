@@ -30,6 +30,7 @@
 ## Development
 
 This project was developed in collaboration by **Manuel Solano** and **Roberto Capparelli** as part of a research and development initiative focused on landscape generation tools for Unreal Engine.
+Thanks to the help of **Eugenio Fattori** for guiding us during the creation of the tool.
 
 ---
 
