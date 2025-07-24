@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ErosionScapeSettings.h"
 #include "Modules/ModuleManager.h"
 
 class FToolBarBuilder;
@@ -11,11 +12,10 @@ class FMenuBuilder;
 class FErosionScapeModule : public IModuleInterface, public TSharedFromThis<FErosionScapeModule>
 {
 public:
-
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
-	
+
 	/** This function will be bound to Command (by default it will bring up plugin window) */
 	void PluginButtonClicked();
 
@@ -23,13 +23,17 @@ public:
 	static TSharedPtr<FSlateBrush> CreateSlateBrushFromTexture(UTexture2D* Texture);
 	TSharedPtr<FSlateBrush> StoredBrush;
 
-
 private:
-	
 	void RegisterMenus();
-	TSharedRef<SWidget> CreateHeightMapColumn();
-	TSharedRef<SWidget> CreateLandScapeColumn();
-	TSharedRef<SWidget> CreateErosionColumn();
+	TSharedRef<SWidget> CreateHeightMapColumn(TSharedRef<FExternalHeightMapSettings> ExternalSettings,
+											  TSharedRef<FLandscapeGenerationSettings> LandscapeSettings,
+											  TSharedRef<FHeightMapGenerationSettings> HeightmapSettings);
+	TSharedRef<SWidget> CreateLandScapeColumn(TSharedRef<FExternalHeightMapSettings> ExternalSettings,
+	                                          TSharedRef<FLandscapeGenerationSettings> LandscapeSettings,
+	                                          TSharedRef<FHeightMapGenerationSettings> HeightmapSettings);
+	TSharedRef<SWidget> CreateErosionColumn(TSharedRef<FExternalHeightMapSettings> ExternalSettings,
+											  TSharedRef<FLandscapeGenerationSettings> LandscapeSettings,
+											  TSharedRef<FHeightMapGenerationSettings> HeightmapSettings);
 	TSharedRef<class SDockTab> OnSpawnPluginTab(const class FSpawnTabArgs& SpawnTabArgs);
 
 	//---------------------------------------------------------------------------------------------
@@ -56,7 +60,7 @@ private:
 	void SetWindDirectionsFromEnum();
 
 	//---------------------------------------------------------------------------------------------
-	
+
 	void ShowEditorNotification(const FString& Message, const bool bSuccess) const;
 
 	//---------------------------------------------------------------------------------------------

@@ -5,6 +5,7 @@
 #include "ErosionLibrary.h"
 #include "ErosionScapeStyle.h"
 #include "ErosionScapeCommands.h"
+#include "ErosionScapeSettings.h"
 #include "GeneratorHeightMapLibrary.h"
 #include "LevelEditor.h"
 #include "Widgets/Docking/SDockTab.h"
@@ -22,6 +23,7 @@
 static const FName ErosionScapeTabName("ErosionScape");
 
 #define LOCTEXT_NAMESPACE "FErosionScapeModule"
+
 UTexture2D* FErosionScapeModule::LoadSavedTexture(const FString& AssetName)
 {
 	FString AssetPath = FString::Printf(TEXT("/Game/SavedAssets/%s.%s"), *AssetName, *AssetName);
@@ -88,10 +90,10 @@ void FErosionScapeModule::StartupModule()
 		FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FErosionScapeModule::RegisterMenus));
 
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(ErosionScapeTabName,
-		FOnSpawnTab::CreateRaw(
-			this, &FErosionScapeModule::OnSpawnPluginTab))
-		.SetDisplayName(LOCTEXT("FErosionScapeTabTitle", "ErosionScape"))
-		.SetMenuType(ETabSpawnerMenuType::Hidden);
+	                                                  FOnSpawnTab::CreateRaw(
+		                                                  this, &FErosionScapeModule::OnSpawnPluginTab))
+	                        .SetDisplayName(LOCTEXT("FErosionScapeTabTitle", "ErosionScape"))
+	                        .SetMenuType(ETabSpawnerMenuType::Hidden);
 
 	SetErosionTemplates(TEXT("/Game/Custom/ErosionTemplates/DT_ErosionTemplate.DT_ErosionTemplate")); // DataTablePath.
 	SetUpTemplates(GetErosionTemplates());
@@ -118,34 +120,39 @@ void FErosionScapeModule::ShutdownModule()
 	FErosionScapeCommands::Unregister();
 
 	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ErosionScapeTabName);
-
 }
 
 TSharedRef<SDockTab> FErosionScapeModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
 {
+	TSharedRef<FHeightMapGenerationSettings> HeightmapSettings = MakeShared<FHeightMapGenerationSettings>();
+	TSharedRef<FExternalHeightMapSettings> ExternalSettings = MakeShared<FExternalHeightMapSettings>();
+	TSharedRef<FLandscapeGenerationSettings> LandscapeSettings = MakeShared<FLandscapeGenerationSettings>();
+
 	return SNew(SDockTab)
 		.TabRole(ETabRole::NomadTab)
 		[
 			// Colonna HeightMap
 			SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.HAlign(HAlign_Fill)
-				.VAlign(VAlign_Fill)
-				[
-					CreateHeightMapColumn()
-				]
-				+ SHorizontalBox::Slot()
-				.HAlign(HAlign_Fill)
-				.VAlign(VAlign_Fill)
-				[
-					CreateLandScapeColumn() // Metodi per le altre colonne
-				]
-				+ SHorizontalBox::Slot()
-				.HAlign(HAlign_Fill)
-				.VAlign(VAlign_Fill)
-				[
-					CreateErosionColumn() // Metodi per le altre colonne
-				]
+			+ SHorizontalBox::Slot()
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Fill)
+			[
+				CreateHeightMapColumn(ExternalSettings, LandscapeSettings, HeightmapSettings)
+			]
+			+ SHorizontalBox::Slot()
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Fill)
+			[
+				CreateLandScapeColumn(ExternalSettings, LandscapeSettings, HeightmapSettings)
+				// Metodi per le altre colonne
+			]
+			+ SHorizontalBox::Slot()
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Fill)
+			[
+				CreateErosionColumn(ExternalSettings, LandscapeSettings, HeightmapSettings)
+				// Metodi per le altre colonne
+			]
 		];
 }
 
@@ -287,668 +294,466 @@ void FErosionScapeModule::RegisterMenus()
 	}
 }
 
-TSharedRef<SWidget> FErosionScapeModule::CreateHeightMapColumn()
+TSharedRef<SWidget> FErosionScapeModule::CreateHeightMapColumn(TSharedRef<FExternalHeightMapSettings> ExternalSettings,
+                                                               TSharedRef<FLandscapeGenerationSettings>
+                                                               LandscapeSettings,
+                                                               TSharedRef<FHeightMapGenerationSettings>
+                                                               HeightmapSettings)
 {
 	auto CreateNumericEntryWithHover = [](const FString& Label, float MinValue, float MaxValue, float DefaultValue,
-		TFunction<void(float)> OnValueChanged)
-		{
-			// Variabile per mantenere il valore attuale
-			TSharedPtr<float> CurrentValue = MakeShareable(new float(DefaultValue));
+	                                      TFunction<void(float)> OnValueChanged)
+	{
+		TSharedPtr<float> CurrentValue = MakeShareable(new float(DefaultValue));
 
-			return SNew(SVerticalBox)
-				+ SVerticalBox::Slot()
-				.AutoHeight()
+		return SNew(SVerticalBox)
+			+ SVerticalBox::Slot().AutoHeight()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot().AutoWidth()
 				[
-					SNew(SHorizontalBox)
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						[
-							SNew(STextBlock)
-								.Text(FText::FromString(Label))
-						]
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						[
-							SNew(SNumericEntryBox<float>)
-								.Value_Lambda([CurrentValue]() -> TOptional<float>
-									{
-										return TOptional<float>(*CurrentValue);
-									})
-								.OnValueCommitted_Lambda(
-									[OnValueChanged, CurrentValue](
-										float NewValue, ETextCommit::Type CommitType)
-									{
-										*CurrentValue = NewValue; // Aggiorna il valore attuale
-										OnValueChanged(NewValue);
-									})
-								.OnValueChanged_Lambda(
-									[OnValueChanged, CurrentValue](float NewValue)
-									{
-										*CurrentValue = NewValue; // Aggiorna il valore attuale
-										OnValueChanged(NewValue);
-									})
-								.MinValue(MinValue)
-								.MaxValue(MaxValue)
-								.AllowSpin(true)
-								// Permette l'uso delle frecce per aumentare/diminuire il valore
-								.Delta(0.1f) // Imposta il passo di incremento/decremento
-								.Visibility(EVisibility::Visible)
-								// Assicurati che il NumericEntryBox sia visibile
-								.IsEnabled(true) // Abilita il NumericEntryBox
-						]
+					SNew(STextBlock).Text(FText::FromString(Label))
 				]
-				// Mouse events to allow dragging to modify value
-				+ SVerticalBox::Slot()
-				.AutoHeight()
+				+ SHorizontalBox::Slot().AutoWidth()
 				[
-					SNew(SBox)
-						.WidthOverride(200) // Imposta una larghezza fissa o adattiva
-						.HeightOverride(20) // Imposta un'altezza fissa o adattiva
+					SNew(SNumericEntryBox<float>)
+					.Value_Lambda([CurrentValue]() -> TOptional<float> { return TOptional<float>(*CurrentValue); })
+					.OnValueCommitted_Lambda([OnValueChanged, CurrentValue](float NewValue, ETextCommit::Type)
+					{
+						*CurrentValue = NewValue;
+						OnValueChanged(NewValue);
+					})
+					.OnValueChanged_Lambda([OnValueChanged, CurrentValue](float NewValue)
+					{
+						*CurrentValue = NewValue;
+						OnValueChanged(NewValue);
+					})
+					.MinValue(MinValue)
+					.MaxValue(MaxValue)
+					.AllowSpin(true)
+					.Delta(0.1f)
+					.Visibility(EVisibility::Visible)
+					.IsEnabled(true)
+				]
+			]
+			+ SVerticalBox::Slot().AutoHeight()
+			[
+				SNew(SBox).WidthOverride(200).HeightOverride(20).HAlign(HAlign_Fill).VAlign(VAlign_Center)
+				[
+					SNew(SOverlay)
+					+ SOverlay::Slot()
+					[
+						SNew(SBorder)
+						.BorderImage(FCoreStyle::Get().GetBrush("NoBorder"))
 						.HAlign(HAlign_Fill)
 						.VAlign(VAlign_Center)
-						[
-							SNew(SOverlay) // Utilizza SOverlay per sovrapporre il mouse
-								+ SOverlay::Slot()
-								[
-									SNew(SBorder)
-										.BorderImage(FCoreStyle::Get().GetBrush("NoBorder")) // Nessun bordo visibile
-										.HAlign(HAlign_Fill)
-										.VAlign(VAlign_Center)
-										.OnMouseMove_Lambda(
-											[OnValueChanged, MinValue, MaxValue, CurrentValue](
-												const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
-											{
-												// Calcola il valore basato sulla posizione del mouse
-												FVector2D LocalMousePos = MouseEvent.GetScreenSpacePosition() -
-													MyGeometry.GetAbsolutePosition();
-												float NewValue = FMath::Clamp(
-													LocalMousePos.X / MyGeometry.GetLocalSize().X * (MaxValue -
-														MinValue) + MinValue, MinValue, MaxValue);
+						.OnMouseMove_Lambda(
+							[OnValueChanged, MinValue, MaxValue, CurrentValue](
+							const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+							{
+								FVector2D LocalMousePos = MouseEvent.GetScreenSpacePosition() - MyGeometry.
+									GetAbsolutePosition();
+								float NewValue = FMath::Clamp(
+									LocalMousePos.X / MyGeometry.GetLocalSize().X * (MaxValue - MinValue) + MinValue,
+									MinValue, MaxValue);
+								*CurrentValue = NewValue;
+								OnValueChanged(NewValue);
+								return FReply::Handled();
+							})
+					]
+				]
+			];
+	};
 
-												// Aggiorna il valore attuale e chiama la funzione di callback
-												*CurrentValue = NewValue;
-												OnValueChanged(NewValue);
-
-												return FReply::Handled();
-											})
-								]
-						]
-				];
-		};
-	auto UpdateSeedValue = [](int32 NewValue)
-		{
-			UGeneratorHeightMapLibrary::SetSeed(NewValue);
-			UE_LOG(LogTemp, Log, TEXT("New Seed: %d"), NewValue);
-		};
-
-	auto UpdateRandomSeed = [](bool bIsRandom)
-		{
-			UGeneratorHeightMapLibrary::SetRandomizeSeed(bIsRandom);
-			UE_LOG(LogTemp, Log, TEXT("Randomize Seed: %s"), bIsRandom ? TEXT("True") : TEXT("False"));
-		};
-
-	auto CreateHeightMap = []()
-		{
-			int32 MapSize = UGeneratorHeightMapLibrary::GetMapSize();
-			UGeneratorHeightMapLibrary::CreateHeightMap(MapSize);
-			UE_LOG(LogTemp, Log, TEXT("Creating HeightMap with MapSize: %d"), MapSize);
-		};
-	//Texture HeightMap
 	UTexture2D* LoadedTexture = LoadSavedTexture("TextureHeightMap");
 	StoredBrush = CreateSlateBrushFromTexture(LoadedTexture);
 
-
-
 	return SNew(SVerticalBox)
 
-		// Nome della colonna
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
+		+ SVerticalBox::Slot().Padding(5).AutoHeight()
+		[
+			SNew(STextBlock).Text(FText::FromString("HeightMap")).Font(FCoreStyle::GetDefaultFontStyle("Bold", 12))
+		]
+
+		+ SVerticalBox::Slot().Padding(5).AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+			[
+				SNew(STextBlock).Text(FText::FromString("Randomize Seed"))
+			]
+			+ SHorizontalBox::Slot().Padding(5).AutoWidth().VAlign(VAlign_Center)
+			[
+				SNew(SCheckBox)
+				.IsChecked_Lambda([HeightmapSettings]() -> ECheckBoxState
+				{
+					return HeightmapSettings->bRandomizeSeed ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+				})
+				.OnCheckStateChanged_Lambda([HeightmapSettings](ECheckBoxState NewState)
+				{
+					HeightmapSettings->bRandomizeSeed = (NewState == ECheckBoxState::Checked);
+				})
+			]
+		]
+
+		+ SVerticalBox::Slot().Padding(5).AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().VAlign(VAlign_Center).AutoWidth()
+			[
+				SNew(STextBlock).Text(FText::FromString("Seed"))
+			]
+			+ SHorizontalBox::Slot().Padding(5).VAlign(VAlign_Center).AutoWidth()
+			[
+				SNew(SNumericEntryBox<int32>)
+				.Value_Lambda([HeightmapSettings]() -> TOptional<int32> { return HeightmapSettings->Seed; })
+				.OnValueChanged_Lambda([HeightmapSettings](int32 NewValue) { HeightmapSettings->Seed = NewValue; })
+				.MinValue(0)
+				.MaxValue(10000)
+			]
+		]
+
+		+ SVerticalBox::Slot().Padding(5).AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().AutoWidth()
+			[
+				SNew(STextBlock).Text(FText::FromString("Octaves"))
+			]
+			+ SHorizontalBox::Slot().Padding(5).VAlign(VAlign_Center).AutoWidth()
+			[
+				SNew(SNumericEntryBox<int32>)
+				.Value_Lambda([HeightmapSettings]() -> TOptional<int32> { return HeightmapSettings->NumOctaves; })
+				.OnValueChanged_Lambda(
+					[HeightmapSettings](int32 NewValue) { HeightmapSettings->NumOctaves = NewValue; })
+				.MinValue(1)
+				.MaxValue(8)
+			]
+		]
+
+		+ SVerticalBox::Slot().Padding(5).AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().AutoWidth()
+			[
+				SNew(STextBlock).Text(FText::FromString("Persistence"))
+			]
+			+ SHorizontalBox::Slot().Padding(5).AutoWidth()
+			[
+				SNew(SNumericEntryBox<float>)
+				.Value_Lambda([HeightmapSettings]() -> TOptional<float> { return HeightmapSettings->Persistence; })
+				.OnValueChanged_Lambda([HeightmapSettings](float NewValue)
+				{
+					HeightmapSettings->Persistence = NewValue;
+				})
+				.MinValue(0.0f)
+				.MaxValue(8.0f)
+			]
+		]
+
+		+ SVerticalBox::Slot().Padding(5).AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().AutoWidth()
+			[
+				SNew(STextBlock).Text(FText::FromString("Lacunarity"))
+			]
+			+ SHorizontalBox::Slot().Padding(5).AutoWidth()
+			[
+				SNew(SNumericEntryBox<float>)
+				.Value_Lambda([HeightmapSettings]() -> TOptional<float> { return HeightmapSettings->Lacunarity; })
+				.OnValueChanged_Lambda(
+					[HeightmapSettings](float NewValue) { HeightmapSettings->Lacunarity = NewValue; })
+				.MinValue(0.0f)
+				.MaxValue(10.0f)
+			]
+		]
+
+		+ SVerticalBox::Slot().Padding(5).AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().AutoWidth()
+			[
+				SNew(STextBlock).Text(FText::FromString("Initial Scale"))
+			]
+			+ SHorizontalBox::Slot().Padding(5).AutoWidth()
+			[
+				SNew(SNumericEntryBox<float>)
+				.Value_Lambda([HeightmapSettings]() -> TOptional<float> { return HeightmapSettings->InitialScale; })
+				.OnValueChanged_Lambda([HeightmapSettings](float NewValue)
+				{
+					HeightmapSettings->InitialScale = NewValue;
+				})
+				.MinValue(0.0f)
+				.MaxValue(100.0f)
+			]
+		]
+
+		+ SVerticalBox::Slot().Padding(5).AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().AutoWidth()
+			[
+				SNew(STextBlock).Text(FText::FromString("Max Height Difference"))
+			]
+			+ SHorizontalBox::Slot().Padding(5).AutoWidth()
+			[
+				SNew(SNumericEntryBox<float>)
+				.Value_Lambda([HeightmapSettings]() -> TOptional<float>
+				{
+					return HeightmapSettings->MaxHeightDifference;
+				})
+				.OnValueChanged_Lambda([HeightmapSettings](float NewValue)
+				{
+					HeightmapSettings->MaxHeightDifference = NewValue;
+				})
+				.MinValue(0.0f)
+				.MaxValue(1000.0f)
+			]
+		]
+
+		+ SVerticalBox::Slot().Padding(5).AutoHeight()
+		[
+			SNew(SButton)
+			.Text(FText::FromString("Create HeightMap"))
+			.OnClicked_Lambda([HeightmapSettings, this]()
+			{
+				UGeneratorHeightMapLibrary::CreateAndSaveHeightMap(*HeightmapSettings);
+				ShowEditorNotification(TEXT("Heightmap successfully generated!"), true);
+				return FReply::Handled();
+			})
+		]
+
+		+ SVerticalBox::Slot().Padding(5).AutoHeight().HAlign(HAlign_Left)
+		[
+			SNew(SBox).WidthOverride(96).HeightOverride(96)
+			[
+				SNew(SImage).Image(StoredBrush.Get())
+			]
+		]
+
+		+ SVerticalBox::Slot().Padding(5).AutoHeight()
 		[
 			SNew(STextBlock)
-				.Text(FText::FromString("HeightMap"))
-				.Font(FCoreStyle::GetDefaultFontStyle("Bold", 12))
+			.Text(FText::FromString("External HeightMap"))
+			.Font(FCoreStyle::GetDefaultFontStyle("Bold", 12))
 		]
 
-		// Randomize Seed Checkbox
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
+		+ SVerticalBox::Slot().Padding(5).AutoHeight()
 		[
 			SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				[
-					SNew(STextBlock)
-						.Text(FText::FromString("Randomize Seed"))
-				]
-				+ SHorizontalBox::Slot()
-				.Padding(5)
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				[
-					SNew(SCheckBox)
-						.IsChecked_Lambda([]() -> ECheckBoxState
-							{
-								return UGeneratorHeightMapLibrary::GetRandomizeSeed()
-									? ECheckBoxState::Checked
-									: ECheckBoxState::Unchecked;
-							})
-						.OnCheckStateChanged_Lambda([UpdateRandomSeed](ECheckBoxState NewState)
-							{
-								UpdateRandomSeed(NewState == ECheckBoxState::Checked);
-							})
-				]
+			+ SHorizontalBox::Slot().AutoWidth()
+			[
+				SNew(STextBlock).Text(FText::FromString("Scale X"))
+			]
+			+ SHorizontalBox::Slot().AutoWidth()
+			[
+				SNew(SNumericEntryBox<float>)
+				.Value_Lambda([ExternalSettings]() -> TOptional<float> { return ExternalSettings->ScalingX; })
+				.OnValueChanged_Lambda([ExternalSettings](float NewValue) { ExternalSettings->ScalingX = NewValue; })
+			]
 		]
 
-		// Seed
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
+		+ SVerticalBox::Slot().Padding(5).AutoHeight()
 		[
 			SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				[
-					SNew(STextBlock)
-						.Text(FText::FromString("Seed"))
-				]
-				+ SHorizontalBox::Slot()
-				.Padding(5)
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				[
-					SNew(SNumericEntryBox<int32>)
-						.Value_Lambda([]() -> TOptional<int32>
-							{
-								return TOptional<int32>(UGeneratorHeightMapLibrary::GetSeed());
-							})
-						.OnValueChanged_Lambda([UpdateSeedValue](int32 NewValue)
-							{
-								UpdateSeedValue(NewValue);
-							})
-						.MinValue(0) // Imposta un valore minimo, se necessario
-						.MaxValue(TOptional<int32>(10000))
-						// Imposta un valore massimo, modifica se necessario
-				]
+			+ SHorizontalBox::Slot().AutoWidth()
+			[
+				SNew(STextBlock).Text(FText::FromString("Scale Y"))
+			]
+			+ SHorizontalBox::Slot().AutoWidth()
+			[
+				SNew(SNumericEntryBox<float>)
+				.Value_Lambda([ExternalSettings]() -> TOptional<float> { return ExternalSettings->ScalingY; })
+				.OnValueChanged_Lambda([ExternalSettings](float NewValue) { ExternalSettings->ScalingY = NewValue; })
+			]
 		]
 
-		// Octaves
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
+		+ SVerticalBox::Slot().Padding(5).AutoHeight()
 		[
 			SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				//.VAlign(VAlign_Center)
-				.HAlign(HAlign_Left)
-				.AutoWidth()
-				[
-					SNew(STextBlock)
-						.Text(FText::FromString("Octaves"))
-				]
-				+ SHorizontalBox::Slot()
-				.Padding(5)
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				[
-					SNew(SNumericEntryBox<int32>)
-						.Value_Lambda([]() -> TOptional<int32>
-							{
-								return TOptional<int32>(UGeneratorHeightMapLibrary::GetOctaves());
-							})
-						.OnValueChanged_Lambda([](int32 NewValue)
-							{
-								UGeneratorHeightMapLibrary::SetNumOctaves(NewValue);
-							})
-						.MinValue(1) // Imposta un valore minimo
-						.MaxValue(TOptional<int32>(8)) // Imposta un valore massimo
-				]
+			+ SHorizontalBox::Slot().AutoWidth()
+			[
+				SNew(STextBlock).Text(FText::FromString("Scale Z"))
+			]
+			+ SHorizontalBox::Slot().AutoWidth()
+			[
+				SNew(SNumericEntryBox<float>)
+				.Value_Lambda([ExternalSettings]() -> TOptional<float> { return ExternalSettings->ScalingZ; })
+				.OnValueChanged_Lambda([ExternalSettings](float NewValue) { ExternalSettings->ScalingZ = NewValue; })
+			]
 		]
 
-		// Persistence
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
+		+ SVerticalBox::Slot().Padding(5).AutoHeight()
 		[
-			SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				[
-					SNew(STextBlock)
-						.Text(FText::FromString("Persistance"))
-				]
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.Padding(5)
-				.AutoWidth()
-				[
-					SNew(SNumericEntryBox<float>)
-						.Value_Lambda([]() -> TOptional<float>
-							{
-								return TOptional<float>(
-									UGeneratorHeightMapLibrary::GetPersistence());
-							})
-						.OnValueChanged_Lambda([](float NewValue)
-							{
-								UGeneratorHeightMapLibrary::SetPersistence(NewValue);
-							})
-						.MinValue(1) // Imposta un valore minimo
-						.MaxValue(TOptional<float>(8)) // Imposta un valore massimo
-				]
-
-		]
-
-		// Lacunarity
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Top)
-				.AutoWidth()
-				[
-					SNew(STextBlock)
-						.Text(FText::FromString("Lacunarity"))
-				]
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.Padding(5)
-				.AutoWidth()
-				[
-					SNew(SNumericEntryBox<float>)
-						.Value_Lambda([]() -> TOptional<float>
-							{
-								return TOptional<float>(
-									UGeneratorHeightMapLibrary::GetLacunarity());
-							})
-						.OnValueChanged_Lambda([](float NewValue)
-							{
-								UGeneratorHeightMapLibrary::SetLacunarity(NewValue);
-							})
-						.MinValue(0.0f) // Imposta un valore minimo
-						.MaxValue(TOptional<float>(10.0f)) // Imposta un valore massimo
-				]
-		]
-
-		// InitialScale
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				[
-					SNew(STextBlock)
-						.Text(FText::FromString("Initial Scale"))
-				]
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.Padding(5)
-				.AutoWidth()
-				[
-					SNew(SNumericEntryBox<float>)
-						.Value_Lambda([]() -> TOptional<float>
-							{
-								return TOptional<float>(
-									UGeneratorHeightMapLibrary::GetInitialScale());
-							})
-						.OnValueChanged_Lambda([](float NewValue)
-							{
-								UGeneratorHeightMapLibrary::SetInitialScale(NewValue);
-							})
-						.MinValue(0.0f) // Imposta un valore minimo
-						.MaxValue(TOptional<float>(100.0f)) // Imposta un valore massimo
-				]
-		]
-
-		// MaxHeightDifference
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				[
-					SNew(STextBlock)
-						.Text(FText::FromString("Max Height Difference"))
-				]
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.Padding(5)
-				.AutoWidth()
-				[
-					SNew(SNumericEntryBox<float>)
-						.Value_Lambda([]() -> TOptional<float>
-							{
-								return TOptional<float>(
-									UGeneratorHeightMapLibrary::GetMaxHeightDifference());
-							})
-						.OnValueChanged_Lambda([](float NewValue)
-							{
-								UGeneratorHeightMapLibrary::SetMaxHeightDifference(NewValue);
-							})
-						.MinValue(0.0f) // Imposta un valore minimo
-						.MaxValue(TOptional<float>(1000.0f)) // Imposta un valore massimo
-				]
-		]
-		// Create HeightMap button
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(SButton)
-						.Text(FText::FromString("Create HeightMap"))
-						.OnClicked_Lambda([this]()
-							{
-								int32 MapSize = UGeneratorHeightMapLibrary::GetMapSize();
-								UGeneratorHeightMapLibrary::CreateHeightMap(MapSize);
-								ShowEditorNotification(TEXT("Heightmap successfully generated!"), true);
-
-								return FReply::Handled();
-							})
-				]
-		]
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		.HAlign(HAlign_Left)  // Centra l'immagine e ne limita la larghezza
-		[
-			SNew(SBox)
-				.WidthOverride(96)
-				.HeightOverride(96)
-				[
-					SNew(SImage)
-						.Image(StoredBrush.Get())
-				]
-		]
-
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(STextBlock)
-				.Text(FText::FromString("External HeightMap"))
-				.Font(FCoreStyle::GetDefaultFontStyle("Bold", 12))
-		]
-		//SCALE
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(STextBlock)
-						.Text(FText::FromString("Scale X"))
-				]
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(SNumericEntryBox<float>)
-						.Value_Lambda([]() -> TOptional<float>
-							{
-								return TOptional<float>(
-									UGeneratorHeightMapLibrary::GetScalingX());
-							})
-						.OnValueChanged_Lambda([](float NewValue)
-							{
-								UGeneratorHeightMapLibrary::SetScalingX(NewValue);
-							})
-				]
-		]
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(STextBlock)
-						.Text(FText::FromString("Scale Y"))
-				]
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(SNumericEntryBox<float>)
-						.Value_Lambda([]() -> TOptional<float>
-							{
-								return TOptional<float>(
-									UGeneratorHeightMapLibrary::GetScalingY());
-							})
-						.OnValueChanged_Lambda([](float NewValue)
-							{
-								UGeneratorHeightMapLibrary::SetScalingY(NewValue);
-							})
-				]
-		]
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(STextBlock)
-						.Text(FText::FromString("Scale Z"))
-				]
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(SNumericEntryBox<float>)
-						.Value_Lambda([]() -> TOptional<float>
-							{
-								return TOptional<float>(
-									UGeneratorHeightMapLibrary::GetScalingZ());
-							})
-						.OnValueChanged_Lambda([](float NewValue)
-							{
-								UGeneratorHeightMapLibrary::SetScalingZ(NewValue);
-							})
-				]
-		]
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(SButton)
-						.Text(FText::FromString("Create HeightMap from png"))
-						.OnClicked_Lambda([this]() // Correggi la lambda se necessario
-							{
-								// Passa il MapSize al metodo CreateHeightMap
-								int32 MapSize = UGeneratorHeightMapLibrary::GetMapSize();
-								FString HeightMapPath = FPaths::ProjectDir() + TEXT("Saved/HeightMap/heightmaptest.png");
-								UGeneratorHeightMapLibrary::CreateLandscapeFromOtherHeightMap(HeightMapPath);
-
-								ShowEditorNotification(TEXT("Heightmap successfully loaded!"), true);
-								return FReply::Handled();
-							})
-				]
+			SNew(SButton)
+			.Text(FText::FromString("Create Landscape from PNG"))
+			.OnClicked_Lambda([this, ExternalSettings, LandscapeSettings, HeightmapSettings]()
+			{
+				UGeneratorHeightMapLibrary::OpenHeightmapFileDialog(ExternalSettings, LandscapeSettings, HeightmapSettings);
+				return FReply::Handled();
+			})
+			/*.OnClicked_Lambda([ExternalSettings, LandscapeSettings, HeightmapSettings, this]() {
+			    FString HeightMapPath = FPaths::ProjectDir() + TEXT("Saved/HeightMap/heightmaptest.png");
+			    UGeneratorHeightMapLibrary::CreateLandscapeFromOtherHeightMap(HeightMapPath, ExternalSettings.Get(), LandscapeSettings.Get(), HeightmapSettings.Get());
+			    ShowEditorNotification(TEXT("Heightmap successfully loaded!"), true);
+			    return FReply::Handled();
+			})*/
 		];
-
 }
 
-TSharedRef<SWidget> FErosionScapeModule::CreateLandScapeColumn()
+
+TSharedRef<SWidget> FErosionScapeModule::CreateLandScapeColumn(TSharedRef<FExternalHeightMapSettings> ExternalSettings,
+                                                               TSharedRef<FLandscapeGenerationSettings>
+                                                               LandscapeSettings,
+                                                               TSharedRef<FHeightMapGenerationSettings>
+                                                               HeightmapSettings)
 {
 	FString HeightMapPath = FPaths::ProjectDir() + TEXT("Saved/HeightMap/HeightMap.png");
 	return SNew(SVerticalBox)
-		// Colonna Landscape
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(STextBlock)
+			// Colonna Landscape
+			+ SVerticalBox::Slot()
+			.Padding(5)
+			.AutoHeight()
+			[
+				SNew(STextBlock)
 				.Text(LOCTEXT("LandscapeLabel", "Landscape"))
 				.Font(FCoreStyle::GetDefaultFontStyle("Bold", 12)) // Font grassetto
-		]
-		// Flag Destroy Last Landscape
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SCheckBox)
-				.OnCheckStateChanged_Lambda([](ECheckBoxState NewState)
+			]
+			// Flag Destroy Last Landscape
+			+ SVerticalBox::Slot()
+			.Padding(5)
+			.AutoHeight()
+			[
+				SNew(SCheckBox)
+				.OnCheckStateChanged_Lambda([LandscapeSettings](ECheckBoxState NewState)
+				{
+					LandscapeSettings->bDestroyLastLandscape = (NewState == ECheckBoxState::Checked);
+				})
+				[
+					SNew(STextBlock).Text(FText::FromString("Destroy Last Landscape"))
+				]
+			]
+			// Kilometers
+			+ SVerticalBox::Slot()
+			.Padding(5)
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot().VAlign(VAlign_Center).AutoWidth()
+				[
+					SNew(STextBlock).Text(FText::FromString("Kilometers"))
+				]
+				+ SHorizontalBox::Slot().VAlign(VAlign_Center).Padding(5).AutoWidth()
+				[
+					SNew(SNumericEntryBox<float>)
+					.Value_Lambda([LandscapeSettings]() -> TOptional<float> { return LandscapeSettings->Kilometers; })
+					.OnValueChanged_Lambda([LandscapeSettings](float NewValue)
 					{
-						UGeneratorHeightMapLibrary::SetbDestroyLastLandscape(static_cast<bool>(ECheckBoxState::Checked));
+						LandscapeSettings->Kilometers = NewValue;
 					})
-				[
-					SNew(STextBlock)
-						.Text(FText::FromString("Destroy Last Landscape"))
 				]
-		]
-
-		// Kilometers
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				[
-					SNew(STextBlock)
-						.Text(FText::FromString("Kilometers"))
-				]
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.Padding(5)
-				.AutoWidth()
-				[
-					SNew(SNumericEntryBox<float>)
-						.Value_Lambda([]() -> TOptional<float>
-							{
-								return TOptional<float>(UGeneratorHeightMapLibrary::GetKilometers());
-							})
-						.OnValueChanged_Lambda([](float NewValue)
-							{
-								UGeneratorHeightMapLibrary::SetKilometers(NewValue);
-							})
-				]
-		]
-
-
-		// Bottone Create Landscape
-		+SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
+			]
+			// Bottone Create Landscape
+			+ SVerticalBox::Slot()
+			.Padding(5)
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot().AutoWidth()
 				[
 					SNew(SButton)
-						.Text(FText::FromString("Create LandScape"))
-						.OnClicked_Lambda([this, HeightMapPath]()
-							{
-								if (FPaths::FileExists(HeightMapPath))
-								{
-									UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(*HeightMapPath);
-									ShowEditorNotification(TEXT("Landscape successfully generated!"), true);
-								}
-								else
-								{
-									ShowEditorNotification(TEXT("Landscape generation failed: \"Heightmap.png files doesn't exists!\""), false);
-								}
-
-								return FReply::Handled();
-							})
+					.Text(FText::FromString("Create LandScape"))
+					.OnClicked_Lambda([this, HeightMapPath, HeightmapSettings, ExternalSettings, LandscapeSettings]()
+					{
+						if (true) // oppure FPaths::FileExists(HeightMapPath)
+						{
+							UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(
+								*HeightMapPath,
+								*HeightmapSettings,
+								*ExternalSettings,
+								*LandscapeSettings);
+							ShowEditorNotification(TEXT("Landscape successfully generated!"), true);
+						}
+						else
+						{
+							ShowEditorNotification(
+								TEXT("Landscape generation failed: \"Heightmap.png files doesn't exists!\""), false);
+						}
+						return FReply::Handled();
+					})
 				]
-		]
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
+			]
+			// World Partition Grid Size
+			+ SVerticalBox::Slot()
+			.Padding(5)
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot().AutoWidth()
 				[
-					SNew(STextBlock)
-						.Text(FText::FromString("World Partition Grid Size"))
+					SNew(STextBlock).Text(FText::FromString("World Partition Grid Size"))
 				]
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
+				+ SHorizontalBox::Slot().AutoWidth()
 				[
-					SNew(SNumericEntryBox<float>)
-						.Value_Lambda([]() -> TOptional<float>
-							{
-								return TOptional<float>(UGeneratorHeightMapLibrary::GetWorldPartitionGridSize());
-							})
-						.OnValueChanged_Lambda([](float NewValue)
-							{
-								UGeneratorHeightMapLibrary::SetWorldPartitionGridSize(NewValue);
-							})
+					SNew(SNumericEntryBox<int32>)
+					.Value_Lambda([LandscapeSettings]() -> TOptional<int32>
+					{
+						return LandscapeSettings->WorldPartitionGridSize;
+					})
+					.OnValueChanged_Lambda([LandscapeSettings](int32 NewValue)
+					{
+						LandscapeSettings->WorldPartitionGridSize = NewValue;
+					})
 				]
-		]
-		// Bottone Split in Proxies
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
+			]
+			// Bottone Split in Proxies
+			+ SVerticalBox::Slot()
+			.Padding(5)
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot().AutoWidth()
 				[
 					SNew(SButton)
-						.Text(FText::FromString("Split In Proxies"))
-						.OnClicked_Lambda([this]()
-							{
-								UGeneratorHeightMapLibrary::SplitLandscapeIntoProxies();
-								ShowEditorNotification(TEXT("Landscape successfully splitted!"), true);
-
-								return FReply::Handled();
-							})
+					.Text(FText::FromString("Split In Proxies"))
+					.OnClicked_Lambda([this, LandscapeSettings]()
+					{
+						UGeneratorHeightMapLibrary::SplitLandscapeIntoProxies(LandscapeSettings.Get());
+						ShowEditorNotification(TEXT("Landscape successfully splitted!"), true);
+						return FReply::Handled();
+					})
 				]
-		];
-
+			];
 }
 
 TSharedPtr<SEditableTextBox> TemplateNameTextBox;
 
-TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
+TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn(TSharedRef<FExternalHeightMapSettings> ExternalSettings,
+                                                             TSharedRef<FLandscapeGenerationSettings> LandscapeSettings,
+                                                             TSharedRef<FHeightMapGenerationSettings> HeightmapSettings)
 {
 	return SNew(SVerticalBox)
-		// Colonna Erosion
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(STextBlock)
+			// Colonna Erosion
+			+ SVerticalBox::Slot()
+			.Padding(5)
+			.AutoHeight()
+			[
+				SNew(STextBlock)
 				.Text(LOCTEXT("ErosionLabel", "Erosion"))
 				.Font(FCoreStyle::GetDefaultFontStyle("Bold", 12))
-		]
-		// ErosionCycles + Wind Direction
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
+			]
+			// ErosionCycles + Wind Direction
+			+ SVerticalBox::Slot()
+			.Padding(5)
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-						.Text(FText::FromString("Erosion Cycles"))
+					.Text(FText::FromString("Erosion Cycles"))
 				]
 				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
@@ -956,14 +761,14 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<int32>)
-						.Value_Lambda([]() -> TOptional<int32>
-							{
-								return TOptional<int32>(UErosionLibrary::GetErosionCycles());
-							})
-						.OnValueChanged_Lambda([](int32 NewValue)
-							{
-								UErosionLibrary::SetErosion(NewValue);
-							})
+					.Value_Lambda([]() -> TOptional<int32>
+					{
+						return TOptional<int32>(UErosionLibrary::GetErosionCycles());
+					})
+					.OnValueChanged_Lambda([](int32 NewValue)
+					{
+						UErosionLibrary::SetErosion(NewValue);
+					})
 				]
 				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
@@ -971,71 +776,72 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 				.AutoWidth()
 				[
 					SNew(SVerticalBox)
-						+ SVerticalBox::Slot()
-						.VAlign(VAlign_Center)
-						.Padding(5)
-						.AutoHeight()
+					+ SVerticalBox::Slot()
+					.VAlign(VAlign_Center)
+					.Padding(5)
+					.AutoHeight()
+					[
+						SNew(STextBlock)
+						.Text(FText::FromString("Wind Direction"))
+					]
+
+					+ SVerticalBox::Slot()
+					.VAlign(VAlign_Center)
+					.Padding(5)
+					.AutoHeight()
+					[
+						SNew(SComboBox<TSharedPtr<FString>>)
+						.OptionsSource(&WindDirections)
+						.OnGenerateWidget_Lambda(
+							[this](TSharedPtr<FString> WindDirectionSelected) -> TSharedRef<SWidget>
+							{
+								return SNew(STextBlock).Text(FText::FromString(*WindDirectionSelected));
+							})
+						.OnSelectionChanged_Lambda([this](TSharedPtr<FString> WindDirectionSelected, ESelectInfo::Type)
+						{
+							int32 WindValue = WindDirectionEnumPtr->GetValueByNameString(*WindDirectionSelected);
+							UErosionLibrary::SetWindDirection(static_cast<EWindDirection>(WindValue));
+							CurrentWindDirection = WindDirectionSelected;
+						})
 						[
 							SNew(STextBlock)
-								.Text(FText::FromString("Wind Direction"))
+							.Text_Lambda([this]() -> FText
+							{
+								return CurrentWindDirection.IsValid()
+									       ? FText::FromString(*CurrentWindDirection)
+									       : FText::FromString("Select\nWind Direction");
+							})
 						]
-
-						+ SVerticalBox::Slot()
-						.VAlign(VAlign_Center)
-						.Padding(5)
-						.AutoHeight()
+					]
+					+ SVerticalBox::Slot()
+					.VAlign(VAlign_Center)
+					.Padding(5)
+					.AutoHeight()
+					[
+						SNew(SCheckBox)
+						.OnCheckStateChanged_Lambda([](ECheckBoxState NewState)
+						{
+							UErosionLibrary::SetWindBias(static_cast<bool>(NewState));
+						})
 						[
-							SNew(SComboBox<TSharedPtr<FString>>)
-								.OptionsSource(&WindDirections)
-								.OnGenerateWidget_Lambda([this](TSharedPtr<FString> WindDirectionSelected) -> TSharedRef<SWidget>
-									{
-										return SNew(STextBlock).Text(FText::FromString(*WindDirectionSelected));
-									})
-								.OnSelectionChanged_Lambda([this](TSharedPtr<FString> WindDirectionSelected, ESelectInfo::Type)
-									{
-										int32 WindValue = WindDirectionEnumPtr->GetValueByNameString(*WindDirectionSelected);
-										UErosionLibrary::SetWindDirection(static_cast<EWindDirection>(WindValue));
-										CurrentWindDirection = WindDirectionSelected;
-									})
-								[
-									SNew(STextBlock)
-										.Text_Lambda([this]() -> FText
-											{
-												return CurrentWindDirection.IsValid()
-													? FText::FromString(*CurrentWindDirection)
-													: FText::FromString("Select\nWind Direction");
-											})
-								]
+							SNew(STextBlock)
+							.Text(FText::FromString("Enable Wind Bias"))
 						]
-						+ SVerticalBox::Slot()
-						.VAlign(VAlign_Center)
-						.Padding(5)
-						.AutoHeight()
-						[
-							SNew(SCheckBox)
-								.OnCheckStateChanged_Lambda([](ECheckBoxState NewState)
-									{
-										UErosionLibrary::SetWindBias(static_cast<bool>(NewState));
-									})
-								[
-									SNew(STextBlock)
-										.Text(FText::FromString("Enable Wind Bias"))
-								]
-						]
+					]
 				]
-		]
-		// Inertia
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
+			]
+			// Inertia
+			+ SVerticalBox::Slot()
+			.Padding(5)
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-						.Text(FText::FromString("Inertia"))
+					.Text(FText::FromString("Inertia"))
 				]
 				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
@@ -1043,28 +849,28 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
-						.Value_Lambda([]() -> TOptional<float>
-							{
-								return TOptional<float>(UErosionLibrary::GetInertia());
-							})
-						.OnValueChanged_Lambda([](float NewValue)
-							{
-								UErosionLibrary::SetInertia(NewValue);
-							})
+					.Value_Lambda([]() -> TOptional<float>
+					{
+						return TOptional<float>(UErosionLibrary::GetInertia());
+					})
+					.OnValueChanged_Lambda([](float NewValue)
+					{
+						UErosionLibrary::SetInertia(NewValue);
+					})
 				]
-		]
-		// Capacity
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
+			]
+			// Capacity
+			+ SVerticalBox::Slot()
+			.Padding(5)
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-						.Text(FText::FromString("Capacity"))
+					.Text(FText::FromString("Capacity"))
 				]
 				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
@@ -1072,28 +878,28 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<int32>)
-						.Value_Lambda([]() -> TOptional<int32>
-							{
-								return TOptional<int32>(UErosionLibrary::GetCapacity());
-							})
-						.OnValueChanged_Lambda([](int32 NewValue)
-							{
-								UErosionLibrary::SetCapacity(NewValue);
-							})
+					.Value_Lambda([]() -> TOptional<int32>
+					{
+						return TOptional<int32>(UErosionLibrary::GetCapacity());
+					})
+					.OnValueChanged_Lambda([](int32 NewValue)
+					{
+						UErosionLibrary::SetCapacity(NewValue);
+					})
 				]
-		]
-		// MinimalSlope
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
+			]
+			// MinimalSlope
+			+ SVerticalBox::Slot()
+			.Padding(5)
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-						.Text(FText::FromString("Minimal Slope"))
+					.Text(FText::FromString("Minimal Slope"))
 				]
 				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
@@ -1101,28 +907,28 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
-						.Value_Lambda([]() -> TOptional<float>
-							{
-								return TOptional<float>(UErosionLibrary::GetMinimalSlope());
-							})
-						.OnValueChanged_Lambda([](float NewValue)
-							{
-								UErosionLibrary::SetMinimalSlope(NewValue);
-							})
+					.Value_Lambda([]() -> TOptional<float>
+					{
+						return TOptional<float>(UErosionLibrary::GetMinimalSlope());
+					})
+					.OnValueChanged_Lambda([](float NewValue)
+					{
+						UErosionLibrary::SetMinimalSlope(NewValue);
+					})
 				]
-		]
-		// DepositionSpeed
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
+			]
+			// DepositionSpeed
+			+ SVerticalBox::Slot()
+			.Padding(5)
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-						.Text(FText::FromString("Deposition Speed"))
+					.Text(FText::FromString("Deposition Speed"))
 				]
 				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
@@ -1130,28 +936,28 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
-						.Value_Lambda([]() -> TOptional<float>
-							{
-								return TOptional<float>(UErosionLibrary::GetDepositionSpeed());
-							})
-						.OnValueChanged_Lambda([](float NewValue)
-							{
-								UErosionLibrary::SetDepositionSpeed(NewValue);
-							})
+					.Value_Lambda([]() -> TOptional<float>
+					{
+						return TOptional<float>(UErosionLibrary::GetDepositionSpeed());
+					})
+					.OnValueChanged_Lambda([](float NewValue)
+					{
+						UErosionLibrary::SetDepositionSpeed(NewValue);
+					})
 				]
-		]
-		// ErosionSpeed
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
+			]
+			// ErosionSpeed
+			+ SVerticalBox::Slot()
+			.Padding(5)
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-						.Text(FText::FromString("Erosion Speed"))
+					.Text(FText::FromString("Erosion Speed"))
 				]
 				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
@@ -1159,28 +965,28 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
-						.Value_Lambda([]() -> TOptional<float>
-							{
-								return TOptional<float>(UErosionLibrary::GetErosionSpeed());
-							})
-						.OnValueChanged_Lambda([](float NewValue)
-							{
-								UErosionLibrary::SetErosionSpeed(NewValue);
-							})
+					.Value_Lambda([]() -> TOptional<float>
+					{
+						return TOptional<float>(UErosionLibrary::GetErosionSpeed());
+					})
+					.OnValueChanged_Lambda([](float NewValue)
+					{
+						UErosionLibrary::SetErosionSpeed(NewValue);
+					})
 				]
-		]
-		// Gravity
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
+			]
+			// Gravity
+			+ SVerticalBox::Slot()
+			.Padding(5)
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-						.Text(FText::FromString("Gravity"))
+					.Text(FText::FromString("Gravity"))
 				]
 				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
@@ -1188,28 +994,28 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<int32>)
-						.Value_Lambda([]() -> TOptional<int32>
-							{
-								return TOptional<int32>(UErosionLibrary::GetGravity());
-							})
-						.OnValueChanged_Lambda([](int32 NewValue)
-							{
-								UErosionLibrary::SetGravity(NewValue);
-							})
+					.Value_Lambda([]() -> TOptional<int32>
+					{
+						return TOptional<int32>(UErosionLibrary::GetGravity());
+					})
+					.OnValueChanged_Lambda([](int32 NewValue)
+					{
+						UErosionLibrary::SetGravity(NewValue);
+					})
 				]
-		]
-		// Evaporation
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
+			]
+			// Evaporation
+			+ SVerticalBox::Slot()
+			.Padding(5)
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-						.Text(FText::FromString("Evaporation"))
+					.Text(FText::FromString("Evaporation"))
 				]
 				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
@@ -1217,28 +1023,28 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<float>)
-						.Value_Lambda([]() -> TOptional<float>
-							{
-								return TOptional<float>(UErosionLibrary::GetEvaporation());
-							})
-						.OnValueChanged_Lambda([](float NewValue)
-							{
-								UErosionLibrary::SetEvaporation(NewValue);
-							})
+					.Value_Lambda([]() -> TOptional<float>
+					{
+						return TOptional<float>(UErosionLibrary::GetEvaporation());
+					})
+					.OnValueChanged_Lambda([](float NewValue)
+					{
+						UErosionLibrary::SetEvaporation(NewValue);
+					})
 				]
-		]
-		// MaxPath
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
+			]
+			// MaxPath
+			+ SVerticalBox::Slot()
+			.Padding(5)
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-						.Text(FText::FromString("Max Path"))
+					.Text(FText::FromString("Max Path"))
 				]
 				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
@@ -1246,28 +1052,28 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<int32>)
-						.Value_Lambda([]() -> TOptional<int32>
-							{
-								return TOptional<int32>(UErosionLibrary::GetMaxPath());
-							})
-						.OnValueChanged_Lambda([](int32 NewValue)
-							{
-								UErosionLibrary::SetMaxPath(NewValue);
-							})
+					.Value_Lambda([]() -> TOptional<int32>
+					{
+						return TOptional<int32>(UErosionLibrary::GetMaxPath());
+					})
+					.OnValueChanged_Lambda([](int32 NewValue)
+					{
+						UErosionLibrary::SetMaxPath(NewValue);
+					})
 				]
-		]
-		// ErosionRadius
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
+			]
+			// ErosionRadius
+			+ SVerticalBox::Slot()
+			.Padding(5)
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-						.Text(FText::FromString("Erosion Radius"))
+					.Text(FText::FromString("Erosion Radius"))
 				]
 				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
@@ -1275,133 +1081,146 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 				.AutoWidth()
 				[
 					SNew(SNumericEntryBox<int32>)
-						.Value_Lambda([]() -> TOptional<int32>
-							{
-								return TOptional<int32>(UErosionLibrary::GetErosionRadius());
-							})
-						.OnValueChanged_Lambda([](int32 NewValue)
-							{
-								UErosionLibrary::SetErosionRadius(NewValue);
-							})
+					.Value_Lambda([]() -> TOptional<int32>
+					{
+						return TOptional<int32>(UErosionLibrary::GetErosionRadius());
+					})
+					.OnValueChanged_Lambda([](int32 NewValue)
+					{
+						UErosionLibrary::SetErosionRadius(NewValue);
+					})
 				]
-		]
-		// Erosion Button
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
+			]
+			// Erosion Button
+			+ SVerticalBox::Slot()
+			.Padding(5)
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SButton)
-						.Text(FText::FromString("Erosion"))
-						.OnClicked_Lambda([this]()
-							{
-								UGeneratorHeightMapLibrary::GenerateErosion();
-								ShowEditorNotification(TEXT("Erosion successfully applied!"), true);
+					.Text(FText::FromString("Erosion"))
+					.OnClicked_Lambda([this, ExternalSettings, LandscapeSettings, HeightmapSettings]()
+					{
+						UGeneratorHeightMapLibrary::GenerateErosion(ExternalSettings.Get(), LandscapeSettings.Get(), HeightmapSettings.Get(),
+						                                            HeightmapSettings.Get().Size);
+						ShowEditorNotification(TEXT("Erosion successfully applied!"), true);
 
-								return FReply::Handled();
-							})
+						return FReply::Handled();
+					})
 				]
-		]
+			]
 
-		// Null Widget
-		+ SVerticalBox::Slot()
-		.Padding(20)
-		.AutoHeight()
-		[
-			SNullWidget::NullWidget // Void space.
-		]
+			// Null Widget
+			+ SVerticalBox::Slot()
+			.Padding(20)
+			.AutoHeight()
+			[
+				SNullWidget::NullWidget // Void space.
+			]
 
-		// Save Button + Name Textbox 
-		+ SVerticalBox::Slot()
-		.Padding(5)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
+			// Save Button + Name Textbox 
+			+ SVerticalBox::Slot()
+			.Padding(5)
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
 					SNew(SButton)
-						.Text(FText::FromString("Save"))
-						.OnClicked_Lambda([this]()
+					.Text(FText::FromString("Save"))
+					.OnClicked_Lambda([this]()
+					{
+						UDataTable* ErosionTemplates = GetErosionTemplates();
+						if (!ErosionTemplates)
+						{
+							ShowEditorNotification(
+								TEXT("Template has not been saved: data table doesn't exist!"), false);
+							return FReply::Handled();
+						}
+
+						const FString TemplateNameString = TemplateNameTextBox->GetText().ToString();
+
+						UGeneratorHeightMapLibrary::SaveErosionTemplate(TemplateNameString,
+						                                                UErosionLibrary::GetErosionCycles(),
+						                                                UErosionLibrary::GetWindDirection(),
+						                                                UErosionLibrary::GetInertia(),
+						                                                UErosionLibrary::GetCapacity(),
+						                                                UErosionLibrary::GetMinimalSlope(),
+						                                                UErosionLibrary::GetDepositionSpeed(),
+						                                                UErosionLibrary::GetErosionSpeed(),
+						                                                UErosionLibrary::GetGravity(),
+						                                                UErosionLibrary::GetEvaporation(),
+						                                                UErosionLibrary::GetMaxPath(),
+						                                                UErosionLibrary::GetErosionRadius());
+
+						// Check for duplicates (unfortunately i can't use the "options" in the ComboBox as set)
+						for (const auto& CurrentParam : ErosionTemplatesOptions)
+						{
+							if (!CurrentParam.IsValid())
 							{
-								UDataTable* ErosionTemplates = GetErosionTemplates();
-								if (!ErosionTemplates)
-								{
-									ShowEditorNotification(TEXT("Template has not been saved: data table doesn't exist!"), false);
-									return FReply::Handled();
-								}
+								continue;
+							}
 
-								const FString TemplateNameString = TemplateNameTextBox->GetText().ToString();
-
-								UGeneratorHeightMapLibrary::SaveErosionTemplate(TemplateNameString,
-									UErosionLibrary::GetErosionCycles(), UErosionLibrary::GetWindDirection(), UErosionLibrary::GetInertia(), UErosionLibrary::GetCapacity(),
-									UErosionLibrary::GetMinimalSlope(), UErosionLibrary::GetDepositionSpeed(), UErosionLibrary::GetErosionSpeed(),
-									UErosionLibrary::GetGravity(), UErosionLibrary::GetEvaporation(), UErosionLibrary::GetMaxPath(),
-									UErosionLibrary::GetErosionRadius());
-
-								// Check for duplicates (unfortunately i can't use the "options" in the ComboBox as set)
-								for (const auto& CurrentParam : ErosionTemplatesOptions)
-								{
-									if (!CurrentParam.IsValid())
-									{
-										continue;
-									}
-
-									if (CurrentParam->Equals(TemplateNameString))
-									{
-										ShowEditorNotification(TEXT("Template has not been saved: template already exists!"), false);
-										return FReply::Handled();
-									}
-								}
-
-								AddTemplate(TemplateNameString);
-								ShowEditorNotification(TEXT("Template has been saved!"), true);
-
+							if (CurrentParam->Equals(TemplateNameString))
+							{
+								ShowEditorNotification(
+									TEXT("Template has not been saved: template already exists!"), false);
 								return FReply::Handled();
-							})
+							}
+						}
+
+						AddTemplate(TemplateNameString);
+						ShowEditorNotification(TEXT("Template has been saved!"), true);
+
+						return FReply::Handled();
+					})
 				]
 				+ SHorizontalBox::Slot()
 				.Padding(5)
 				.AutoWidth()
 				[
 					SAssignNew(TemplateNameTextBox, SEditableTextBox)
-						.MinDesiredWidth(70.0f)
+					.MinDesiredWidth(70.0f)
 				]
-		]
+			]
 
-		// Load Button + Remove Button
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding(5)
-		[
-			SNew(SHorizontalBox)
+			// Load Button + Remove Button
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(5)
+			[
+				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				.VAlign(VAlign_Center)
 				[
 					SNew(SButton)
-						.Text(FText::FromString("Load"))
-						.OnClicked_Lambda([this]()
-							{
-								FErosionTemplateRow* SearchedRow = UGeneratorHeightMapLibrary::LoadErosionTemplate(*CurrentErosionTemplateOption);
-								if (SearchedRow)
-								{
-									ShowEditorNotification(TEXT("Template has been loaded!"), true);
+					.Text(FText::FromString("Load"))
+					.OnClicked_Lambda([this]()
+					{
+						FErosionTemplateRow* SearchedRow = UGeneratorHeightMapLibrary::LoadErosionTemplate(
+							*CurrentErosionTemplateOption);
+						if (SearchedRow)
+						{
+							ShowEditorNotification(TEXT("Template has been loaded!"), true);
 
-									UGeneratorHeightMapLibrary::LoadRowIntoErosionFields(SearchedRow);
-									CurrentWindDirection = MakeShared<FString>(WindDirectionEnumPtr->GetNameStringByIndex(SearchedRow->WindDirection));
-								}
-								else
-								{
-									ShowEditorNotification(TEXT("Template has not been loaded: template doesn't exists!"), false);
-								}
+							UGeneratorHeightMapLibrary::LoadRowIntoErosionFields(SearchedRow);
+							CurrentWindDirection = MakeShared<FString>(
+								WindDirectionEnumPtr->GetNameStringByIndex(SearchedRow->WindDirection));
+						}
+						else
+						{
+							ShowEditorNotification(
+								TEXT("Template has not been loaded: template doesn't exists!"), false);
+						}
 
-								return FReply::Handled();
-							})
+						return FReply::Handled();
+					})
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
@@ -1409,75 +1228,75 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn()
 				.VAlign(VAlign_Center)
 				[
 					SNew(SHorizontalBox)
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						[
-							SNew(SButton)
-								.Text(FText::FromString("Delete"))
-								.OnClicked_Lambda([this]()
-									{
-										UGeneratorHeightMapLibrary::DeleteErosionTemplate(*CurrentErosionTemplateOption);
-										DeleteTemplate();
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(SButton)
+						.Text(FText::FromString("Delete"))
+						.OnClicked_Lambda([this]()
+						{
+							UGeneratorHeightMapLibrary::DeleteErosionTemplate(*CurrentErosionTemplateOption);
+							DeleteTemplate();
 
-										ShowEditorNotification(TEXT("Template has been deleted!"), false);
+							ShowEditorNotification(TEXT("Template has been deleted!"), false);
 
-										return FReply::Handled();
-									})
-						]
+							return FReply::Handled();
+						})
+					]
 				]
-		]
+			]
 
-		// Search Box
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding(5)
-		[
-			SNew(SSearchBox)
-				.HintText(FText::FromString("Search a template...")) // Query case-sensitive.
-				.OnTextChanged_Lambda([this](const FText& FilterQuery)
-					{
-						FilteredErosionTemplatesOptions.Empty();
+			// Search Box
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(5)
+			[
+				SNew(SSearchBox)
+				                .HintText(FText::FromString("Search a template...")) // Query case-sensitive.
+				                .OnTextChanged_Lambda([this](const FText& FilterQuery)
+				                {
+					                FilteredErosionTemplatesOptions.Empty();
 
-						if (FilterQuery.IsEmpty())
-						{
-							FilteredErosionTemplatesOptions.Append(ErosionTemplatesOptions);
-							ListView->RequestListRefresh();
+					                if (FilterQuery.IsEmpty())
+					                {
+						                FilteredErosionTemplatesOptions.Append(ErosionTemplatesOptions);
+						                ListView->RequestListRefresh();
 
-							return;
-						}
+						                return;
+					                }
 
-						for (const TSharedPtr<FString>& ErosionTemplate : ErosionTemplatesOptions)
-						{
-							FString ErosionTemplateName = *ErosionTemplate;
+					                for (const TSharedPtr<FString>& ErosionTemplate : ErosionTemplatesOptions)
+					                {
+						                FString ErosionTemplateName = *ErosionTemplate;
 
-							if (ErosionTemplateName.StartsWith(FilterQuery.ToString()))
-							{
-								FilteredErosionTemplatesOptions.Add(ErosionTemplate);
-							}
-						}
+						                if (ErosionTemplateName.StartsWith(FilterQuery.ToString()))
+						                {
+							                FilteredErosionTemplatesOptions.Add(ErosionTemplate);
+						                }
+					                }
 
-						ListView->RequestListRefresh();
-					})
-		]
+					                ListView->RequestListRefresh();
+				                })
+			]
 
-		// List View
-		+ SVerticalBox::Slot()
-		.FillHeight(1.0f)
-		[
-			SAssignNew(ListView, SListView<TSharedPtr<FString>>)
+			// List View
+			+ SVerticalBox::Slot()
+			.FillHeight(1.0f)
+			[
+				SAssignNew(ListView, SListView<TSharedPtr<FString>>)
 				.ListItemsSource(&FilteredErosionTemplatesOptions)
 				.OnGenerateRow_Lambda([](TSharedPtr<FString> Template, const TSharedRef<STableViewBase>& OwnerTable)
-					{
-						return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
-							[
-								SNew(STextBlock).Text(FText::FromString(*Template))
-							];
-					})
+				{
+					return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
+						[
+							SNew(STextBlock).Text(FText::FromString(*Template))
+						];
+				})
 				.OnSelectionChanged_Lambda([this](TSharedPtr<FString> SelectedTemplate, ESelectInfo::Type SelectInfo)
-					{
-						CurrentErosionTemplateOption = SelectedTemplate;
-					})
-		];
+				{
+					CurrentErosionTemplateOption = SelectedTemplate;
+				})
+			];
 }
 
 #undef LOCTEXT_NAMESPACE
