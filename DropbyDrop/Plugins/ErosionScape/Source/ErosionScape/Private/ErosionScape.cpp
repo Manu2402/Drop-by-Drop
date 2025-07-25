@@ -1147,7 +1147,6 @@ TSharedRef<SWidget> FErosionScapeModule::CreateErosionColumn(TSharedRef<FExterna
 
 						UGeneratorHeightMapLibrary::SaveErosionTemplate(TemplateNameString,
 						                                                UErosionLibrary::GetErosionCycles(),
-						                                                UErosionLibrary::GetWindDirection(),
 						                                                UErosionLibrary::GetInertia(),
 						                                                UErosionLibrary::GetCapacity(),
 						                                                UErosionLibrary::GetMinimalSlope(),

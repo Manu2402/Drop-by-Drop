@@ -20,7 +20,6 @@
 
 #pragma region InitParam
 
-TArray<float> UGeneratorHeightMapLibrary::HeightMap;
 UDataTable* UGeneratorHeightMapLibrary::ErosionTemplatesDataTable = nullptr;
 
 
@@ -36,8 +35,8 @@ void UGeneratorHeightMapLibrary::GenerateErosion(const FExternalHeightMapSetting
 	SlowTask.MakeDialog(true);
 
 	FErosionContext ErosionContext;
-	UErosionLibrary::SetHeights(ErosionContext, HeightMap);
-	UErosionLibrary::Erosion(ErosionContext, Size);
+	UErosionLibrary::SetHeights(ErosionContext, HeightMapSettings.HeightMap);
+	UErosionLibrary::Erosion(ErosionContext, HeightMapSettings.Size);
 
 	SlowTask.EnterProgressFrame(50, FText::FromString("Adapting into the landscape..."));
 
@@ -67,7 +66,6 @@ void UGeneratorHeightMapLibrary::GenerateErosion(const FExternalHeightMapSetting
 
 
 bool UGeneratorHeightMapLibrary::SaveErosionTemplate(const FString& TemplateName, const int32 ErosionCyclesValue,
-                                                     const uint8 WindDirectionValue,
                                                      const float InertiaValue, const int32 CapacityValue,
                                                      const float MinSlopeValue, const float DepositionSpeedValue,
                                                      const float ErosionSpeedValue, const int32 GravityValue,
@@ -77,7 +75,6 @@ bool UGeneratorHeightMapLibrary::SaveErosionTemplate(const FString& TemplateName
 	// Row fields.
 	FErosionTemplateRow ErosionTemplateRow;
 	ErosionTemplateRow.ErosionCyclesField = ErosionCyclesValue;
-	ErosionTemplateRow.WindDirection = WindDirectionValue;
 	ErosionTemplateRow.InertiaField = InertiaValue;
 	ErosionTemplateRow.CapacityField = CapacityValue;
 	ErosionTemplateRow.MinSlopeField = MinSlopeValue;

@@ -21,7 +21,7 @@ bool UErosionLibrary::WindBias = false;
 void UErosionLibrary::SetHeights(FErosionContext& ErosionContext, const TArray<float>& InHeights)
 {
 	ErosionContext.GridHeights.Reserve(InHeights.Num());
-	ErosionContext.GridHeights = InHeights; 
+	ErosionContext.GridHeights = InHeights;
 }
 
 TArray<float> UErosionLibrary::GetHeights(const FErosionContext& ErosionContext)

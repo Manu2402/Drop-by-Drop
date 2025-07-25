@@ -52,7 +52,6 @@ class UGeneratorHeightMapLibrary : public UBlueprintFunctionLibrary
 	GENERATED_BODY()
 
 public:
-	static TArray<float> HeightMap;
 	static UDataTable* ErosionTemplatesDataTable;
 
 #pragma region Erosion
@@ -64,7 +63,6 @@ public:
 	                            int32 HeightMapSize);
 	
 	static bool SaveErosionTemplate(const FString& TemplateName, const int32 ErosionCyclesValue,
-	                                const uint8 WindDirectionValue,
 	                                const float InertiaValue, const int32 CapacityValue,
 	                                const float MinSlopeValue, const float DepositionSpeedValue,
 	                                const float ErosionSpeedValue, const int32 GravityValue,

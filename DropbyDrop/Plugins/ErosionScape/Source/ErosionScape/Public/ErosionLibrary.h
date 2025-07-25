@@ -226,6 +226,6 @@ private:
 
 	static bool IsOutOfBound(const FVector2D& DropPosition, const int32 GridSize); // ✔
 	static EOutOfBoundResult GetOutOfBoundAsResult(const FVector2D& IntegerPosition, const int32 GridSize); // ✔
-	
+
 	static FVector2D GetWindDirection(); // ✔ ~
 };
