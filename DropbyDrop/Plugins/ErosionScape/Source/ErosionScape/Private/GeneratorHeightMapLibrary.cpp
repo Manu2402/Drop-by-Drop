@@ -50,13 +50,13 @@ void UGeneratorHeightMapLibrary::GenerateErosion()
 	FScopedSlowTask SlowTask(100, FText::FromString("Erosion in progress..."));
 	SlowTask.MakeDialog(true);
 
-	UErosionLibrary::SetHeights(HeightMap);
-
-	UErosionLibrary::ErosionHandler(Size);
+	FErosionContext ErosionContext;
+	UErosionLibrary::SetHeights(ErosionContext, HeightMap);
+	UErosionLibrary::Erosion(ErosionContext, Size);
 
 	SlowTask.EnterProgressFrame(50, FText::FromString("Adapting into the landscape..."));
 
-	TArray<uint16> ErodedHeightmapU16 = ConvertFloatArrayToUint16(UErosionLibrary::GetHeights());
+	TArray<uint16> ErodedHeightmapU16 = ConvertFloatArrayToUint16(UErosionLibrary::GetHeights(ErosionContext));
 
 	// Generate new landscape.
 	const FTransform LandscapeTransform = GetNewTransform(bIsExternalHeightMap);
@@ -182,8 +182,6 @@ bool UGeneratorHeightMapLibrary::SaveErosionTemplates()
 void UGeneratorHeightMapLibrary::CreateHeightMap(const int32 MapSize)
 {
 	HeightMap = GenerateHeightMapCPU(MapSize);
-
-	UErosionLibrary::SetHeights(HeightMap);
 
 	UTexture2D* Texture = CreateHeightMapTexture(HeightMap, MapSize, MapSize);
 

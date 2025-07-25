@@ -1,32 +1,38 @@
+// • Manuel Solano
+
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "ErosionLibrary.generated.h"
 
-USTRUCT(BlueprintType)
+#pragma region DataStructures
+
 struct FDrop
 {
-	GENERATED_BODY()
-
+	// Position in the world.
 	FVector2D Position;
+	
+	// Direction in the world.
 	FVector2D Direction;
+
+	// Amount of speed.
 	float Velocity;
+
+	// Amount of "water" that compose the drop.
 	float Water;
 };
 
-USTRUCT()
-struct FPositionHeights
+// All corners of a grid cell on the landscapes.
+struct FCornersHeights
 {
-	GENERATED_BODY()
-
-	float X_Y;
-	float X1_Y;
-	float X_Y1;
-	float X1_Y1;
+	float X_Y;   // Top-Left Corner
+	float X1_Y;  // Top-Right Corner
+	float X_Y1;  // Bottom-Left Corner
+	float X1_Y1; // Bottom-Right Corner
 };
 
-UENUM()
+// Cell corners evaluation based on grid borders for erosion algorithm.
 enum EOutOfBoundResult : uint8
 {
 	No_Error,
@@ -35,34 +41,43 @@ enum EOutOfBoundResult : uint8
 	Error_Right_Down
 };
 
-UENUM()
 enum EWindDirection : uint8
 {
-	Random = 0,
-	Nord = 1,
-	Sud = 2,
-	Est = 3,
-	Ovest = 4,
-	Nord_Ovest = 5,
-	Nord_Est = 6,
-	Sud_Ovest = 7,
-	Sud_Est = 8
+	Random,
+	Est,
+	Nord_Est,
+	Nord,
+	Nord_Ovest,
+	Ovest,
+	Sud_Ovest,
+	Sud,
+	Sud_Est
 };
 
-UCLASS(Blueprintable)
+#pragma endregion // DataStructures
+
+struct FErosionContext
+{
+	// Landscape's heights for each cell.
+	TArray<float> GridHeights;
+
+	// Cells involved into the erosion when the drop moves.
+	TArray<FVector2D> Points; // pI
+	
+	// Weights (squared) of involved cells, based on their distance from the drop's position.
+	TArray<float> SquaredWeights; // wI
+};
+
+UCLASS()
 class UErosionLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 
-public:	
-	UErosionLibrary();
-	
-	// UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	// int32 CellSize;
-
+// TOGLIERE
 #pragma region Parameters
+
+public:	
 	static int32 ErosionCycles; // ErosionCycles
-	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void SetErosion(const int32 NewErosionCycles)
 	{
 		ErosionCycles = NewErosionCycles;
@@ -73,7 +88,6 @@ public:
 	}
 	
 	static float Inertia; // pInertia
-	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void SetInertia(const float NewInertia)
 	{
 		Inertia = NewInertia;
@@ -84,7 +98,6 @@ public:
 	}
 	
 	static float Capacity; // pCapacity
-	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void SetCapacity(const float NewCapacity)
 	{
 		Capacity = NewCapacity;
@@ -95,7 +108,6 @@ public:
 	}
 	
 	static float MinimalSlope; // pMinSlope
-	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void SetMinimalSlope(const float NewMinimalSlope)
 	{
 		MinimalSlope = NewMinimalSlope;
@@ -106,7 +118,6 @@ public:
 	}
 	
 	static float DepositionSpeed; // pDeposition
-	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void SetDepositionSpeed(const float NewDepositionSpeed)
 	{
 		DepositionSpeed = NewDepositionSpeed;
@@ -117,7 +128,6 @@ public:
 	}
 	
 	static float ErosionSpeed; // pErosion
-	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void SetErosionSpeed(const float NewErosionSpeed)
 	{
 		ErosionSpeed = NewErosionSpeed;
@@ -128,7 +138,6 @@ public:
 	}
 	
 	static float Gravity; // pGravity
-	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void SetGravity(const float NewGravity)
 	{
 		Gravity = NewGravity;
@@ -139,7 +148,6 @@ public:
 	}
 	
 	static float Evaporation; // pEvaporation
-	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void SetEvaporation(const float NewEvaporation)
 	{
 		Evaporation = NewEvaporation;
@@ -150,7 +158,6 @@ public:
 	}
 	
 	static float MaxPath; // pMaxPath
-	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void SetMaxPath(const float NewMaxPath)
 	{
 		MaxPath = NewMaxPath;
@@ -161,7 +168,6 @@ public:
 	}
 	
 	static int32 ErosionRadius; // pRadius
-	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void SetErosionRadius(const int32 NewErosionRadius)
 	{
 		ErosionRadius = NewErosionRadius;
@@ -172,18 +178,16 @@ public:
 	}
 
 	static EWindDirection WindDirection;
-	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void SetWindDirection(const EWindDirection NewWindDirection)
 	{
 		WindDirection = NewWindDirection;
 	}
-	static EWindDirection GetWindDirection()
+	static EWindDirection GetWindDirectionTemp()
 	{
 		return WindDirection;
 	}
 
 	static bool WindBias;
-	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void SetWindBias(const bool NewWindBias)
 	{
 		WindBias = NewWindBias;
@@ -196,46 +200,32 @@ public:
 #pragma endregion
 
 public:	
-	static void SetHeights(const TArray<float>& NewHeights);
-	static TArray<float> GetHeights();
+	static void SetHeights(FErosionContext& ErosionContext, const TArray<float>& InHeights); // ✔
+	static TArray<float> GetHeights(const FErosionContext& ErosionContext); // ✔
 
-	//UFUNCTION(BlueprintCallable) Useless!
-	//TArray<float> GenerateVirtualGrid(const TArray<float> MapHeightsValues, const int32 MapSize, const int32 NewCellSize);
-
-	static void ErosionHandler(const int32 GridSize);
-
-private:
-	// TArray<float> MapHeights;
-	static TArray<float> GridHeights;
+	static void Erosion(FErosionContext& ErosionContext, const int32 GridSize); // ✔
 	
-	static TArray<FVector2D> Points; // pI
-	static TArray<float> Weights; // wI
+private:
+	static void ApplyErosion(FErosionContext& ErosionContext, FDrop& Drop, const int32 GridSize);
+	
+	static FDrop& InitDrop(FDrop& Drop, const int32 GridSize); // ✔
+	static FDrop& SetDrop(FDrop& Drop, const int32 GridSize, const FVector2D& Position, const FVector2D& Direction, const float Velocity, const float Water); // ✔
+	
+	static void InitWeights(FErosionContext& ErosionContext, const FVector2D& DropPosition, const int32 GridSize); // ✔
 
-#pragma region InitDrop
-	static FDrop GenerateDropInitialParams(const int32 GridSize);
-	static FDrop SetDropInitialParams(const int32 GridSize, const FVector2D& Position, const FVector2D& Direction, const float Velocity, const float Water);
-#pragma endregion
+	static FVector2D ComputeGradient(const float P1, const float P2, const float P3, const float P4); // ✔
+	static FVector2D ComputeGradientByInterpolate(const FVector2D& OffsetPosition, const float F1, const float F2, const float F3, const float F4); // ✔
+	static FCornersHeights& SetCornersHeights(const FErosionContext& ErosionContext, FCornersHeights& InCornersHeights, const FVector2D& TruncatedPosition, const int32 GridSize); // ✔
+	static float GetBilinearInterpolation(const FVector2D& OffsetPosition, const FCornersHeights& CornersHeights); // ✔
 
-	static void Erosion(FDrop& Drop, const int32 GridSize);
-
-	static void InitWeights(const FVector2D& DropPosition, const int32 GridSize);
-
-#pragma region ErosionSubFunctions
-	static FVector2D GetGradient(const float P1, const float P2, const float P3, const float P4);
-	static FVector2D GetPairedLinearInterpolation(const FVector2D& OffsetPosition, const float F1, const float F2, const float F3, const float F4);
-	static FPositionHeights GetPositionHeights(const FVector2D& IntegerPosition, const int32 GridSize);
-	static float GetBilinearInterpolation(const FVector2D& OffsetPosition, const FPositionHeights& PositionHeights);
-#pragma endregion
-
-	static void SetPointsPositionInRadius(const FVector2D& DropPosition, const int32 GridSize);
-
-#pragma region WeightsSubFunctions
+	static void SetInRadiusPoints(FErosionContext& ErosionContext, const FVector2D& DropPosition, const int32 GridSize); // ✔
 	static float GetRelativeWeightOnPoint(const FVector2D& DropPosition, const FVector2D& PointPosition);
-#pragma endregion
 
-	static TArray<float> GetErosionOnPoints(const float ErosionFactor);
-	static void ComputeDepositOnPoints(const FVector2D& IntegerPosition, const FVector2D& OffsetPosition, const float Deposit, const int32 GridSize);
+	static TArray<float> GetErosionOnPoints(const FErosionContext& ErosionContext, const float ErosionFactor);
+	static void ComputeDepositOnPoints(FErosionContext& ErosionContext, const FVector2D& IntegerPosition, const FVector2D& OffsetPosition, const float Deposit, const int32 GridSize); // ✔
 
-	static EOutOfBoundResult GetOutOfBoundResult(const FVector2D& IntegerPosition, const int32 GridSize);
-	static FVector2D MapWindDirection();
+	static bool IsOutOfBound(const FVector2D& DropPosition, const int32 GridSize); // ✔
+	static EOutOfBoundResult GetOutOfBoundAsResult(const FVector2D& IntegerPosition, const int32 GridSize); // ✔
+	
+	static FVector2D GetWindDirection(); // ✔ ~
 };
