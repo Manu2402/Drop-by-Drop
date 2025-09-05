@@ -27,8 +27,8 @@ UDataTable* UGeneratorHeightMapLibrary::ErosionTemplatesDataTable = nullptr;
 
 #pragma region Erosion
 void UGeneratorHeightMapLibrary::GenerateErosion(const FExternalHeightMapSettings& ExternalSettings,
-                                                  FLandscapeGenerationSettings& LandscapeSettings,
-                                                  const FHeightMapGenerationSettings& HeightMapSettings,
+                                                 FLandscapeGenerationSettings& LandscapeSettings,
+                                                 const FHeightMapGenerationSettings& HeightMapSettings,
                                                  int32 HeightMapSize)
 {
 	FScopedSlowTask SlowTask(100, FText::FromString("Erosion in progress..."));
@@ -49,7 +49,7 @@ void UGeneratorHeightMapLibrary::GenerateErosion(const FExternalHeightMapSetting
 	{
 		LandscapeSettings.TargetLandscape->Destroy();
 	}
-	
+
 	LandscapeSettings.TargetLandscape = GenerateLandscape(LandscapeTransform, ErodedHeightmapU16);
 
 	SlowTask.EnterProgressFrame(50);
@@ -283,7 +283,8 @@ UTexture2D* UGeneratorHeightMapLibrary::CreateHeightMapTexture(const TArray<floa
 
 
 void UGeneratorHeightMapLibrary::LoadHeightmapFromPNG(const FString& FilePath, TArray<uint16>& OutHeightmap,
-                                                      TArray<float>& OutNormalizedHeightmap, FExternalHeightMapSettings& Settings)
+                                                      TArray<float>& OutNormalizedHeightmap,
+                                                      FExternalHeightMapSettings& Settings)
 {
 	OutHeightmap.Empty();
 	OutNormalizedHeightmap.Empty();
@@ -404,9 +405,9 @@ void CompareHeightmaps(const FString& RawFilePath, const TArray<uint16>& Generat
 
 #pragma region Landscape
 void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& HeightmapPath,
-                                                           FHeightMapGenerationSettings& HeightmapSettings,
-                                                           FExternalHeightMapSettings& ExternalSettings,
-                                                           FLandscapeGenerationSettings& LandscapeSettings)
+                                                          FHeightMapGenerationSettings& HeightmapSettings,
+                                                          FExternalHeightMapSettings& ExternalSettings,
+                                                          FLandscapeGenerationSettings& LandscapeSettings)
 {
 	ExternalSettings.bIsExternalHeightMap = false;
 	if (HeightmapSettings.HeightMap.Num() == 0)
@@ -453,8 +454,9 @@ void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& Heightm
 }
 
 void UGeneratorHeightMapLibrary::CreateLandscapeFromOtherHeightMap(const FString& FilePath,
-	FExternalHeightMapSettings& ExternalSettings,
-	 FLandscapeGenerationSettings& LandscapeSettings , FHeightMapGenerationSettings& HeightmapSettings)
+                                                                   FExternalHeightMapSettings& ExternalSettings,
+                                                                   FLandscapeGenerationSettings& LandscapeSettings,
+                                                                   FHeightMapGenerationSettings& HeightmapSettings)
 {
 	//If destroy last landscape
 	if (LandscapeSettings.bDestroyLastLandscape && LandscapeSettings.TargetLandscape)
@@ -464,7 +466,7 @@ void UGeneratorHeightMapLibrary::CreateLandscapeFromOtherHeightMap(const FString
 	// Load HeightMap from PNG
 	TArray<uint16> HeightmapInt16;
 	LoadHeightmapFromPNG(FilePath, HeightmapInt16, HeightmapSettings.HeightMap, ExternalSettings);
-	
+
 	FString HeightMapPath = FPaths::ProjectDir() + TEXT("Saved/HeightMap/raw.r16");
 	CompareHeightmaps(HeightMapPath, HeightmapInt16, 505, 505);
 	if (HeightmapInt16.Num() == 0)
@@ -530,10 +532,10 @@ ALandscape* UGeneratorHeightMapLibrary::GenerateLandscape(const FTransform& Land
 	{
 		return nullptr;
 	}
-	
+
 	TMap<FGuid, TArray<uint16>> HeightDataPerLayer;
 	TMap<FGuid, TArray<FLandscapeImportLayerInfo>> MaterialLayerDataPerLayer;
-	TArray<FLandscapeImportLayerInfo> MaterialImportLayers; 
+	TArray<FLandscapeImportLayerInfo> MaterialImportLayers;
 	MaterialImportLayers.Reserve(0);
 	MaterialLayerDataPerLayer.Add(FGuid(), MoveTemp(MaterialImportLayers));
 
@@ -655,216 +657,137 @@ TArray<uint16> UGeneratorHeightMapLibrary::ConvertFloatArrayToUint16(const TArra
 	return Uint16Data;
 }
 
-
 bool UGeneratorHeightMapLibrary::SaveToAsset(UTexture2D* Texture, const FString& AssetName)
 {
-	if (!Texture)
-	{
-		UE_LOG(LogTemp, Error, TEXT("Texture is null!"));
-		return false;
-	}
+    if (!Texture)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Texture is null!"));
+        return false;
+    }
 
-	// create packet name
-	FString PackageName = FString::Printf(TEXT("/Game/SavedAssets/%s"), *AssetName);
+    // ---- Leggi i byte dal mip di ORIGINE in modo sicuro
+    FTexturePlatformData* SrcPD = Texture->GetPlatformData();
+    if (!SrcPD || SrcPD->Mips.Num() == 0)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Source texture has no PlatformData/Mips"));
+        return false;
+    }
 
-	//check if already exsist
-	UPackage* ExistingPackage = FindPackage(nullptr, *PackageName);
-	UTexture2D* ExistingTexture = nullptr;
-	if (ExistingPackage)
-	{
-		ExistingTexture = Cast<UTexture2D>(StaticFindObject(UTexture2D::StaticClass(), ExistingPackage, *AssetName));
-	}
+    const FTexture2DMipMap& SrcMip = SrcPD->Mips[0];
+    const int32 SrcW = SrcMip.SizeX;
+    const int32 SrcH = SrcMip.SizeY;
+    const int64 DataSize = SrcMip.BulkData.GetBulkDataSize();
+    if (DataSize <= 0)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Source mip has no data"));
+        return false;
+    }
 
-	//if texture already exist, modify the texture
-	if (ExistingTexture)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Texture '%s' already exists, updating asset..."), *AssetName);
+    const void* SrcData = SrcMip.BulkData.LockReadOnly();
+    if (!SrcData)
+    {
+        UE_LOG(LogTemp, Error, TEXT("LockReadOnly failed on source mip"));
+        return false;
+    }
 
-		ExistingTexture->Modify();
+    const FString PackageName = FString::Printf(TEXT("/Game/SavedAssets/%s"), *AssetName);
 
-		if (Texture->GetPlatformData())
-		{
-			FTexturePlatformData* SrcPD = Texture->GetPlatformData();
-			//New platform data
-			FTexturePlatformData* NewPD = new FTexturePlatformData();
-			NewPD->SizeX = SrcPD->SizeX;
-			NewPD->SizeY = SrcPD->SizeY;
-			NewPD->PixelFormat = SrcPD->PixelFormat;
+    // ---- Cerca asset esistente
+    UPackage* ExistingPackage = FindPackage(nullptr, *PackageName);
+    UTexture2D* TargetTexture = ExistingPackage
+        ? Cast<UTexture2D>(StaticFindObject(UTexture2D::StaticClass(), ExistingPackage, *AssetName))
+        : nullptr;
 
-			if (SrcPD->Mips.Num() > 0)
-			{
-				const FTexture2DMipMap& SourceMip = SrcPD->Mips[0];
-				FTexture2DMipMap* NewMip = new FTexture2DMipMap();
-				NewMip->SizeX = SourceMip.SizeX;
-				NewMip->SizeY = SourceMip.SizeY;
-				int32 DataSize = SourceMip.BulkData.GetBulkDataSize();
-				NewMip->BulkData.Lock(LOCK_READ_WRITE);
-				void* DestData = NewMip->BulkData.Realloc(DataSize);
-				const void* SrcData = SourceMip.BulkData.LockReadOnly();
-				FMemory::Memcpy(DestData, SrcData, DataSize);
-				SourceMip.BulkData.Unlock();
-				NewMip->BulkData.Unlock();
-				NewPD->Mips.Add(NewMip);
-			}
-			ExistingTexture->SetPlatformData(NewPD);
-		}
-		else
-		{
-			UE_LOG(LogTemp, Error, TEXT(" Original texture has no PlatformData!"));
-			return false;
-		}
+    auto SaveAndRescan = [&](UPackage* Pkg, UObject* Asset)->bool
+    {
+        // Evita race con il renderer
+        FlushRenderingCommands();
 
-		// Copyh infos
-		ExistingTexture->SRGB = Texture->SRGB;
-		ExistingTexture->CompressionSettings = Texture->CompressionSettings;
-		ExistingTexture->MipGenSettings = Texture->MipGenSettings;
+        FSavePackageArgs SaveArgs;
+        SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+        SaveArgs.SaveFlags     = SAVE_NoError;
 
-		if (ExistingTexture->GetPlatformData() && ExistingTexture->GetPlatformData()->Mips.Num() > 0)
-		{
-			int32 Width = ExistingTexture->GetPlatformData()->SizeX;
-			int32 Height = ExistingTexture->GetPlatformData()->SizeY;
-			ExistingTexture->Source.Init(Width, Height, 1, 1, TSF_BGRA8);
+        const FString PkgFilename = FPackageName::LongPackageNameToFilename(
+            PackageName, FPackageName::GetAssetPackageExtension());
 
-			FTexture2DMipMap& Mip = ExistingTexture->GetPlatformData()->Mips[0];
-			int32 DataSize = Mip.BulkData.GetBulkDataSize();
-			void* DestSourceData = ExistingTexture->Source.LockMip(0);
-			TArray64<uint8> TempData;
-			TempData.SetNumUninitialized(DataSize);
-			Mip.BulkData.Lock(LOCK_READ_ONLY);
-			FMemory::Memcpy(TempData.GetData(), Mip.BulkData.Realloc(DataSize), DataSize);
-			Mip.BulkData.Unlock();
-			FMemory::Memcpy(DestSourceData, TempData.GetData(), DataSize);
-			ExistingTexture->Source.UnlockMip(0);
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("No mip data available in PlatformData!"));
-		}
+        if (!UPackage::SavePackage(Pkg, Asset, *PkgFilename, SaveArgs))
+        {
+            UE_LOG(LogTemp, Error, TEXT("Failed to save package '%s'"), *PackageName);
+            return false;
+        }
 
-		ExistingTexture->PostEditChange();
-		ExistingTexture->UpdateResource();
-		(void)ExistingTexture->MarkPackageDirty();
+        if (FAssetRegistryModule* ARM = FModuleManager::GetModulePtr<FAssetRegistryModule>("AssetRegistry"))
+        {
+            TArray<FString> PathsToScan{ TEXT("/Game/SavedAssets") };
+            ARM->Get().ScanModifiedAssetFiles(PathsToScan);
+        }
+        UE_LOG(LogTemp, Log, TEXT("Saved texture to: %s"), *PkgFilename);
+        return true;
+    };
 
-		UPackage* PackageToSave = ExistingTexture->GetOutermost();
-		FSavePackageArgs SaveArgs;
-		SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
-		SaveArgs.SaveFlags = SAVE_NoError;
+    if (TargetTexture)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Texture '%s' already exists, updating asset..."), *AssetName);
 
-		FString PackageFileName = FPackageName::LongPackageNameToFilename(
-			PackageName, FPackageName::GetAssetPackageExtension());
-		bool bSucceeded = UPackage::SavePackage(PackageToSave, ExistingTexture, *PackageFileName, SaveArgs);
-		if (!bSucceeded)
-		{
-			UE_LOG(LogTemp, Error, TEXT("Failed to save updated package '%s'!"), *PackageName);
-			return false;
-		}
+        TargetTexture->Modify();
 
+        // Copia metadati
+        TargetTexture->SRGB                = Texture->SRGB;
+        TargetTexture->CompressionSettings = Texture->CompressionSettings;
+        TargetTexture->MipGenSettings      = Texture->MipGenSettings;
 
-		if (FAssetRegistryModule* AssetRegistryModule = FModuleManager::GetModulePtr<FAssetRegistryModule>(
-			"AssetRegistry"))
-		{
-			TArray<FString> PathsToScan;
-			PathsToScan.Add(TEXT("/Game/SavedAssets"));
-			AssetRegistryModule->Get().ScanModifiedAssetFiles(PathsToScan);
-		}
+        // SCRIVI SOLO NEL SOURCE (niente PlatformData della destinazione)
+        TargetTexture->Source.Init(SrcW, SrcH, 1, 1, TSF_BGRA8);
+        void* Dest = TargetTexture->Source.LockMip(0);
+        FMemory::Memcpy(Dest, SrcData, DataSize);
+        TargetTexture->Source.UnlockMip(0);
 
-		UE_LOG(LogTemp, Log, TEXT("Successfully updated texture asset at: %s"), *PackageFileName);
-		return true;
-	}
+        SrcMip.BulkData.Unlock();
 
-	//If texture doesn't exist, create
-	UPackage* NewPackage = CreatePackage(*PackageName);
-	NewPackage->FullyLoad();
+        TargetTexture->PostEditChange();
+        TargetTexture->UpdateResource();
+        (void)TargetTexture->MarkPackageDirty();
 
-	UTexture2D* NewTexture = NewObject<UTexture2D>(NewPackage, UTexture2D::StaticClass(), *AssetName,
-	                                               RF_Public | RF_Standalone);
+        return SaveAndRescan(TargetTexture->GetOutermost(), TargetTexture);
+    }
+    else
+    {
+        // Crea nuovo asset
+        UPackage* NewPackage = CreatePackage(*PackageName);
+        NewPackage->FullyLoad();
 
-	if (Texture->GetPlatformData())
-	{
-		FTexturePlatformData* SrcPD = Texture->GetPlatformData();
-		FTexturePlatformData* NewPD = new FTexturePlatformData();
-		NewPD->SizeX = SrcPD->SizeX;
-		NewPD->SizeY = SrcPD->SizeY;
-		NewPD->PixelFormat = SrcPD->PixelFormat;
-		if (SrcPD->Mips.Num() > 0)
-		{
-			const FTexture2DMipMap& SourceMip = SrcPD->Mips[0];
-			FTexture2DMipMap* NewMip = new FTexture2DMipMap();
-			NewMip->SizeX = SourceMip.SizeX;
-			NewMip->SizeY = SourceMip.SizeY;
-			int32 DataSize = SourceMip.BulkData.GetBulkDataSize();
-			NewMip->BulkData.Lock(LOCK_READ_WRITE);
-			void* DestData = NewMip->BulkData.Realloc(DataSize);
-			const void* SrcData = SourceMip.BulkData.LockReadOnly();
-			FMemory::Memcpy(DestData, SrcData, DataSize);
-			SourceMip.BulkData.Unlock();
-			NewMip->BulkData.Unlock();
-			NewPD->Mips.Add(NewMip);
-		}
-		NewTexture->SetPlatformData(NewPD);
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("Original texture has no PlatformData!"));
-		return false;
-	}
+        UTexture2D* NewTexture = NewObject<UTexture2D>(NewPackage, UTexture2D::StaticClass(), *AssetName,
+                                                       RF_Public | RF_Standalone);
 
-	NewTexture->SRGB = Texture->SRGB;
-	NewTexture->CompressionSettings = Texture->CompressionSettings;
-	NewTexture->MipGenSettings = Texture->MipGenSettings;
+        // Metadati dalla sorgente
+        NewTexture->SRGB                = Texture->SRGB;
+        NewTexture->CompressionSettings = Texture->CompressionSettings;
+        NewTexture->MipGenSettings      = Texture->MipGenSettings;
 
-	if (NewTexture->GetPlatformData() && NewTexture->GetPlatformData()->Mips.Num() > 0)
-	{
-		int32 Width = NewTexture->GetPlatformData()->SizeX;
-		int32 Height = NewTexture->GetPlatformData()->SizeY;
-		NewTexture->Source.Init(Width, Height, 1, 1, TSF_BGRA8);
-		FTexture2DMipMap& NewMip = NewTexture->GetPlatformData()->Mips[0];
-		int32 DataSize = NewMip.BulkData.GetBulkDataSize();
-		void* DestSourceData = NewTexture->Source.LockMip(0);
-		TArray64<uint8> TempData;
-		TempData.SetNumUninitialized(DataSize);
-		NewMip.BulkData.Lock(LOCK_READ_ONLY);
-		FMemory::Memcpy(TempData.GetData(), NewMip.BulkData.Realloc(DataSize), DataSize);
-		NewMip.BulkData.Unlock();
-		FMemory::Memcpy(DestSourceData, TempData.GetData(), DataSize);
-		NewTexture->Source.UnlockMip(0);
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("No mip data available in PlatformData!"));
-	}
+        // SCRIVI SOLO NEL SOURCE
+        NewTexture->Source.Init(SrcW, SrcH, 1, 1, TSF_BGRA8);
+        void* Dest = NewTexture->Source.LockMip(0);
+        FMemory::Memcpy(Dest, SrcData, DataSize);
+        NewTexture->Source.UnlockMip(0);
 
-	NewTexture->PostEditChange();
-	NewTexture->UpdateResource();
-	(void)NewTexture->MarkPackageDirty();
+        SrcMip.BulkData.Unlock();
 
-	FSavePackageArgs SaveArgs;
-	SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
-	SaveArgs.SaveFlags = SAVE_NoError;
+        NewTexture->PostEditChange();
+        NewTexture->UpdateResource();
+        (void)NewTexture->MarkPackageDirty();
+        FAssetRegistryModule::AssetCreated(NewTexture);
 
-	FString PackageFileName = FPackageName::LongPackageNameToFilename(PackageName,
-	                                                                  FPackageName::GetAssetPackageExtension());
-	bool bSucceeded = UPackage::SavePackage(NewPackage, NewTexture, *PackageFileName, SaveArgs);
-	if (!bSucceeded)
-	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to save package '%s'!"), *PackageName);
-		return false;
-	}
-
-	if (FAssetRegistryModule* AssetRegistryModule = FModuleManager::GetModulePtr<FAssetRegistryModule>("AssetRegistry"))
-	{
-		TArray<FString> PathsToScan;
-		PathsToScan.Add(TEXT("/Game/SavedAssets"));
-		AssetRegistryModule->Get().ScanModifiedAssetFiles(PathsToScan);
-	}
-
-	UE_LOG(LogTemp, Log, TEXT("Successfully saved texture to: %s"), *PackageFileName);
-	return true;
+        return SaveAndRescan(NewPackage, NewTexture);
+    }
 }
 
-void UGeneratorHeightMapLibrary::OpenHeightmapFileDialog(TSharedRef<FExternalHeightMapSettings> ExternalSettings,
-												  TSharedRef<FLandscapeGenerationSettings> LandscapeSettings,
-												  TSharedRef<FHeightMapGenerationSettings> HeightMapSettings)
+
+
+
+void UGeneratorHeightMapLibrary::OpenHeightmapFileDialog(
+	TSharedPtr<FExternalHeightMapSettings> ExternalSettings,
+	TSharedPtr<FLandscapeGenerationSettings> LandscapeSettings,
+	TSharedPtr<FHeightMapGenerationSettings> HeightMapSettings)
 {
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	if (!DesktopPlatform) return;

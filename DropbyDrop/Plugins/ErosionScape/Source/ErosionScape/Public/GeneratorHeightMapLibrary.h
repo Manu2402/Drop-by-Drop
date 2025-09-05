@@ -120,9 +120,11 @@ public:
 
 	static TArray<uint16> ConvertFloatArrayToUint16(const TArray<float>& FloatData);
 	static bool SaveToAsset(UTexture2D* Texture, const FString& AssetName);
-	static void OpenHeightmapFileDialog(TSharedRef<FExternalHeightMapSettings> ExternalSettings,
-	                                    TSharedRef<FLandscapeGenerationSettings> LandscapeSettings,
-	                                    TSharedRef<FHeightMapGenerationSettings> HeightMapSettings);
+	static void OpenHeightmapFileDialog(
+		TSharedPtr<struct FExternalHeightMapSettings> ExternalSettings = nullptr,
+		TSharedPtr<struct FLandscapeGenerationSettings> LandscapeSettings = nullptr,
+		TSharedPtr<struct FHeightMapGenerationSettings> HeightMapSettings = nullptr
+	);
 
 private:
 	static FTransform GetNewTransform(const FExternalHeightMapSettings& ExternalSettings,
