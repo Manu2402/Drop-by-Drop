@@ -1,36 +1,52 @@
 ﻿#pragma once
+
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
 
 struct FHeightMapGenerationSettings;
 struct FExternalHeightMapSettings;
 struct FLandscapeGenerationSettings;
+
 class UErosionTemplateManager;
+class STemplateBrowser;
 
 class SErosionPanel : public SCompoundWidget
 {
 public:
-	SLATE_BEGIN_ARGS(SErosionPanel) {}
-	SLATE_ARGUMENT(TSharedPtr<FHeightMapGenerationSettings>, Heightmap)
-	SLATE_ARGUMENT(TSharedPtr<FExternalHeightMapSettings>,   External)
-	SLATE_ARGUMENT(TSharedPtr<FLandscapeGenerationSettings>, Landscape)
-	SLATE_ARGUMENT(TObjectPtr<UErosionTemplateManager>,      TemplateManager)
-SLATE_END_ARGS()
+	SLATE_BEGIN_ARGS(SErosionPanel)
+		{
+		}
 
-void Construct(const FArguments& InArgs);
+		SLATE_ARGUMENT(TSharedPtr<FHeightMapGenerationSettings>, Heightmap)
+		SLATE_ARGUMENT(TSharedPtr<FExternalHeightMapSettings>, External)
+		SLATE_ARGUMENT(TSharedPtr<FLandscapeGenerationSettings>, Landscape)
+		SLATE_ARGUMENT(TObjectPtr<UErosionTemplateManager>, TemplateManager)
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments& Args);
 
 private:
+	// Shared settings (owned by the outer widget/panel)
 	TSharedPtr<FHeightMapGenerationSettings> Heightmap;
-	TSharedPtr<FExternalHeightMapSettings>   External;
+	TSharedPtr<FExternalHeightMapSettings> External;
 	TSharedPtr<FLandscapeGenerationSettings> Landscape;
-	TObjectPtr<UErosionTemplateManager>      TemplateManager;
+	TObjectPtr<UErosionTemplateManager> TemplateManager = nullptr;
 
-	// Wind direction combo state
-	TSharedPtr<IConsoleVariable> PlaceHolder;
+	// Wind UI data
 	TArray<TSharedPtr<FString>> WindDirections;
 	TSharedPtr<FString> CurrentWindDirection;
 	UEnum* WindDirectionEnumPtr = nullptr;
 
-	FReply OnErodeClicked();
+	TSharedPtr<SComboBox<TSharedPtr<FString>>> WindCombo;
+
+	// Advanced foldout
+	bool bShowAdvanced = false;
+	EVisibility GetAdvancedVisibility() const { return bShowAdvanced ? EVisibility::Visible : EVisibility::Collapsed; }
+
+private:
+	// Helpers
 	void BuildWindDirections();
+
+	// Actions
+	FReply OnErodeClicked();
 };

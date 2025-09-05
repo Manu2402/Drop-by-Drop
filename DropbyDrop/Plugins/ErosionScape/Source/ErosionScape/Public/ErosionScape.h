@@ -2,6 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
+#include "GeneratorHeightMapLibrary.h"
+#include "HAL/IConsoleManager.h"
 
 class FToolBarBuilder;
 class FMenuBuilder;

@@ -11,15 +11,16 @@
 void SLandscapePanel::Construct(const FArguments& Args)
 {
 	Landscape = Args._Landscape;
-	Heightmap = Args._Heightmap;
 	External = Args._External;
-	check(Heightmap.IsValid() && External.IsValid() && Landscape.IsValid());
-	
+	Heightmap = Args._Heightmap;
+	check(Landscape.IsValid() && External.IsValid() && Heightmap.IsValid());
+
 	ChildSlot
 	[
 		SNew(SVerticalBox)
 
-		+ SVerticalBox::Slot().AutoHeight().Padding(5)
+		// Titolo
+		+ SVerticalBox::Slot().AutoHeight().Padding(6)
 		[
 			SNew(STextBlock)
 			.Text(FText::FromString("Landscape"))
@@ -30,57 +31,153 @@ void SLandscapePanel::Construct(const FArguments& Args)
 		+ SVerticalBox::Slot().AutoHeight().Padding(5)
 		[
 			SNew(SCheckBox)
-			.OnCheckStateChanged_Lambda([this](ECheckBoxState State)
+			.IsChecked_Lambda([L=Landscape]()
 			{
-				Landscape->bDestroyLastLandscape = (State == ECheckBoxState::Checked);
+				return L->bDestroyLastLandscape ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.OnCheckStateChanged_Lambda([L=Landscape](ECheckBoxState S)
+			{
+				L->bDestroyLastLandscape = (S == ECheckBoxState::Checked);
 			})
 			[
 				SNew(STextBlock).Text(FText::FromString("Destroy Last Landscape"))
 			]
 		]
 
-		// Kilometers
+		// Kilometers (sempre in alto)
 		+ SVerticalBox::Slot().AutoHeight().Padding(5)
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 			[
-				SNew(STextBlock)
-				.Text(FText::FromString("Kilometers"))
+				SNew(STextBlock).Text(FText::FromString("Kilometers"))
 			]
-			+ SHorizontalBox::Slot().AutoWidth().Padding(5)
+			+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 			[
-				SNew(SNumericEntryBox<float>)
-				.Value_Lambda([this]()-> TOptional<float> { return Landscape->Kilometers; })
-				.OnValueChanged_Lambda([this](float Value)
-				{
-					Landscape->Kilometers = Value;
-				})
+				SNew(SNumericEntryBox<int32>)
+				.Value_Lambda([L=Landscape]()-> TOptional<int32> { return L->Kilometers; })
+				.OnValueChanged_Lambda([L=Landscape](int32 V) { L->Kilometers = V; })
 			]
 		]
 
-		// Create / Destroy / Split
+		// Toggle Advanced
 		+ SVerticalBox::Slot().AutoHeight().Padding(5)
 		[
-			SNew(SUniformGridPanel)
-			+ SUniformGridPanel::Slot(0, 0)
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 			[
-				SNew(SButton).Text(FText::FromString("Create Landscape")).OnClicked(
-					this, &SLandscapePanel::OnCreateLandscapeClicked)
+				SNew(STextBlock).Text(FText::FromString("Advanced"))
 			]
-			+ SUniformGridPanel::Slot(1, 0)
+			+ SHorizontalBox::Slot().AutoWidth().Padding(8, 0)
 			[
-				SNew(SButton).Text(FText::FromString("Destroy Last")).OnClicked(
-					this, &SLandscapePanel::OnDestroyLastClicked)
-			]
-			+ SUniformGridPanel::Slot(0, 1)
-			[
-				SNew(SButton).Text(FText::FromString("Split In Proxies")).OnClicked(
-					this, &SLandscapePanel::OnSplitInProxiesClicked)
+				SNew(SCheckBox)
+				.IsChecked_Lambda([this]()
+				{
+					return bShowAdvanced ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+				})
+				.OnCheckStateChanged_Lambda(
+					[this](ECheckBoxState S) { bShowAdvanced = (S == ECheckBoxState::Checked); })
 			]
 		]
 
+		// --- Advanced: qui finiscono Scale X/Y/Z dell'External HeightMap ---
 		+ SVerticalBox::Slot().AutoHeight().Padding(5)
+		[
+			SNew(SVerticalBox)
+			.Visibility_Lambda([this]() { return GetAdvancedVisibility(); })
+
+			// Scale X
+			+ SVerticalBox::Slot().AutoHeight().Padding(2)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+				[
+					SNew(STextBlock).Text(FText::FromString("Scale X"))
+				]
+				+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
+				[
+					SNew(SNumericEntryBox<float>)
+					.Value_Lambda([E=External]()-> TOptional<float> { return E->ScalingX; })
+					.OnValueChanged_Lambda([E=External](float V) { E->ScalingX = V; })
+				]
+			]
+
+			// Scale Y
+			+ SVerticalBox::Slot().AutoHeight().Padding(2)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+				[
+					SNew(STextBlock).Text(FText::FromString("Scale Y"))
+				]
+				+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
+				[
+					SNew(SNumericEntryBox<float>)
+					.Value_Lambda([E=External]()-> TOptional<float> { return E->ScalingY; })
+					.OnValueChanged_Lambda([E=External](float V) { E->ScalingY = V; })
+				]
+			]
+
+			// Scale Z
+			+ SVerticalBox::Slot().AutoHeight().Padding(2)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+				[
+					SNew(STextBlock).Text(FText::FromString("Scale Z"))
+				]
+				+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
+				[
+					SNew(SNumericEntryBox<float>)
+					.Value_Lambda([E=External]()-> TOptional<float> { return E->ScalingZ; })
+					.OnValueChanged_Lambda([E=External](float V) { E->ScalingZ = V; })
+				]
+			]
+
+			// World Partition Grid Size (se vuoi, resta pure qui in Advanced)
+			+ SVerticalBox::Slot().AutoHeight().Padding(2)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot().AutoWidth()
+				[
+					SNew(STextBlock).Text(FText::FromString("World Partition Grid Size"))
+				]
+				+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
+				[
+					SNew(SNumericEntryBox<int32>)
+					.Value_Lambda([L=Landscape]()-> TOptional<int32> { return L->WorldPartitionGridSize; })
+					.OnValueChanged_Lambda([L=Landscape](int32 V) { L->WorldPartitionGridSize = V; })
+				]
+			]
+		]
+
+		// Actions
+		+ SVerticalBox::Slot().AutoHeight().Padding(5)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().AutoWidth()
+			[
+				SNew(SButton)
+				.Text(FText::FromString("Create Landscape"))
+				.OnClicked(this, &SLandscapePanel::OnCreateLandscapeClicked)
+			]
+			+ SHorizontalBox::Slot().AutoWidth().Padding(10, 0)
+			[
+				SNew(SButton)
+				.Text(FText::FromString("Split in Proxies"))
+				.OnClicked(this, &SLandscapePanel::OnSplitInProxiesClicked)
+			]
+		]
+
+		+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)
+		[
+			SNew(SSeparator)
+		]
+		+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)
+		[
+			SNew(SSeparator)
+		]
+		+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)
 		[
 			SNew(SSeparator)
 		]
@@ -89,9 +186,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 
 FReply SLandscapePanel::OnCreateLandscapeClicked()
 {
-	//TODO: Change LandscapeFromPNG args
-	static const FString Dummy;
-	UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(Dummy, *Heightmap, *External, *Landscape);
+	UGeneratorHeightMapLibrary::GenerateLandscapeAuto(*Heightmap, *External, *Landscape);
 	return FReply::Handled();
 }
 
@@ -107,5 +202,11 @@ FReply SLandscapePanel::OnDestroyLastClicked()
 FReply SLandscapePanel::OnSplitInProxiesClicked()
 {
 	UGeneratorHeightMapLibrary::SplitLandscapeIntoProxies(*Landscape);
+	return FReply::Handled();
+}
+
+FReply SLandscapePanel::OnImportPNGClicked()
+{
+	UGeneratorHeightMapLibrary::OpenHeightmapFileDialog(External, Landscape, Heightmap);
 	return FReply::Handled();
 }

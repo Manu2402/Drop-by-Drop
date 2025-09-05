@@ -296,6 +296,41 @@ FVector2D UErosionLibrary::GetWindDirection()
 	return FVector2D(FMath::Cos(WindAngle), FMath::Sin(WindAngle)) * Strength;
 }
 
+float UErosionLibrary::GetWindMeanAngleDegrees()
+{
+	float Mu = 0.f;
+
+	switch (WindDirection)
+	{
+	case EWindDirection::Nord:       Mu = 90.f;  break;   // +Y
+	case EWindDirection::Sud:        Mu = 270.f; break;   // -Y
+	case EWindDirection::Est:        Mu = 0.f;   break;   // +X
+	case EWindDirection::Ovest:      Mu = 180.f; break;   // -X
+	case EWindDirection::Nord_Est:   Mu = 45.f;  break;
+	case EWindDirection::Nord_Ovest: Mu = 135.f; break;
+	case EWindDirection::Sud_Est:    Mu = 315.f; break;
+	case EWindDirection::Sud_Ovest:  Mu = 225.f; break;
+	case EWindDirection::Random:
+	default:
+		// When Random is selected, "mean" has no fixed semantic; we show a random angle for preview.
+		Mu = FMath::RandRange(0.f, 360.f);
+		break;
+	}
+
+	// NormalizeAngle360.
+	float R = FMath::Fmod(Mu, 360.f);
+	return (R < 0.f) ? (R + 360.f) : R;
+}
+
+FVector2D UErosionLibrary::GetWindUnitVectorFromAngle(float Degrees)
+{
+	const float Rad = FMath::DegreesToRadians(Degrees);
+	// Convention matches MapWindDirection: X = cos, Y = sin
+	const float X = FMath::Cos(Rad);
+	const float Y = FMath::Sin(Rad);
+	return FVector2D(X, Y).GetSafeNormal();
+}
+
 void UErosionLibrary::ApplyErosion(FErosionContext& ErosionContext, FDrop& Drop, const int32 GridSize)
 {
 	float Sediment = 0;

@@ -41,6 +41,7 @@ enum EOutOfBoundResult : uint8
 	Error_Right_Down
 };
 
+UENUM(BlueprintType)
 enum EWindDirection : uint8
 {
 	Random,
@@ -204,6 +205,11 @@ public:
 	static TArray<float> GetHeights(const FErosionContext& ErosionContext); // ✔
 
 	static void Erosion(FErosionContext& ErosionContext, const int32 GridSize); // ✔
+	
+	UFUNCTION(BlueprintCallable, Category="Erosion|Debug")
+	static float GetWindMeanAngleDegrees();
+	UFUNCTION(BlueprintCallable, Category="Erosion|Debug")
+	static FVector2D GetWindUnitVectorFromAngle(float Degrees);
 	
 private:
 	static void ApplyErosion(FErosionContext& ErosionContext, FDrop& Drop, const int32 GridSize);

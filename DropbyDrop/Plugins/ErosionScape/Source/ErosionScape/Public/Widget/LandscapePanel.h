@@ -22,7 +22,12 @@ private:
 	TSharedPtr<FHeightMapGenerationSettings> Heightmap;
 	TSharedPtr<FExternalHeightMapSettings>   External;
 
+	bool bShowAdvanced = false;
+	EVisibility GetAdvancedVisibility() const { return bShowAdvanced ? EVisibility::Visible : EVisibility::Collapsed; }
+	
 	FReply OnCreateLandscapeClicked();
 	FReply OnDestroyLastClicked();
 	FReply OnSplitInProxiesClicked();
+
+	FReply OnImportPNGClicked();
 };

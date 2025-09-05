@@ -10,6 +10,7 @@
 #include "Widget/HeightMapPanel.h"
 #include "Widget/LandscapePanel.h"
 #include "Widget/ErosionPanel.h"
+#include "Widget/RootPanel.h"
 
 static const FName ErosionScapeTabName("ErosionScape");
 #define LOCTEXT_NAMESPACE "FErosionScapeModule"
@@ -41,6 +42,25 @@ void FErosionScapeModule::StartupModule()
 
 	UGeneratorHeightMapLibrary::SetErosionTemplates(
 		TEXT("/Game/Custom/ErosionTemplates/DT_ErosionTemplate.DT_ErosionTemplate"));
+
+	//Commands
+	IConsoleManager::Get().RegisterConsoleCommand(
+		TEXT("WindPreview.Scale"),
+		TEXT("Set global scale for wind direction preview arrows"),
+		FConsoleCommandWithArgsDelegate::CreateLambda([](const TArray<FString>& Args)
+		{
+			if (Args.Num() == 0)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Usage: WindPreview.Scale <float>"));
+				return;
+			}
+
+			const float NewScale = FCString::Atof(*Args[0]);
+			UGeneratorHeightMapLibrary::SetWindPreviewScale(NewScale);
+			UE_LOG(LogTemp, Log, TEXT("WindPreview scale set to %f"), NewScale);
+		}),
+		ECVF_Default
+	);
 }
 
 void FErosionScapeModule::ShutdownModule()
@@ -52,40 +72,17 @@ void FErosionScapeModule::ShutdownModule()
 	FErosionScapeCommands::Unregister();
 
 	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ErosionScapeTabName);
+
+	IConsoleManager::Get().UnregisterConsoleObject(TEXT("WindPreview.Scale"), false);
 }
 
 TSharedRef<SDockTab> FErosionScapeModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
 {
-	auto  HeightmapSettings = MakeShared<FHeightMapGenerationSettings>();
-	auto  ExternalSettings = MakeShared<FExternalHeightMapSettings>();
-	auto  LandscapeSettings = MakeShared<FLandscapeGenerationSettings>();
-
 	return SNew(SDockTab)
-		.TabRole(ETabRole::NomadTab)
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Fill).Padding(4)
-			[
-				SNew(SHeightMapPanel)
-				.Heightmap(HeightmapSettings)
-				.External(ExternalSettings)
-				.Landscape(LandscapeSettings)
-			]
-			+ SHorizontalBox::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Fill).Padding(4)
-			[
-				SNew(SLandscapePanel)
-				.Landscape(LandscapeSettings)
-				.Heightmap(HeightmapSettings)
-				.External(ExternalSettings)
-			]
-			+ SHorizontalBox::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Fill).Padding(4)
-			[
-				SNew(SErosionPanel)
-				.Heightmap(HeightmapSettings)
-				.External(ExternalSettings)
-				.Landscape(LandscapeSettings)
-			]
-		];
+	.TabRole(ETabRole::NomadTab)
+	[
+		SNew(SRootPanel)
+	];
 }
 
 void FErosionScapeModule::PluginButtonClicked()

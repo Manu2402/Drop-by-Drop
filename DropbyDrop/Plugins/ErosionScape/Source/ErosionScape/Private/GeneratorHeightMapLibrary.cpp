@@ -17,12 +17,14 @@
 #include "WorldPartition/WorldPartitionSubsystem.h"
 #include "Subsystems/EditorAssetSubsystem.h"
 #include "UObject/SavePackage.h"
+#include "GeneratorHeightMapLibrary.h"
+#include "HAL/IConsoleManager.h"
+
 
 #pragma region InitParam
 
+float UGeneratorHeightMapLibrary::WindPreviewScale = 1.0f;
 UDataTable* UGeneratorHeightMapLibrary::ErosionTemplatesDataTable = nullptr;
-
-
 #pragma endregion
 
 #pragma region Erosion
@@ -453,11 +455,40 @@ void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& Heightm
 	}
 }
 
+void UGeneratorHeightMapLibrary::GenerateLandscapeAuto(
+	FHeightMapGenerationSettings& HeightmapSettings,
+	FExternalHeightMapSettings& ExternalSettings,
+	FLandscapeGenerationSettings& LandscapeSettings)
+{
+	if (ExternalSettings.bIsExternalHeightMap && !ExternalSettings.LastPNGPath.IsEmpty())
+	{
+		CreateLandscapeFromOtherHeightMap(
+			ExternalSettings.LastPNGPath,
+			ExternalSettings,
+			LandscapeSettings,
+			HeightmapSettings
+		);
+		return;
+	}
+
+	const FString DummyPath;
+	GenerateLandscapeFromPNG(
+		DummyPath,
+		HeightmapSettings,
+		ExternalSettings,
+		LandscapeSettings
+	);
+}
+
+
 void UGeneratorHeightMapLibrary::CreateLandscapeFromOtherHeightMap(const FString& FilePath,
                                                                    FExternalHeightMapSettings& ExternalSettings,
                                                                    FLandscapeGenerationSettings& LandscapeSettings,
                                                                    FHeightMapGenerationSettings& HeightmapSettings)
 {
+	ExternalSettings.bIsExternalHeightMap = true;
+	ExternalSettings.LastPNGPath = FilePath;
+
 	//If destroy last landscape
 	if (LandscapeSettings.bDestroyLastLandscape && LandscapeSettings.TargetLandscape)
 	{
@@ -659,129 +690,292 @@ TArray<uint16> UGeneratorHeightMapLibrary::ConvertFloatArrayToUint16(const TArra
 
 bool UGeneratorHeightMapLibrary::SaveToAsset(UTexture2D* Texture, const FString& AssetName)
 {
-    if (!Texture)
-    {
-        UE_LOG(LogTemp, Error, TEXT("Texture is null!"));
-        return false;
-    }
+	if (!Texture)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Texture is null!"));
+		return false;
+	}
 
-    // ---- Leggi i byte dal mip di ORIGINE in modo sicuro
-    FTexturePlatformData* SrcPD = Texture->GetPlatformData();
-    if (!SrcPD || SrcPD->Mips.Num() == 0)
-    {
-        UE_LOG(LogTemp, Error, TEXT("Source texture has no PlatformData/Mips"));
-        return false;
-    }
+	// --- Preview-friendly flags: grayscale look, no mips/streaming/srgb, clamp ---
+	auto ApplyPreviewTextureFlags = [](UTexture2D* T)
+	{
+		T->SRGB = true;
+		// Use an un-intrusive compression setting for UI preview (no BC artifacts).
+		T->CompressionSettings = TC_Default; // very light/no compression for UI icons
+		T->MipGenSettings = TMGS_NoMipmaps;
+		T->LODGroup = TEXTUREGROUP_Pixels2D;
+		T->NeverStream = true;
+		T->AddressX = TA_Clamp;
+		T->AddressY = TA_Clamp;
+	};
 
-    const FTexture2DMipMap& SrcMip = SrcPD->Mips[0];
-    const int32 SrcW = SrcMip.SizeX;
-    const int32 SrcH = SrcMip.SizeY;
-    const int64 DataSize = SrcMip.BulkData.GetBulkDataSize();
-    if (DataSize <= 0)
-    {
-        UE_LOG(LogTemp, Error, TEXT("Source mip has no data"));
-        return false;
-    }
+	// ----------------------------
+	// 1) Read raw pixels from source (preferred) or platform mip[0].
+	//    We'll convert them to an 8-bit Gray buffer.
+	// ----------------------------
+	int32 W = 0, H = 0;
+	TArray64<uint8> Raw;
+	enum class ERawFmt { Unknown, BGRA8, RGBA8, G8, G16, R32F, RGBA16F } InFmt = ERawFmt::Unknown;
 
-    const void* SrcData = SrcMip.BulkData.LockReadOnly();
-    if (!SrcData)
-    {
-        UE_LOG(LogTemp, Error, TEXT("LockReadOnly failed on source mip"));
-        return false;
-    }
+	// Try Texture Source first
+	{
+		const int32 SrcW = Texture->Source.GetSizeX();
+		const int32 SrcH = Texture->Source.GetSizeY();
+		if (SrcW > 0 && SrcH > 0 && Texture->Source.GetNumMips() > 0)
+		{
+			bool bOk = Texture->Source.GetMipData(Raw, 0);
+			if (!bOk || Raw.Num() == 0)
+			{
+				void* Ptr = Texture->Source.LockMip(0);
+				const int64 DataSize = Texture->Source.CalcMipSize(0);
+				if (Ptr && DataSize > 0)
+				{
+					Raw.SetNumUninitialized(DataSize);
+					FMemory::Memcpy(Raw.GetData(), Ptr, DataSize);
+				}
+				Texture->Source.UnlockMip(0);
+			}
+			if (Raw.Num() > 0)
+			{
+				W = SrcW;
+				H = SrcH;
+				switch (Texture->Source.GetFormat())
+				{
+				case TSF_BGRA8: InFmt = ERawFmt::BGRA8;
+					break;
+				case TSF_RGBA8: InFmt = ERawFmt::RGBA8;
+					break;
+				case TSF_G8: InFmt = ERawFmt::G8;
+					break;
+				case TSF_G16: InFmt = ERawFmt::G16;
+					break;
+				case TSF_RGBA16F: InFmt = ERawFmt::RGBA16F;
+					break;
+				default: InFmt = ERawFmt::Unknown;
+					break;
+				}
+			}
+		}
+	}
 
-    const FString PackageName = FString::Printf(TEXT("/Game/SavedAssets/%s"), *AssetName);
+	// Fallback: PlatformData
+	if (InFmt == ERawFmt::Unknown)
+	{
+		FTexturePlatformData* PD = Texture->GetPlatformData();
+		if (!PD || PD->Mips.Num() == 0)
+		{
+			UE_LOG(LogTemp, Error, TEXT("No Texture Source and no PlatformData available."));
+			return false;
+		}
 
-    // ---- Cerca asset esistente
-    UPackage* ExistingPackage = FindPackage(nullptr, *PackageName);
-    UTexture2D* TargetTexture = ExistingPackage
-        ? Cast<UTexture2D>(StaticFindObject(UTexture2D::StaticClass(), ExistingPackage, *AssetName))
-        : nullptr;
+		FTexture2DMipMap& Mip = PD->Mips[0];
+		const int64 DataSize = Mip.BulkData.GetBulkDataSize();
+		if (DataSize <= 0)
+		{
+			UE_LOG(LogTemp, Error, TEXT("Platform mip has no data."));
+			return false;
+		}
 
-    auto SaveAndRescan = [&](UPackage* Pkg, UObject* Asset)->bool
-    {
-        // Evita race con il renderer
-        FlushRenderingCommands();
+		const void* MipData = Mip.BulkData.LockReadOnly();
+		if (!MipData)
+		{
+			Mip.BulkData.Unlock();
+			UE_LOG(LogTemp, Error, TEXT("Failed to lock platform mip data."));
+			return false;
+		}
 
-        FSavePackageArgs SaveArgs;
-        SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
-        SaveArgs.SaveFlags     = SAVE_NoError;
+		W = Mip.SizeX;
+		H = Mip.SizeY;
+		const EPixelFormat PF = Texture->GetPixelFormat();
+		const int64 NumPx = (int64)W * H;
 
-        const FString PkgFilename = FPackageName::LongPackageNameToFilename(
-            PackageName, FPackageName::GetAssetPackageExtension());
+		if (PF == PF_B8G8R8A8 || PF == PF_R8G8B8A8)
+		{
+			InFmt = ERawFmt::BGRA8;
+			Raw.SetNumUninitialized(NumPx * 4);
+			FMemory::Memcpy(Raw.GetData(), MipData, Raw.Num());
+		}
+		else if (PF == PF_G16)
+		{
+			InFmt = ERawFmt::G16;
+			Raw.SetNumUninitialized(NumPx * 2);
+			FMemory::Memcpy(Raw.GetData(), MipData, Raw.Num());
+		}
+		else if (PF == PF_R32_FLOAT)
+		{
+			InFmt = ERawFmt::R32F;
+			Raw.SetNumUninitialized(NumPx * 4);
+			FMemory::Memcpy(Raw.GetData(), MipData, Raw.Num());
+		}
+		else
+		{
+			InFmt = ERawFmt::Unknown;
+		}
 
-        if (!UPackage::SavePackage(Pkg, Asset, *PkgFilename, SaveArgs))
-        {
-            UE_LOG(LogTemp, Error, TEXT("Failed to save package '%s'"), *PackageName);
-            return false;
-        }
+		Mip.BulkData.Unlock();
+	}
 
-        if (FAssetRegistryModule* ARM = FModuleManager::GetModulePtr<FAssetRegistryModule>("AssetRegistry"))
-        {
-            TArray<FString> PathsToScan{ TEXT("/Game/SavedAssets") };
-            ARM->Get().ScanModifiedAssetFiles(PathsToScan);
-        }
-        UE_LOG(LogTemp, Log, TEXT("Saved texture to: %s"), *PkgFilename);
-        return true;
-    };
+	if (InFmt == ERawFmt::Unknown || Raw.Num() == 0 || W <= 0 || H <= 0)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Unsupported or empty source format when saving preview asset."));
+		return false;
+	}
 
-    if (TargetTexture)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("Texture '%s' already exists, updating asset..."), *AssetName);
+	// ----------------------------
+	// 2) Convert ANY input to Gray (8-bit) then replicate Gray to BGRA (B=G=R=Gray, A=255).
+	// ----------------------------
+	const int64 NumPx = (int64)W * H;
+	TArray64<uint8> Gray;
+	Gray.SetNumUninitialized(NumPx);
 
-        TargetTexture->Modify();
+	switch (InFmt)
+	{
+	case ERawFmt::BGRA8:
+		{
+			const uint8* p = Raw.GetData();
+			for (int64 i = 0; i < NumPx; ++i)
+			{
+				// BGRA: B=0,G=1,R=2,A=3 
+				Gray[i] = p[i * 4 + 2];
+			}
+			break;
+		}
+	case ERawFmt::RGBA8:
+		{
+			const uint8* p = Raw.GetData();
+			for (int64 i = 0; i < NumPx; ++i)
+			{
+				// RGBA: R=0,G=1,B=2,A=3
+				Gray[i] = p[i * 4 + 0];
+			}
+			break;
+		}
+	case ERawFmt::G8:
+		{
+			FMemory::Memcpy(Gray.GetData(), Raw.GetData(), Gray.Num());
+			break;
+		}
+	case ERawFmt::G16:
+		{
+			const uint16* p = reinterpret_cast<const uint16*>(Raw.GetData());
+			for (int64 i = 0; i < NumPx; ++i)
+			{
+				Gray[i] = uint8(p[i] >> 8); // keep MSB
+			}
+			break;
+		}
+	case ERawFmt::R32F:
+		{
+			const float* p = reinterpret_cast<const float*>(Raw.GetData());
+			for (int64 i = 0; i < NumPx; ++i)
+			{
+				const float v = FMath::Clamp(p[i], 0.f, 1.f);
+				Gray[i] = uint8(FMath::RoundToInt(v * 255.f));
+			}
+			break;
+		}
+	case ERawFmt::RGBA16F:
+		{
+			const FFloat16Color* p = reinterpret_cast<const FFloat16Color*>(Raw.GetData());
+			for (int64 i = 0; i < NumPx; ++i)
+			{
+				const float R = FMath::Clamp(p[i].R, 0.f, 1.f);
+				Gray[i] = uint8(FMath::RoundToInt(R * 255.f));
+			}
+			break;
+		}
+	default:
+		UE_LOG(LogTemp, Error, TEXT("Unexpected raw format during grayscale conversion."));
+		return false;
+	}
 
-        // Copia metadati
-        TargetTexture->SRGB                = Texture->SRGB;
-        TargetTexture->CompressionSettings = Texture->CompressionSettings;
-        TargetTexture->MipGenSettings      = Texture->MipGenSettings;
+	// Build BGRA8 from Gray (B=G=R=Gray, A=255) so Slate sees neutral grayscale.
+	TArray64<uint8> BGRA;
+	BGRA.SetNumUninitialized(NumPx * 4);
+	for (int64 i = 0; i < NumPx; ++i)
+	{
+		const uint8 g = Gray[i];
+		const int64 o = i * 4;
+		BGRA[o + 0] = g; // B
+		BGRA[o + 1] = g; // G
+		BGRA[o + 2] = g; // R
+		BGRA[o + 3] = 255; // A
+	}
 
-        // SCRIVI SOLO NEL SOURCE (niente PlatformData della destinazione)
-        TargetTexture->Source.Init(SrcW, SrcH, 1, 1, TSF_BGRA8);
-        void* Dest = TargetTexture->Source.LockMip(0);
-        FMemory::Memcpy(Dest, SrcData, DataSize);
-        TargetTexture->Source.UnlockMip(0);
+	// ----------------------------
+	// 3) Create or update the asset as BGRA8 (with preview flags).
+	// ----------------------------
+	const FString PackageName = FString::Printf(TEXT("/Game/SavedAssets/%s"), *AssetName);
 
-        SrcMip.BulkData.Unlock();
+	UPackage* ExistingPackage = FindPackage(nullptr, *PackageName);
+	UTexture2D* TargetTexture = ExistingPackage
+		                            ? Cast<UTexture2D>(
+			                            StaticFindObject(UTexture2D::StaticClass(), ExistingPackage, *AssetName))
+		                            : nullptr;
 
-        TargetTexture->PostEditChange();
-        TargetTexture->UpdateResource();
-        (void)TargetTexture->MarkPackageDirty();
+	auto SaveAndRescan = [&](UPackage* Pkg, UObject* Asset)-> bool
+	{
+		FlushRenderingCommands();
 
-        return SaveAndRescan(TargetTexture->GetOutermost(), TargetTexture);
-    }
-    else
-    {
-        // Crea nuovo asset
-        UPackage* NewPackage = CreatePackage(*PackageName);
-        NewPackage->FullyLoad();
+		FSavePackageArgs SaveArgs;
+		SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+		SaveArgs.SaveFlags = SAVE_NoError;
 
-        UTexture2D* NewTexture = NewObject<UTexture2D>(NewPackage, UTexture2D::StaticClass(), *AssetName,
-                                                       RF_Public | RF_Standalone);
+		const FString PkgFilename = FPackageName::LongPackageNameToFilename(
+			PackageName, FPackageName::GetAssetPackageExtension());
 
-        // Metadati dalla sorgente
-        NewTexture->SRGB                = Texture->SRGB;
-        NewTexture->CompressionSettings = Texture->CompressionSettings;
-        NewTexture->MipGenSettings      = Texture->MipGenSettings;
+		if (!UPackage::SavePackage(Pkg, Asset, *PkgFilename, SaveArgs))
+		{
+			UE_LOG(LogTemp, Error, TEXT("Failed to save package '%s'"), *PackageName);
+			return false;
+		}
 
-        // SCRIVI SOLO NEL SOURCE
-        NewTexture->Source.Init(SrcW, SrcH, 1, 1, TSF_BGRA8);
-        void* Dest = NewTexture->Source.LockMip(0);
-        FMemory::Memcpy(Dest, SrcData, DataSize);
-        NewTexture->Source.UnlockMip(0);
+		if (FAssetRegistryModule* ARM = FModuleManager::GetModulePtr<FAssetRegistryModule>("AssetRegistry"))
+		{
+			TArray<FString> PathsToScan{TEXT("/Game/SavedAssets")};
+			ARM->Get().ScanModifiedAssetFiles(PathsToScan);
+		}
 
-        SrcMip.BulkData.Unlock();
+		UE_LOG(LogTemp, Log, TEXT("Saved texture to: %s"), *PkgFilename);
+		return true;
+	};
 
-        NewTexture->PostEditChange();
-        NewTexture->UpdateResource();
-        (void)NewTexture->MarkPackageDirty();
-        FAssetRegistryModule::AssetCreated(NewTexture);
+	auto WriteBGRA8ToTexture = [&](UTexture2D* T)
+	{
+		T->Modify();
 
-        return SaveAndRescan(NewPackage, NewTexture);
-    }
+		// Bake as BGRA8 so Slate always sees grayscale (R=G=B) instead of a red-only channel.
+		T->Source.Init(W, H, 1, 1, TSF_BGRA8);
+		void* Dest = T->Source.LockMip(0);
+		const int64 DestSize = NumPx * 4;
+		FMemory::Memcpy(Dest, BGRA.GetData(), DestSize);
+		T->Source.UnlockMip(0);
+
+		ApplyPreviewTextureFlags(T);
+		T->PostEditChange();
+		T->UpdateResource();
+		(void)T->MarkPackageDirty();
+	};
+
+	if (TargetTexture)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Texture '%s' already exists, updating asset..."), *AssetName);
+		WriteBGRA8ToTexture(TargetTexture);
+		return SaveAndRescan(TargetTexture->GetOutermost(), TargetTexture);
+	}
+	else
+	{
+		UPackage* NewPackage = CreatePackage(*PackageName);
+		NewPackage->FullyLoad();
+
+		UTexture2D* NewTexture = NewObject<UTexture2D>(
+			NewPackage, UTexture2D::StaticClass(), *AssetName, RF_Public | RF_Standalone);
+
+		WriteBGRA8ToTexture(NewTexture);
+		FAssetRegistryModule::AssetCreated(NewTexture);
+		return SaveAndRescan(NewPackage, NewTexture);
+	}
 }
-
-
 
 
 void UGeneratorHeightMapLibrary::OpenHeightmapFileDialog(
@@ -807,10 +1001,122 @@ void UGeneratorHeightMapLibrary::OpenHeightmapFileDialog(
 	if (bOpened && OutFiles.Num() > 0)
 	{
 		const FString& SelectedFile = OutFiles[0];
-		CreateLandscapeFromOtherHeightMap(
+
+		if (ExternalSettings.IsValid())
+		{
+			ExternalSettings->bIsExternalHeightMap = true;
+			ExternalSettings->LastPNGPath = SelectedFile;
+		}
+
+		/*CreateLandscapeFromOtherHeightMap(
 			SelectedFile, *ExternalSettings, *LandscapeSettings, *HeightMapSettings
-		);
+		); */
 	}
+	const FString& SelectedFile = OutFiles[0];
+
+	if (UTexture2D* Imported = FImageUtils::ImportFileAsTexture2D(SelectedFile))
+	{
+		if (SaveToAsset(Imported, TEXT("TextureHeightMap")))
+		{
+			UE_LOG(LogTemp, Log, TEXT("Preview overwritten from external PNG: %s"), *SelectedFile);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Failed to overwrite preview from PNG: %s"), *SelectedFile);
+		}
+	}
+
+	//CreateLandscapeFromOtherHeightMap(SelectedFile, *ExternalSettings, *LandscapeSettings, *HeightMapSettings);
+}
+static FVector GetWindPreviewStart(const FLandscapeGenerationSettings& LS, UWorld* World)
+{
+    // If we have a target landscape, use its bounds center; else use world origin slightly lifted.
+    if (LS.TargetLandscape)
+    {
+        FBox Bounds(ForceInitToZero);
+        TArray<ULandscapeComponent*> Comps;
+        LS.TargetLandscape->GetComponents(Comps);
+        for (ULandscapeComponent* C : Comps)
+        {
+            if (!C) continue;
+            Bounds += C->Bounds.GetBox();
+        }
+        if (Bounds.IsValid)
+        {
+            FVector Center = Bounds.GetCenter();
+            Center.Z += 200.f;
+            return Center;
+        }
+
+        // Fallback: actor location
+        FVector Loc = LS.TargetLandscape->GetActorLocation();
+        Loc.Z += 200.f;
+        return Loc;
+    }
+
+    // Last resort: world origin
+    return FVector(0,0,200);
 }
 
+void UGeneratorHeightMapLibrary::DrawWindDirectionPreview(
+    const FLandscapeGenerationSettings& LandscapeSettings,
+    float ArrowLength,
+    float ArrowThickness,
+    float ArrowHeadSize,
+    float Duration,
+    bool  bAlsoDrawCone,
+    float ConeHalfAngleDeg)
+{
+#if WITH_EDITOR
+    const float Scale = WindPreviewScale;
+
+    UWorld* World = nullptr;
+    if (GEditor)
+    {
+        const FWorldContext& Ctx = GEditor->GetEditorWorldContext();
+        World = Ctx.World();
+    }
+    if (!World) return;
+
+    const FVector Start = GetWindPreviewStart(LandscapeSettings, World);
+
+    const float MeanDeg = UErosionLibrary::GetWindMeanAngleDegrees();
+    const FVector2D Dir2D = UErosionLibrary::GetWindUnitVectorFromAngle(MeanDeg);
+    const FVector Dir3D(Dir2D.X, Dir2D.Y, 0.f);
+    const FVector End = Start + Dir3D * (ArrowLength * Scale);
+
+    DrawDebugDirectionalArrow(World, Start, End, ArrowHeadSize * Scale,
+                              FColor::Cyan, false, Duration, 0, ArrowThickness * Scale);
+
+    // Cardinal cross
+    const float Cross = ArrowLength * 0.25f * Scale;
+    DrawDebugLine(World, Start - FVector(Cross,0,0), Start + FVector(Cross,0,0),
+                  FColor(128,128,128), false, Duration, 0, 1.f * Scale);
+    DrawDebugLine(World, Start - FVector(0,Cross,0), Start + FVector(0,Cross,0),
+                  FColor(128,128,128), false, Duration, 0, 1.f * Scale);
+
+    DrawDebugString(World, Start + FVector(Cross,0,50*Scale),  TEXT("E"), nullptr, FColor::White, Duration, false);
+    DrawDebugString(World, Start + FVector(-Cross,0,50*Scale), TEXT("W"), nullptr, FColor::White, Duration, false);
+    DrawDebugString(World, Start + FVector(0,Cross,50*Scale),  TEXT("N"), nullptr, FColor::White, Duration, false);
+    DrawDebugString(World, Start + FVector(0,-Cross,50*Scale), TEXT("S"), nullptr, FColor::White, Duration, false);
+
+    // Bias cone
+    if (bAlsoDrawCone && UErosionLibrary::GetWindBias())
+    {
+        const int32 Spokes = 6;
+        for (int32 i = 0; i <= Spokes; ++i)
+        {
+            const float T   = (Spokes == 0) ? 0.f : float(i)/float(Spokes);
+            const float Deg = MeanDeg - ConeHalfAngleDeg + (2.f * ConeHalfAngleDeg) * T;
+
+            const FVector2D S2D = UErosionLibrary::GetWindUnitVectorFromAngle(Deg);
+            const FVector   S3D(S2D.X, S2D.Y, 0.f);
+            const FVector   SEnd = Start + S3D * (ArrowLength * 0.85f * Scale);
+
+            DrawDebugDirectionalArrow(World, Start, SEnd, ArrowHeadSize*0.75f*Scale,
+                                      FColor(0,200,255), false, Duration, 0, ArrowThickness*0.75f*Scale);
+        }
+    }
+#endif
+}
 #pragma endregion

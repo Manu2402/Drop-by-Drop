@@ -97,6 +97,12 @@ public:
 	static bool SetLandscapeSizeParam(int32& SubSectionSizeQuads, int32& NumSubsections, int32& MaxX, int32& MaxY,  const int32 Size = 505);
 
 	static ALandscape* GenerateLandscape(const FTransform& LandscapeTransform, TArray<uint16>& Heightmap);
+
+	// --- One-click landscape creation (prefer preview asset, fallback to internal) ---
+	static void GenerateLandscapeAuto(FHeightMapGenerationSettings& HeightmapSettings,
+									  FExternalHeightMapSettings&   ExternalSettings,
+									  FLandscapeGenerationSettings& LandscapeSettings);
+
 #pragma endregion
 
 #pragma region Heightmap
@@ -126,6 +132,26 @@ public:
 		TSharedPtr<struct FHeightMapGenerationSettings> HeightMapSettings = nullptr
 	);
 
+	//Wind Preview
+	static float WindPreviewScale;
+
+	UFUNCTION(BlueprintCallable, Category="Erosion|Debug")
+	static void SetWindPreviewScale(float NewScale) { WindPreviewScale = NewScale; }
+
+	UFUNCTION(BlueprintCallable, Category="Erosion|Debug")
+	static float GetWindPreviewScale() { return WindPreviewScale; }
+	
+	UFUNCTION(BlueprintCallable, CallInEditor, Category="Erosion|Debug")
+	static void DrawWindDirectionPreview(
+		const FLandscapeGenerationSettings& LandscapeSettings,
+		float ArrowLength      = 8000.f,
+		float ArrowThickness   = 12.f,
+		float ArrowHeadSize    = 300.f,
+		float Duration         = 5.f,
+		bool  bAlsoDrawCone    = true,
+		float ConeHalfAngleDeg = 15.f);
+	// ---
+	
 private:
 	static FTransform GetNewTransform(const FExternalHeightMapSettings& ExternalSettings,
 	                                  const FLandscapeGenerationSettings& LandscapeSettings,

@@ -52,6 +52,9 @@ struct FExternalHeightMapSettings
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ExternalHeightmap")
 	bool bIsExternalHeightMap = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ExternalHeightmap")
+	FString LastPNGPath;
 };
 
 USTRUCT(BlueprintType)
