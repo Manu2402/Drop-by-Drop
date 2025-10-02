@@ -19,7 +19,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 	[
 		SNew(SVerticalBox)
 
-		// Titolo
+		// Title
 		+ SVerticalBox::Slot().AutoHeight().Padding(6)
 		[
 			SNew(STextBlock)
@@ -44,7 +44,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 			]
 		]
 
-		// Kilometers (sempre in alto)
+		// Kilometers 
 		+ SVerticalBox::Slot().AutoHeight().Padding(5)
 		[
 			SNew(SHorizontalBox)
@@ -80,7 +80,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 			]
 		]
 
-		// --- Advanced: qui finiscono Scale X/Y/Z dell'External HeightMap ---
+		// --- Advanced ---
 		+ SVerticalBox::Slot().AutoHeight().Padding(5)
 		[
 			SNew(SVerticalBox)
@@ -134,7 +134,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 				]
 			]
 
-			// World Partition Grid Size (se vuoi, resta pure qui in Advanced)
+			// World Partition Grid Size
 			+ SVerticalBox::Slot().AutoHeight().Padding(2)
 			[
 				SNew(SHorizontalBox)

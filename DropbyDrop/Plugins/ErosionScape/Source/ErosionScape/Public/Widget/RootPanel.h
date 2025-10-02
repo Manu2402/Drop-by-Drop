@@ -22,20 +22,20 @@ public:
 	void Construct(const FArguments& InArgs);
 
 private:
-	// Settings condivisi tra i 3 pannelli
+	// Settings 
 	TSharedPtr<FHeightMapGenerationSettings>  Heightmap;
 	TSharedPtr<FExternalHeightMapSettings>    External;
 	TSharedPtr<FLandscapeGenerationSettings>  Landscape;
 
-	// Switcher centrale
+	// Switcher 
 	TSharedPtr<SWidgetSwitcher> Switcher;
 
-	// Anteprima texture sulla colonna di destra (sempre visibile)
+	// Preview heightmap
 	TSharedPtr<FSlateBrush>               RightPreviewBrush;
 	TSharedPtr<SImage>                    RightPreviewImage;
 	TStrongObjectPtr<class UTexture2D>    RightPreviewTexture;
 
-	// Stato corrente
+	// 
 	int32 ActiveIndex = 0; // 0 = HeightMap, 1 = Landscape, 2 = Erosion
 
 private:
@@ -44,7 +44,7 @@ private:
 	TSharedRef<SWidget> BuildCenter();
 	TSharedRef<SWidget> BuildRightPane();
 
-	// Azioni
+	// Actions
 	FReply OnNavClicked(const int32 Index);
 	FReply OnActionCreateHeightMap();
 	FReply OnActionCreateLandscapeInternal();

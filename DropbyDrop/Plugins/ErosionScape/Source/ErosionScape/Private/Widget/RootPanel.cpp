@@ -21,7 +21,7 @@
 
 void SRootPanel::Construct(const FArguments& InArgs)
 {
-	// Inizializza i settings condivisi (usiamo TSharedPtr per evitare TSharedRef vuoti)
+	// Initialize the shared settings (we use TSharedPtr to avoid empty TSharedRef)
 	Heightmap = MakeShared<FHeightMapGenerationSettings>();
 	External  = MakeShared<FExternalHeightMapSettings>();
 	Landscape = MakeShared<FLandscapeGenerationSettings>();
@@ -40,14 +40,14 @@ void SRootPanel::Construct(const FArguments& InArgs)
 			BuildSidebar()
 		]
 
-		// Contenuto centrale (switcher)
+		// Switcher
 		+ SHorizontalBox::Slot()
 		.FillWidth(.5f)
 		[
 			BuildCenter()
 		]
 
-		// Colonna destra (preview + azioni rapide)
+		// preview + rapid action
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
 		[
@@ -106,7 +106,7 @@ TSharedRef<SWidget> SRootPanel::BuildCenter()
 	SAssignNew(Switcher, SWidgetSwitcher)
 	.WidgetIndex(ActiveIndex)
 
-	// 0) HeightMap
+	// HeightMap
 	+ SWidgetSwitcher::Slot()
 	[
 		SNew(SHeightMapPanel)
@@ -115,7 +115,7 @@ TSharedRef<SWidget> SRootPanel::BuildCenter()
 		.Landscape(Landscape)
 	]
 
-	// 1) Landscape
+	// Landscape
 	+ SWidgetSwitcher::Slot()
 	[
 		SNew(SLandscapePanel)
@@ -124,27 +124,26 @@ TSharedRef<SWidget> SRootPanel::BuildCenter()
 		.Landscape(Landscape.ToSharedRef())
 	]
 
-	// 2) Erosion
+	// Erosion
 	+ SWidgetSwitcher::Slot()
 	[
 		SNew(SErosionPanel)
 		.Heightmap(Heightmap.ToSharedRef())
 		.External(External.ToSharedRef())
 		.Landscape(Landscape.ToSharedRef())
-		// .TemplateManager(nullptr) // Passa il tuo manager se/quando serve
+		// .TemplateManager(nullptr) 
 	];
 }
 
 TSharedRef<SWidget> SRootPanel::BuildRightPane()
 {
-	// Barra azioni + preview persistente
 	return
 	SNew(SBorder)
 	.Padding(8)
 	[
 		SNew(SVerticalBox)
 
-		// Azioni rapide (dipendono poco dal pannello corrente; non cambiamo la logica)
+		// Quick actions 
 		+ SVerticalBox::Slot().AutoHeight().Padding(2)
 		[
 			SNew(STextBlock)
@@ -178,7 +177,7 @@ TSharedRef<SWidget> SRootPanel::BuildRightPane()
 			SNew(SSeparator)
 		]
 
-		// Preview persistente della heightmap salvata
+		// Preview heightmap 
 		+ SVerticalBox::Slot().AutoHeight().Padding(2)
 		[
 			SNew(STextBlock)
@@ -216,7 +215,7 @@ FReply SRootPanel::OnActionCreateHeightMap()
 
 FReply SRootPanel::OnActionCreateLandscapeInternal()
 {
-	static const FString DummyPath; // l’API accetta una stringa; internamente usa i settings
+	static const FString DummyPath;
 	UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(DummyPath, *Heightmap, *External, *Landscape);
 	RefreshRightPreview();
 	return FReply::Handled();
@@ -231,7 +230,6 @@ FReply SRootPanel::OnActionImportPNG()
 
 void SRootPanel::RefreshRightPreview()
 {
-	// Ricarica l’asset salvato dal generatore (stesso path usato ovunque nel progetto)
 	UTexture2D* Loaded = Cast<UTexture2D>(
 		StaticLoadObject(UTexture2D::StaticClass(), nullptr,
 			TEXT("/Game/SavedAssets/TextureHeightMap.TextureHeightMap"))

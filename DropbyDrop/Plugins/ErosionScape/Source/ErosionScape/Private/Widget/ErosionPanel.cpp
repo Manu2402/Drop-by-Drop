@@ -36,7 +36,7 @@ void SErosionPanel::Construct(const FArguments& Args)
 			.Font(FCoreStyle::GetDefaultFontStyle("Bold", 12))
 		]
 
-		// --- Basic controls (always visible) -------------------------------------------------------
+		// Basic controls (always visible) 
 		// Erosion Cycles (keep width compact so it doesn't stretch with Wind controls)
 		+ SVerticalBox::Slot().AutoHeight().Padding(5)
 		[
@@ -153,7 +153,7 @@ void SErosionPanel::Construct(const FArguments& Args)
 			SNew(SSeparator)
 		]
 
-		// --- Advanced Toggle -----------------------------------------------------------------------
+		// Advanced Toggle 
 		+ SVerticalBox::Slot().AutoHeight().Padding(5)
 		[
 			SNew(SHorizontalBox)
@@ -175,7 +175,7 @@ void SErosionPanel::Construct(const FArguments& Args)
 			]
 		]
 
-		// --- Advanced Parameters (collapsible) -----------------------------------------------------
+		// Advanced Parameters (collapsible)
 		+ SVerticalBox::Slot().AutoHeight().Padding(5)
 		[
 			SNew(SVerticalBox)

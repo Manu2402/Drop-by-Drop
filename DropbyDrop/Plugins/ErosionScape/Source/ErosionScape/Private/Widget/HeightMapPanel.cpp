@@ -210,7 +210,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 			]
 		]
 
-		// --- Advanced controls (visibili solo se Advanced è checked) ---
+		// --- Advanced controls (Advanced is checked) ---
 		+ SVerticalBox::Slot().AutoHeight().Padding(5)
 		[
 			SNew(SVerticalBox)
