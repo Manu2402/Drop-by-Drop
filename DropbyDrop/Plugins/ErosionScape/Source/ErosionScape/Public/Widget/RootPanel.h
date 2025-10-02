@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "CoreMinimal.h"
+#include "ErosionTemplateManager.h"
 #include "Widgets/SCompoundWidget.h"
 
 struct FHeightMapGenerationSettings;
@@ -34,9 +35,11 @@ private:
 	TSharedPtr<FSlateBrush>               RightPreviewBrush;
 	TSharedPtr<SImage>                    RightPreviewImage;
 	TStrongObjectPtr<class UTexture2D>    RightPreviewTexture;
-
-	// 
+	
 	int32 ActiveIndex = 0; // 0 = HeightMap, 1 = Landscape, 2 = Erosion
+
+	//Template
+	TObjectPtr<UErosionTemplateManager> ErosionTemplateManager;
 
 private:
 	// UI

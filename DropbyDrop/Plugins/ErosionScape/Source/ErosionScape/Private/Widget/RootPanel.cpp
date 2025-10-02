@@ -1,6 +1,7 @@
 ﻿#include "Widget/RootPanel.h"
 
 #include "ErosionScapeSettings.h"
+#include "ErosionTemplateManager.h"
 #include "GeneratorHeightMapLibrary.h"
 
 #include "Widgets/SBoxPanel.h"
@@ -25,7 +26,7 @@ void SRootPanel::Construct(const FArguments& InArgs)
 	Heightmap = MakeShared<FHeightMapGenerationSettings>();
 	External  = MakeShared<FExternalHeightMapSettings>();
 	Landscape = MakeShared<FLandscapeGenerationSettings>();
-
+	ErosionTemplateManager = NewObject<UErosionTemplateManager>();
 	// Brush & preview
 	RightPreviewBrush = MakeShared<FSlateBrush>();
 
@@ -123,7 +124,7 @@ TSharedRef<SWidget> SRootPanel::BuildCenter()
 		.External(External.ToSharedRef())
 		.Landscape(Landscape.ToSharedRef())
 	]
-
+		
 	// Erosion
 	+ SWidgetSwitcher::Slot()
 	[
@@ -131,7 +132,7 @@ TSharedRef<SWidget> SRootPanel::BuildCenter()
 		.Heightmap(Heightmap.ToSharedRef())
 		.External(External.ToSharedRef())
 		.Landscape(Landscape.ToSharedRef())
-		// .TemplateManager(nullptr) 
+		.TemplateManager(ErosionTemplateManager) 
 	];
 }
 
