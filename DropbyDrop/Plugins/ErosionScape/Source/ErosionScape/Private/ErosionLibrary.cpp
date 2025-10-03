@@ -230,9 +230,6 @@ FVector2D UErosionLibrary::GetWindDirection()
 
 	const float Sigma = 15.f; // Tuned.
 
-	// TEMP
-	WindDirection = EWindDirection::Random;
-
 	float& WindAngle = Mu;
 
 	switch (WindDirection)
@@ -469,9 +466,3 @@ void UErosionLibrary::Erosion(FErosionContext& ErosionContext, const int32 GridS
 
 	// Erosion ended.
 }
-
-// TO FIX:
-// • "ErosionCycles" from int32 to uint64
-// • Make a custom log category
-// • Remove "TEMP" set into GetWindDirection()
-// • When we create the "erosion parameters struct", create another struct that wraps both "erosion parameters struct" and "erosion context"
