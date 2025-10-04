@@ -174,7 +174,7 @@ void SErosionPanel::Construct(const FArguments& Args)
 		]
 
 		// Advanced Toggle 
-		+ SVerticalBox::Slot().AutoHeight().Padding(5)
+		/*+ SVerticalBox::Slot().AutoHeight().Padding(5)
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
@@ -193,157 +193,161 @@ void SErosionPanel::Construct(const FArguments& Args)
 					bShowAdvanced = (S == ECheckBoxState::Checked);
 				})
 			]
-		]
+		]*/
 
-		// Advanced Parameters (collapsible)
-		+ SVerticalBox::Slot().AutoHeight().Padding(5)
+		// --- Advanced ---
+		+SVerticalBox::Slot().AutoHeight().Padding(5)
 		[
-			SNew(SVerticalBox)
-			.Visibility_Lambda([this]() { return GetAdvancedVisibility(); })
+			SNew(SExpandableArea)
+				.InitiallyCollapsed(true)
+				.AreaTitle(FText::FromString("Advanced"))
+				.BodyContent()
+				[
+					SNew(SVerticalBox)
+						+ SVerticalBox::Slot().AutoHeight().Padding(2)
+						[
+									SNew(SHorizontalBox)
+										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+										[
+											SNew(STextBlock).Text(FText::FromString("Inertia"))
+										]
+										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
+										[
+											SNew(SNumericEntryBox<float>)
+												.Value_Lambda([]()-> TOptional<float> { return UErosionLibrary::GetInertia(); })
+												.OnValueChanged_Lambda([](float V) { UErosionLibrary::SetInertia(V); })
+										]
+								]
 
-			// Inertia
-			+ SVerticalBox::Slot().AutoHeight().Padding(2)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-				[
-					SNew(STextBlock).Text(FText::FromString("Inertia"))
-				]
-				+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
-				[
-					SNew(SNumericEntryBox<float>)
-					.Value_Lambda([]()-> TOptional<float> { return UErosionLibrary::GetInertia(); })
-					.OnValueChanged_Lambda([](float V) { UErosionLibrary::SetInertia(V); })
-				]
-			]
+							// Capacity
+							+ SVerticalBox::Slot().AutoHeight().Padding(2)
+								[
+									SNew(SHorizontalBox)
+										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+										[
+											SNew(STextBlock).Text(FText::FromString("Capacity"))
+										]
+										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
+										[
+											SNew(SNumericEntryBox<int32>)
+												.Value_Lambda([]()-> TOptional<int32> { return UErosionLibrary::GetCapacity(); })
+												.OnValueChanged_Lambda([](int32 V) { UErosionLibrary::SetCapacity(V); })
+										]
+								]
 
-			// Capacity
-			+ SVerticalBox::Slot().AutoHeight().Padding(2)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-				[
-					SNew(STextBlock).Text(FText::FromString("Capacity"))
-				]
-				+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
-				[
-					SNew(SNumericEntryBox<int32>)
-					.Value_Lambda([]()-> TOptional<int32> { return UErosionLibrary::GetCapacity(); })
-					.OnValueChanged_Lambda([](int32 V) { UErosionLibrary::SetCapacity(V); })
-				]
-			]
+							// Minimal Slope
+							+ SVerticalBox::Slot().AutoHeight().Padding(2)
+								[
+									SNew(SHorizontalBox)
+										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+										[
+											SNew(STextBlock).Text(FText::FromString("Minimal Slope"))
+										]
+										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
+										[
+											SNew(SNumericEntryBox<float>)
+												.Value_Lambda([]()-> TOptional<float> { return UErosionLibrary::GetMinimalSlope(); })
+												.OnValueChanged_Lambda([](float V) { UErosionLibrary::SetMinimalSlope(V); })
+										]
+								]
 
-			// Minimal Slope
-			+ SVerticalBox::Slot().AutoHeight().Padding(2)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-				[
-					SNew(STextBlock).Text(FText::FromString("Minimal Slope"))
-				]
-				+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
-				[
-					SNew(SNumericEntryBox<float>)
-					.Value_Lambda([]()-> TOptional<float> { return UErosionLibrary::GetMinimalSlope(); })
-					.OnValueChanged_Lambda([](float V) { UErosionLibrary::SetMinimalSlope(V); })
-				]
-			]
+							// Deposition Speed
+							+ SVerticalBox::Slot().AutoHeight().Padding(2)
+								[
+									SNew(SHorizontalBox)
+										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+										[
+											SNew(STextBlock).Text(FText::FromString("Deposition Speed"))
+										]
+										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
+										[
+											SNew(SNumericEntryBox<float>)
+												.Value_Lambda([]()-> TOptional<float> { return UErosionLibrary::GetDepositionSpeed(); })
+												.OnValueChanged_Lambda([](float V) { UErosionLibrary::SetDepositionSpeed(V); })
+										]
+								]
 
-			// Deposition Speed
-			+ SVerticalBox::Slot().AutoHeight().Padding(2)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-				[
-					SNew(STextBlock).Text(FText::FromString("Deposition Speed"))
-				]
-				+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
-				[
-					SNew(SNumericEntryBox<float>)
-					.Value_Lambda([]()-> TOptional<float> { return UErosionLibrary::GetDepositionSpeed(); })
-					.OnValueChanged_Lambda([](float V) { UErosionLibrary::SetDepositionSpeed(V); })
-				]
-			]
+							// Erosion Speed
+							+ SVerticalBox::Slot().AutoHeight().Padding(2)
+								[
+									SNew(SHorizontalBox)
+										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+										[
+											SNew(STextBlock).Text(FText::FromString("Erosion Speed"))
+										]
+										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
+										[
+											SNew(SNumericEntryBox<float>)
+												.Value_Lambda([]()-> TOptional<float> { return UErosionLibrary::GetErosionSpeed(); })
+												.OnValueChanged_Lambda([](float V) { UErosionLibrary::SetErosionSpeed(V); })
+										]
+								]
 
-			// Erosion Speed
-			+ SVerticalBox::Slot().AutoHeight().Padding(2)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-				[
-					SNew(STextBlock).Text(FText::FromString("Erosion Speed"))
-				]
-				+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
-				[
-					SNew(SNumericEntryBox<float>)
-					.Value_Lambda([]()-> TOptional<float> { return UErosionLibrary::GetErosionSpeed(); })
-					.OnValueChanged_Lambda([](float V) { UErosionLibrary::SetErosionSpeed(V); })
-				]
-			]
+							// Gravity
+							+ SVerticalBox::Slot().AutoHeight().Padding(2)
+								[
+									SNew(SHorizontalBox)
+										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+										[
+											SNew(STextBlock).Text(FText::FromString("Gravity"))
+										]
+										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
+										[
+											SNew(SNumericEntryBox<int32>)
+												.Value_Lambda([]()-> TOptional<int32> { return UErosionLibrary::GetGravity(); })
+												.OnValueChanged_Lambda([](int32 V) { UErosionLibrary::SetGravity(V); })
+										]
+								]
 
-			// Gravity
-			+ SVerticalBox::Slot().AutoHeight().Padding(2)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-				[
-					SNew(STextBlock).Text(FText::FromString("Gravity"))
-				]
-				+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
-				[
-					SNew(SNumericEntryBox<int32>)
-					.Value_Lambda([]()-> TOptional<int32> { return UErosionLibrary::GetGravity(); })
-					.OnValueChanged_Lambda([](int32 V) { UErosionLibrary::SetGravity(V); })
-				]
-			]
+							// Evaporation
+							+ SVerticalBox::Slot().AutoHeight().Padding(2)
+								[
+									SNew(SHorizontalBox)
+										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+										[
+											SNew(STextBlock).Text(FText::FromString("Evaporation"))
+										]
+										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
+										[
+											SNew(SNumericEntryBox<float>)
+												.Value_Lambda([]()-> TOptional<float> { return UErosionLibrary::GetEvaporation(); })
+												.OnValueChanged_Lambda([](float V) { UErosionLibrary::SetEvaporation(V); })
+										]
+								]
 
-			// Evaporation
-			+ SVerticalBox::Slot().AutoHeight().Padding(2)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-				[
-					SNew(STextBlock).Text(FText::FromString("Evaporation"))
-				]
-				+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
-				[
-					SNew(SNumericEntryBox<float>)
-					.Value_Lambda([]()-> TOptional<float> { return UErosionLibrary::GetEvaporation(); })
-					.OnValueChanged_Lambda([](float V) { UErosionLibrary::SetEvaporation(V); })
-				]
-			]
+							// Max Path
+							+ SVerticalBox::Slot().AutoHeight().Padding(2)
+								[
+									SNew(SHorizontalBox)
+										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+										[
+											SNew(STextBlock).Text(FText::FromString("Max Path"))
+										]
+										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
+										[
+											SNew(SNumericEntryBox<int32>)
+												.Value_Lambda([]()-> TOptional<int32> { return UErosionLibrary::GetMaxPath(); })
+												.OnValueChanged_Lambda([](int32 V) { UErosionLibrary::SetMaxPath(V); })
+										]
+								]
 
-			// Max Path
-			+ SVerticalBox::Slot().AutoHeight().Padding(2)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-				[
-					SNew(STextBlock).Text(FText::FromString("Max Path"))
+							// Erosion Radius
+							+ SVerticalBox::Slot().AutoHeight().Padding(2)
+								[
+									SNew(SHorizontalBox)
+										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+										[
+											SNew(STextBlock).Text(FText::FromString("Erosion Radius"))
+										]
+										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
+										[
+											SNew(SNumericEntryBox<int32>)
+												.Value_Lambda([]()-> TOptional<int32> { return UErosionLibrary::GetErosionRadius(); })
+												.OnValueChanged_Lambda([](int32 V) { UErosionLibrary::SetErosionRadius(V); })
+										]
+								]
+						
 				]
-				+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
-				[
-					SNew(SNumericEntryBox<int32>)
-					.Value_Lambda([]()-> TOptional<int32> { return UErosionLibrary::GetMaxPath(); })
-					.OnValueChanged_Lambda([](int32 V) { UErosionLibrary::SetMaxPath(V); })
-				]
-			]
-
-			// Erosion Radius
-			+ SVerticalBox::Slot().AutoHeight().Padding(2)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-				[
-					SNew(STextBlock).Text(FText::FromString("Erosion Radius"))
-				]
-				+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
-				[
-					SNew(SNumericEntryBox<int32>)
-					.Value_Lambda([]()-> TOptional<int32> { return UErosionLibrary::GetErosionRadius(); })
-					.OnValueChanged_Lambda([](int32 V) { UErosionLibrary::SetErosionRadius(V); })
-				]
-			]
 		]
 
 		+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)

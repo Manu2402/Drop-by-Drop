@@ -27,10 +27,6 @@ private:
 	TSharedPtr< SImage>      PreviewImage;
 	void RefreshPreview();
 
-	// Preset & Advanced
-	bool bShowAdvanced = false;
-	EVisibility GetAdvancedVisibility() const { return bShowAdvanced ? EVisibility::Visible : EVisibility::Collapsed; }
-	
 	FHeightMapGenerationSettings PresetLight;
 	FHeightMapGenerationSettings PresetMedium;
 	FHeightMapGenerationSettings PresetHeavy;

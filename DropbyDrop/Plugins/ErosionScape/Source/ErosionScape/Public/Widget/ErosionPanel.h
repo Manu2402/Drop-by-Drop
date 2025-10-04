@@ -39,10 +39,6 @@ private:
 
 	TSharedPtr<SComboBox<TSharedPtr<FString>>> WindCombo;
 
-	// Advanced foldout
-	bool bShowAdvanced = false;
-	EVisibility GetAdvancedVisibility() const { return bShowAdvanced ? EVisibility::Visible : EVisibility::Collapsed; }
-
 private:
 	// Helpers
 	void BuildWindDirections();

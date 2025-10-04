@@ -70,95 +70,84 @@ void SLandscapePanel::Construct(const FArguments& Args)
 			SNew(SSeparator)
 		]
 
-		// Toggle Advanced
-		+ SVerticalBox::Slot().AutoHeight().Padding(5)
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-			[
-				SNew(STextBlock).Text(FText::FromString("Advanced"))
-			]
-			+ SHorizontalBox::Slot().AutoWidth().Padding(8, 0)
-			[
-				SNew(SCheckBox)
-				.IsChecked_Lambda([this]()
-				{
-					return bShowAdvanced ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-				})
-				.OnCheckStateChanged_Lambda(
-					[this](ECheckBoxState S) { bShowAdvanced = (S == ECheckBoxState::Checked); })
-			]
-		]
-
 		// --- Advanced ---
+
 		+ SVerticalBox::Slot().AutoHeight().Padding(5)
 		[
-			SNew(SVerticalBox)
-			.Visibility_Lambda([this]() { return GetAdvancedVisibility(); })
+				SNew(SExpandableArea)
+					.InitiallyCollapsed(true)
+					.AreaTitle(FText::FromString("Advanced"))
+					.BodyContent()
+					[
+						SNew(SVerticalBox)
+							+ SVerticalBox::Slot().AutoHeight().Padding(2)
+							[
+								SNew(SVerticalBox)
+									// Scale X
+									+ SVerticalBox::Slot().AutoHeight().Padding(2)
+									[
+										SNew(SHorizontalBox)
+											+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+											[
+												SNew(STextBlock).Text(FText::FromString("Scale X"))
+											]
+											+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
+											[
+												SNew(SNumericEntryBox<float>)
+													.Value_Lambda([E = External]()-> TOptional<float> { return E->ScalingX; })
+													.OnValueChanged_Lambda([E = External](float V) { E->ScalingX = V; })
+											]
+									]
 
-			// Scale X
-			+ SVerticalBox::Slot().AutoHeight().Padding(2)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-				[
-					SNew(STextBlock).Text(FText::FromString("Scale X"))
-				]
-				+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
-				[
-					SNew(SNumericEntryBox<float>)
-					.Value_Lambda([E=External]()-> TOptional<float> { return E->ScalingX; })
-					.OnValueChanged_Lambda([E=External](float V) { E->ScalingX = V; })
-				]
-			]
+								// Scale Y
+								+ SVerticalBox::Slot().AutoHeight().Padding(2)
+									[
+										SNew(SHorizontalBox)
+											+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+											[
+												SNew(STextBlock).Text(FText::FromString("Scale Y"))
+											]
+											+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
+											[
+												SNew(SNumericEntryBox<float>)
+													.Value_Lambda([E = External]()-> TOptional<float> { return E->ScalingY; })
+													.OnValueChanged_Lambda([E = External](float V) { E->ScalingY = V; })
+											]
+									]
 
-			// Scale Y
-			+ SVerticalBox::Slot().AutoHeight().Padding(2)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-				[
-					SNew(STextBlock).Text(FText::FromString("Scale Y"))
-				]
-				+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
-				[
-					SNew(SNumericEntryBox<float>)
-					.Value_Lambda([E=External]()-> TOptional<float> { return E->ScalingY; })
-					.OnValueChanged_Lambda([E=External](float V) { E->ScalingY = V; })
-				]
-			]
+								// Scale Z
+								+ SVerticalBox::Slot().AutoHeight().Padding(2)
+									[
+										SNew(SHorizontalBox)
+											+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+											[
+												SNew(STextBlock).Text(FText::FromString("Scale Z"))
+											]
+											+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
+											[
+												SNew(SNumericEntryBox<float>)
+													.Value_Lambda([E = External]()-> TOptional<float> { return E->ScalingZ; })
+													.OnValueChanged_Lambda([E = External](float V) { E->ScalingZ = V; })
+											]
+									]
 
-			// Scale Z
-			+ SVerticalBox::Slot().AutoHeight().Padding(2)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-				[
-					SNew(STextBlock).Text(FText::FromString("Scale Z"))
-				]
-				+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
-				[
-					SNew(SNumericEntryBox<float>)
-					.Value_Lambda([E=External]()-> TOptional<float> { return E->ScalingZ; })
-					.OnValueChanged_Lambda([E=External](float V) { E->ScalingZ = V; })
-				]
-			]
-
-			// World Partition Grid Size
-			+ SVerticalBox::Slot().AutoHeight().Padding(2)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-				[
-					SNew(STextBlock).Text(FText::FromString("World Partition Grid Size"))
-				]
-				+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
-				[
-					SNew(SNumericEntryBox<int32>)
-					.Value_Lambda([L=Landscape]()-> TOptional<int32> { return L->WorldPartitionGridSize; })
-					.OnValueChanged_Lambda([L=Landscape](int32 V) { L->WorldPartitionGridSize = V; })
-				]
-			]
+								// World Partition Grid Size
+								+ SVerticalBox::Slot().AutoHeight().Padding(2)
+									[
+										SNew(SHorizontalBox)
+											+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+											[
+												SNew(STextBlock).Text(FText::FromString("World Partition Grid Size"))
+											]
+											+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
+											[
+												SNew(SNumericEntryBox<int32>)
+													.Value_Lambda([L = Landscape]()-> TOptional<int32> { return L->WorldPartitionGridSize; })
+													.OnValueChanged_Lambda([L = Landscape](int32 V) { L->WorldPartitionGridSize = V; })
+											]
+									]
+							]
+					]
 		]
 
 		+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)

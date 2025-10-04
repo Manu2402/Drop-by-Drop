@@ -195,152 +195,139 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 			SNew(SSeparator)
 		]
 
-		// Toggle Advanced
+		// --- Advanced ---
+
 		+ SVerticalBox::Slot().AutoHeight().Padding(5)
 		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-			[
-				SNew(STextBlock).Text(FText::FromString("Advanced"))
-			]
-			+ SHorizontalBox::Slot().AutoWidth().Padding(8, 0)
-			[
-				SNew(SCheckBox)
-				.IsChecked_Lambda([this]()
-				{
-					return bShowAdvanced ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-				})
-				.OnCheckStateChanged_Lambda(
-					[this](ECheckBoxState S) { bShowAdvanced = (S == ECheckBoxState::Checked); })
-			]
+			SNew(SExpandableArea)
+				.InitiallyCollapsed(true)
+				.AreaTitle(FText::FromString("Advanced"))
+				.BodyContent()
+				[
+					SNew(SVerticalBox)
+						+ SVerticalBox::Slot().AutoHeight().Padding(2)
+						[
+								// Seed
+									SNew(SHorizontalBox)
+										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+										[
+											SNew(STextBlock).Text(FText::FromString("Seed"))
+										]
+										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
+										[
+											SNew(SNumericEntryBox<int32>)
+												.Value_Lambda([this]()-> TOptional<int32> { return Heightmap->Seed; })
+												.OnValueChanged_Lambda([this](int32 V) { Heightmap->Seed = V; })
+										]
+								]
+
+							// Octaves
+							+ SVerticalBox::Slot().AutoHeight().Padding(2)
+								[
+									SNew(SHorizontalBox)
+										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+										[
+											SNew(STextBlock).Text(FText::FromString("Octaves"))
+										]
+										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
+										[
+											SNew(SNumericEntryBox<int32>)
+												.Value_Lambda([this]()-> TOptional<int32> { return Heightmap->NumOctaves; })
+												.OnValueChanged_Lambda([this](int32 V) { Heightmap->NumOctaves = V; })
+										]
+								]
+
+							// Persistence
+							+ SVerticalBox::Slot().AutoHeight().Padding(2)
+								[
+									SNew(SHorizontalBox)
+										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+										[
+											SNew(STextBlock).Text(FText::FromString("Persistence"))
+										]
+										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
+										[
+											SNew(SNumericEntryBox<float>)
+												.Value_Lambda([this]()-> TOptional<float> { return Heightmap->Persistence; })
+												.OnValueChanged_Lambda([this](float V) { Heightmap->Persistence = V; })
+												.MinValue(0.0f)
+												.MaxValue(10.0f)
+										]
+								]
+
+							// Lacunarity
+							+ SVerticalBox::Slot().AutoHeight().Padding(2)
+								[
+									SNew(SHorizontalBox)
+										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+										[
+											SNew(STextBlock).Text(FText::FromString("Lacunarity"))
+										]
+										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
+										[
+											SNew(SNumericEntryBox<float>)
+												.Value_Lambda([this]()-> TOptional<float> { return Heightmap->Lacunarity; })
+												.OnValueChanged_Lambda([this](float V) { Heightmap->Lacunarity = V; })
+												.MinValue(0.0f)
+												.MaxValue(10.0f)
+										]
+								]
+
+							// Initial Scale
+							+ SVerticalBox::Slot().AutoHeight().Padding(2)
+								[
+									SNew(SHorizontalBox)
+										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+										[
+											SNew(STextBlock).Text(FText::FromString("Initial Scale"))
+										]
+										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
+										[
+											SNew(SNumericEntryBox<float>)
+												.Value_Lambda([this]()-> TOptional<float> { return Heightmap->InitialScale; })
+												.OnValueChanged_Lambda([this](float V) { Heightmap->InitialScale = V; })
+												.MinValue(0.0f)
+												.MaxValue(100.0f)
+										]
+								]
+
+							// Size
+							+ SVerticalBox::Slot().AutoHeight().Padding(2)
+								[
+									SNew(SHorizontalBox)
+										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+										[
+											SNew(STextBlock).Text(FText::FromString("Size"))
+										]
+										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
+										[
+											SNew(SNumericEntryBox<int32>)
+												.Value_Lambda([this]()-> TOptional<int32> { return Heightmap->Size; })
+												.OnValueChanged_Lambda([this](int32 V) { Heightmap->Size = V; })
+										]
+								]
+
+							// Max Height Difference
+							+ SVerticalBox::Slot().AutoHeight().Padding(2)
+								[
+									SNew(SHorizontalBox)
+										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+										[
+											SNew(STextBlock).Text(FText::FromString("Max Height Difference"))
+										]
+										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
+										[
+											SNew(SNumericEntryBox<float>)
+												.Value_Lambda([this]()-> TOptional<float> { return Heightmap->MaxHeightDifference; })
+												.OnValueChanged_Lambda([this](float V) { Heightmap->MaxHeightDifference = V; })
+												.MinValue(0.0f)
+												.MaxValue(1000.0f)
+										]
+								]
+				]
+			
 		]
 
-		// --- Advanced controls (Advanced is checked) ---
-		+ SVerticalBox::Slot().AutoHeight().Padding(5)
-		[
-			SNew(SVerticalBox)
-			.Visibility_Lambda([this]() { return GetAdvancedVisibility(); })
-
-			// Seed
-			+ SVerticalBox::Slot().AutoHeight().Padding(2)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-				[
-					SNew(STextBlock).Text(FText::FromString("Seed"))
-				]
-				+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
-				[
-					SNew(SNumericEntryBox<int32>)
-					.Value_Lambda([this]()-> TOptional<int32> { return Heightmap->Seed; })
-					.OnValueChanged_Lambda([this](int32 V) { Heightmap->Seed = V; })
-				]
-			]
-
-			// Octaves
-			+ SVerticalBox::Slot().AutoHeight().Padding(2)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-				[
-					SNew(STextBlock).Text(FText::FromString("Octaves"))
-				]
-				+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
-				[
-					SNew(SNumericEntryBox<int32>)
-					.Value_Lambda([this]()-> TOptional<int32> { return Heightmap->NumOctaves; })
-					.OnValueChanged_Lambda([this](int32 V) { Heightmap->NumOctaves = V; })
-				]
-			]
-
-			// Persistence
-			+ SVerticalBox::Slot().AutoHeight().Padding(2)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-				[
-					SNew(STextBlock).Text(FText::FromString("Persistence"))
-				]
-				+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
-				[
-					SNew(SNumericEntryBox<float>)
-					.Value_Lambda([this]()-> TOptional<float> { return Heightmap->Persistence; })
-					.OnValueChanged_Lambda([this](float V) { Heightmap->Persistence = V; })
-					.MinValue(0.0f)
-					.MaxValue(10.0f)
-				]
-			]
-
-			// Lacunarity
-			+ SVerticalBox::Slot().AutoHeight().Padding(2)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-				[
-					SNew(STextBlock).Text(FText::FromString("Lacunarity"))
-				]
-				+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
-				[
-					SNew(SNumericEntryBox<float>)
-					.Value_Lambda([this]()-> TOptional<float> { return Heightmap->Lacunarity; })
-					.OnValueChanged_Lambda([this](float V) { Heightmap->Lacunarity = V; })
-					.MinValue(0.0f)
-					.MaxValue(10.0f)
-				]
-			]
-
-			// Initial Scale
-			+ SVerticalBox::Slot().AutoHeight().Padding(2)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-				[
-					SNew(STextBlock).Text(FText::FromString("Initial Scale"))
-				]
-				+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
-				[
-					SNew(SNumericEntryBox<float>)
-					.Value_Lambda([this]()-> TOptional<float> { return Heightmap->InitialScale; })
-					.OnValueChanged_Lambda([this](float V) { Heightmap->InitialScale = V; })
-					.MinValue(0.0f)
-					.MaxValue(100.0f)
-				]
-			]
-
-			// Size
-			+ SVerticalBox::Slot().AutoHeight().Padding(2)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-				[
-					SNew(STextBlock).Text(FText::FromString("Size"))
-				]
-				+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
-				[
-					SNew(SNumericEntryBox<int32>)
-					.Value_Lambda([this]()-> TOptional<int32> { return Heightmap->Size; })
-					.OnValueChanged_Lambda([this](int32 V) { Heightmap->Size = V; })
-				]
-			]
-
-			// Max Height Difference
-			+ SVerticalBox::Slot().AutoHeight().Padding(2)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-				[
-					SNew(STextBlock).Text(FText::FromString("Max Height Difference"))
-				]
-				+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
-				[
-					SNew(SNumericEntryBox<float>)
-					.Value_Lambda([this]()-> TOptional<float> { return Heightmap->MaxHeightDifference; })
-					.OnValueChanged_Lambda([this](float V) { Heightmap->MaxHeightDifference = V; })
-					.MinValue(0.0f)
-					.MaxValue(1000.0f)
-				]
-			]
-		]
 
 		+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)
 		[
