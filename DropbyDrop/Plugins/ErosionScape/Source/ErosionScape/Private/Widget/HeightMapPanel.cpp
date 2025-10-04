@@ -169,14 +169,14 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 			]
 		]
 		// Randomize Seed
-		+ SVerticalBox::Slot().AutoHeight().Padding(2)
+		+ SVerticalBox::Slot().AutoHeight().Padding(5)
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 			[
 				SNew(STextBlock).Text(FText::FromString("Randomize Seed"))
 			]
-			+ SHorizontalBox::Slot().AutoWidth()
+			+ SHorizontalBox::Slot().AutoWidth().Padding(8, 0)
 			[
 				SNew(SCheckBox)
 				.IsChecked_Lambda([this]()
@@ -188,6 +188,11 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 					Heightmap->bRandomizeSeed = (State == ECheckBoxState::Checked);
 				})
 			]
+		]
+
+		+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)
+		[
+			SNew(SSeparator)
 		]
 
 		// Toggle Advanced
@@ -236,7 +241,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 			+ SVerticalBox::Slot().AutoHeight().Padding(2)
 			[
 				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth()
+				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 				[
 					SNew(STextBlock).Text(FText::FromString("Octaves"))
 				]
@@ -252,7 +257,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 			+ SVerticalBox::Slot().AutoHeight().Padding(2)
 			[
 				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth()
+				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 				[
 					SNew(STextBlock).Text(FText::FromString("Persistence"))
 				]
@@ -270,7 +275,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 			+ SVerticalBox::Slot().AutoHeight().Padding(2)
 			[
 				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth()
+				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 				[
 					SNew(STextBlock).Text(FText::FromString("Lacunarity"))
 				]
@@ -288,7 +293,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 			+ SVerticalBox::Slot().AutoHeight().Padding(2)
 			[
 				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth()
+				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 				[
 					SNew(STextBlock).Text(FText::FromString("Initial Scale"))
 				]
@@ -306,7 +311,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 			+ SVerticalBox::Slot().AutoHeight().Padding(2)
 			[
 				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth()
+				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 				[
 					SNew(STextBlock).Text(FText::FromString("Size"))
 				]
@@ -322,7 +327,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 			+ SVerticalBox::Slot().AutoHeight().Padding(2)
 			[
 				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth()
+				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 				[
 					SNew(STextBlock).Text(FText::FromString("Max Height Difference"))
 				]
@@ -337,16 +342,26 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 			]
 		]
 
+		+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)
+		[
+			SNew(SSeparator)
+		]
+
 		// Create HeightMap
 		+ SVerticalBox::Slot().AutoHeight().Padding(5)
 		[
 			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot().AutoWidth().Padding(5)
+			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 			[
 				SNew(SButton)
 				.Text(FText::FromString("Create HeightMap"))
 				.OnClicked(this, &SHeightMapPanel::OnCreateHeightmapClicked)
 			]
+		]
+
+		+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)
+		[
+			SNew(SSeparator)
 		]
 
 		// External HeightMap
@@ -361,7 +376,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 		+ SVerticalBox::Slot().AutoHeight().Padding(5)
 		[
 			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot().AutoWidth().Padding(5)
+			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 			[
 				SNew(SButton)
 				.Text(FText::FromString("Import External Heightmap"))

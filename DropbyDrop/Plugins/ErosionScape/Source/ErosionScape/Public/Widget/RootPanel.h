@@ -36,6 +36,8 @@ private:
 	TSharedPtr<SImage>                    RightPreviewImage;
 	TStrongObjectPtr<class UTexture2D>    RightPreviewTexture;
 	
+	// NavButtonTexts
+	TArray<TSharedPtr<STextBlock>> NavButtonTexts;
 	int32 ActiveIndex = 0; // 0 = HeightMap, 1 = Landscape, 2 = Erosion
 
 	//Template
@@ -45,7 +47,7 @@ private:
 	// UI
 	TSharedRef<SWidget> BuildSidebar();
 	TSharedRef<SWidget> BuildCenter();
-	TSharedRef<SWidget> BuildRightPane();
+	TSharedRef<SWidget> BuildRightPanel();
 
 	// Actions
 	FReply OnNavClicked(const int32 Index);

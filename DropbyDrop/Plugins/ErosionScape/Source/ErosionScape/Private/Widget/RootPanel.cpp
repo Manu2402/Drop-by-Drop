@@ -52,7 +52,7 @@ void SRootPanel::Construct(const FArguments& InArgs)
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
 		[
-			BuildRightPane()
+			BuildRightPanel()
 		]
 	];
 
@@ -63,16 +63,20 @@ TSharedRef<SWidget> SRootPanel::BuildSidebar()
 {
 	auto MakeNavButton = [this](const FText& Label, int32 Index)
 	{
-		return
-		SNew(SButton)
-		.ButtonStyle(&FCoreStyle::Get().GetWidgetStyle<FButtonStyle>("Button"))
-		.ContentPadding(FMargin(10,6))
-		.OnClicked(this, &SRootPanel::OnNavClicked, Index)
-		[
-			SNew(STextBlock)
-			.Text(Label)
-			.Font(FCoreStyle::GetDefaultFontStyle(Index == ActiveIndex ? "Bold" : "Regular", 10))
-		];
+		TSharedPtr<STextBlock> TextBlock;
+		TSharedRef<SWidget> Button =
+			SNew(SButton)
+			.ButtonStyle(&FCoreStyle::Get().GetWidgetStyle<FButtonStyle>("Button"))
+			.ContentPadding(FMargin(10, 6))
+			.OnClicked(this, &SRootPanel::OnNavClicked, Index)
+			[
+				SAssignNew(TextBlock, STextBlock)
+					.Text(Label)
+					.Font(FCoreStyle::GetDefaultFontStyle(Index == ActiveIndex ? "Bold" : "Regular", 10))
+			];
+
+		NavButtonTexts.Add(TextBlock);
+		return Button;
 	};
 
 	return SNew(SBorder)
@@ -136,7 +140,7 @@ TSharedRef<SWidget> SRootPanel::BuildCenter()
 	];
 }
 
-TSharedRef<SWidget> SRootPanel::BuildRightPane()
+TSharedRef<SWidget> SRootPanel::BuildRightPanel()
 {
 	return
 	SNew(SBorder)
@@ -199,11 +203,32 @@ TSharedRef<SWidget> SRootPanel::BuildRightPane()
 
 FReply SRootPanel::OnNavClicked(const int32 Index)
 {
+	if (Index == ActiveIndex)
+	{
+		return FReply::Handled();
+	}
+
+	if (NavButtonTexts.IsValidIndex(ActiveIndex) && NavButtonTexts[ActiveIndex].IsValid())
+	{
+		NavButtonTexts[ActiveIndex]->SetFont(
+			FCoreStyle::GetDefaultFontStyle("Regular", 10)
+		);
+	}
+
 	ActiveIndex = Index;
+
+	if (NavButtonTexts.IsValidIndex(Index) && NavButtonTexts[Index].IsValid())
+	{
+		NavButtonTexts[Index]->SetFont(
+			FCoreStyle::GetDefaultFontStyle("Bold", 10)
+		);
+	}
+
 	if (Switcher.IsValid())
 	{
 		Switcher->SetActiveWidgetIndex(Index);
 	}
+
 	return FReply::Handled();
 }
 

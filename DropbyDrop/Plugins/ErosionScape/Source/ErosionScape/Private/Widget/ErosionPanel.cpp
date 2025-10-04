@@ -50,8 +50,12 @@ void SErosionPanel::Construct(const FArguments& Args)
 				SNew(SNumericEntryBox<int32>)
 				.Value_Lambda([]()-> TOptional<int32> { return UErosionLibrary::GetErosionCycles(); })
 				.OnValueChanged_Lambda([](int32 V) { UErosionLibrary::SetErosion(V); })
-				.MinDesiredValueWidth(80.f) // keep it narrow to avoid stretching
 			]
+		]
+
+		+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)
+		[
+			SNew(SSeparator)
 		]
 
 		+ SVerticalBox::Slot().AutoHeight().Padding(5)
@@ -68,82 +72,98 @@ void SErosionPanel::Construct(const FArguments& Args)
 				]
 				+ SVerticalBox::Slot().AutoHeight()
 				[
-					SAssignNew(WindCombo, SComboBox<TSharedPtr<FString>>)
-					.OptionsSource(&WindDirections)
-					.InitiallySelectedItem(CurrentWindDirection)
-					.MaxListHeight(300.f)
-					.OnGenerateWidget_Lambda([](TSharedPtr<FString> Option) -> TSharedRef<SWidget>
-					{
-						return SNew(STextBlock).Text(FText::FromString(Option.IsValid() ? *Option : TEXT("")));
-					})
-					.OnSelectionChanged_Lambda([this](TSharedPtr<FString> Option, ESelectInfo::Type)
-					{
-						if (!Option.IsValid())
-							return;
+					SNew(SHorizontalBox)
 
-						CurrentWindDirection = Option;
-
-						if (WindDirectionEnumPtr)
-						{
-							const int32 WindValue = WindDirectionEnumPtr->GetValueByNameString(*Option);
-							if (WindValue != INDEX_NONE)
-							{
-								UErosionLibrary::SetWindDirection(static_cast<EWindDirection>(WindValue));
-								return;
-							}
-						}
-						// Fallback mapping by name
-						const FString& Name = *Option;
-						EWindDirection Dir = EWindDirection::Random;
-						if (Name == TEXT("Nord")) Dir = EWindDirection::Nord;
-						else if (Name == TEXT("Sud")) Dir = EWindDirection::Sud;
-						else if (Name == TEXT("Est")) Dir = EWindDirection::Est;
-						else if (Name == TEXT("Ovest")) Dir = EWindDirection::Ovest;
-						else if (Name == TEXT("Nord_Ovest")) Dir = EWindDirection::Nord_Ovest;
-						else if (Name == TEXT("Nord_Est")) Dir = EWindDirection::Nord_Est;
-						else if (Name == TEXT("Sud_Ovest")) Dir = EWindDirection::Sud_Ovest;
-						else if (Name == TEXT("Sud_Est")) Dir = EWindDirection::Sud_Est;
-
-						UErosionLibrary::SetWindDirection(Dir);
-					})
+					+ SHorizontalBox::Slot().AutoWidth()
 					[
-						// Selected content
-						SNew(STextBlock).Text_Lambda([this]()
-						{
-							return CurrentWindDirection.IsValid()
-								       ? FText::FromString(*CurrentWindDirection)
-								       : FText::FromString("Select\nWind Direction");
-						})
+						SAssignNew(WindCombo, SComboBox<TSharedPtr<FString>>)
+							.OptionsSource(&WindDirections)
+							.InitiallySelectedItem(CurrentWindDirection)
+							.MaxListHeight(300.f)
+							.OnGenerateWidget_Lambda([](TSharedPtr<FString> Option) -> TSharedRef<SWidget>
+								{
+									return SNew(STextBlock).Text(FText::FromString(Option.IsValid() ? *Option : TEXT("")));
+								})
+							.OnSelectionChanged_Lambda([this](TSharedPtr<FString> Option, ESelectInfo::Type)
+								{
+									if (!Option.IsValid())
+										return;
+
+									CurrentWindDirection = Option;
+
+									if (WindDirectionEnumPtr)
+									{
+										const int32 WindValue = WindDirectionEnumPtr->GetValueByNameString(*Option);
+										if (WindValue != INDEX_NONE)
+										{
+											UErosionLibrary::SetWindDirection(static_cast<EWindDirection>(WindValue));
+											return;
+										}
+									}
+									// Fallback mapping by name
+									const FString& Name = *Option;
+									EWindDirection Dir = EWindDirection::Random;
+									if (Name == TEXT("Nord")) Dir = EWindDirection::Nord;
+									else if (Name == TEXT("Sud")) Dir = EWindDirection::Sud;
+									else if (Name == TEXT("Est")) Dir = EWindDirection::Est;
+									else if (Name == TEXT("Ovest")) Dir = EWindDirection::Ovest;
+									else if (Name == TEXT("Nord_Ovest")) Dir = EWindDirection::Nord_Ovest;
+									else if (Name == TEXT("Nord_Est")) Dir = EWindDirection::Nord_Est;
+									else if (Name == TEXT("Sud_Ovest")) Dir = EWindDirection::Sud_Ovest;
+									else if (Name == TEXT("Sud_Est")) Dir = EWindDirection::Sud_Est;
+
+									UErosionLibrary::SetWindDirection(Dir);
+								})
+							[
+								// Selected content
+								SNew(STextBlock).Text_Lambda([this]()
+									{
+										return CurrentWindDirection.IsValid()
+											? FText::FromString(*CurrentWindDirection)
+											: FText::FromString("Select\nWind Direction");
+									})
+							]
+					]
+
+					// Wind Bias
+
+					+ SHorizontalBox::Slot().AutoWidth().Padding(8, 0).VAlign(VAlign_Center)
+					[
+					SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+						[
+							SNew(STextBlock).Text(FText::FromString("Enable Wind Bias"))
+						]
+						+ SHorizontalBox::Slot().AutoWidth().Padding(8, 0)
+						[
+							SNew(SCheckBox)
+								.OnCheckStateChanged_Lambda([](ECheckBoxState S)
+									{
+										UErosionLibrary::SetWindBias(S == ECheckBoxState::Checked);
+									})
+						]
 					]
 				]
-				+ SVerticalBox::Slot().AutoHeight().Padding(5)
+					
+				+ SVerticalBox::Slot().AutoHeight().Padding(0, 5)
 				[
-					SNew(SButton)
-					.Text(FText::FromString("Preview Wind"))
-					.OnClicked_Lambda([this]()
-					{
-						if (!Landscape.IsValid())
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+					[
+						SNew(SButton)
+						.Text(FText::FromString("Preview Wind"))
+						.OnClicked_Lambda([this]()
+						{
+							if (!Landscape.IsValid())
+								return FReply::Handled();
+
+							UGeneratorHeightMapLibrary::DrawWindDirectionPreview(
+								*Landscape, /*ArrowLength*/8000.f, /*Thickness*/12.f, /*Head*/300.f,
+								/*Duration*/6.f, /*Cone*/true, /*ConeHalf*/15.f);
+
 							return FReply::Handled();
-
-						UGeneratorHeightMapLibrary::DrawWindDirectionPreview(
-							*Landscape, /*ArrowLength*/8000.f, /*Thickness*/12.f, /*Head*/300.f,
-							/*Duration*/6.f, /*Cone*/true, /*ConeHalf*/15.f);
-
-						return FReply::Handled();
-					})
-				]
-			]
-
-			// Wind Bias
-			+ SHorizontalBox::Slot().AutoWidth().Padding(20, 0, 0, 0).VAlign(VAlign_Center)
-			[
-				SNew(SCheckBox)
-				.OnCheckStateChanged_Lambda([](ECheckBoxState S)
-				{
-					UErosionLibrary::SetWindBias(S == ECheckBoxState::Checked);
-				})
-				[
-					SNew(STextBlock).Text(FText::FromString("Enable Wind Bias"))
+						})
+					]
 				]
 			]
 		]
@@ -334,9 +354,13 @@ void SErosionPanel::Construct(const FArguments& Args)
 		// Run Erosion
 		+ SVerticalBox::Slot().AutoHeight().Padding(5)
 		[
-			SNew(SButton)
-			.Text(FText::FromString("Erosion"))
-			.OnClicked(this, &SErosionPanel::OnErodeClicked)
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+			[
+				SNew(SButton)
+				.Text(FText::FromString("Erosion"))
+				.OnClicked(this, &SErosionPanel::OnErodeClicked)
+			]
 		]
 
 		+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)

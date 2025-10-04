@@ -28,20 +28,25 @@ void SLandscapePanel::Construct(const FArguments& Args)
 		]
 
 		// Destroy Last Landscape
-		+ SVerticalBox::Slot().AutoHeight().Padding(5)
+		+SVerticalBox::Slot().AutoHeight().Padding(5)
 		[
-			SNew(SCheckBox)
-			.IsChecked_Lambda([L=Landscape]()
-			{
-				return L->bDestroyLastLandscape ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-			})
-			.OnCheckStateChanged_Lambda([L=Landscape](ECheckBoxState S)
-			{
-				L->bDestroyLastLandscape = (S == ECheckBoxState::Checked);
-			})
-			[
-				SNew(STextBlock).Text(FText::FromString("Destroy Last Landscape"))
-			]
+			SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+				[
+					SNew(STextBlock).Text(FText::FromString("Destroy Last Landscape"))
+				]
+				+ SHorizontalBox::Slot().AutoWidth().Padding(8, 0)
+				[
+					SNew(SCheckBox)
+						.IsChecked_Lambda([L = Landscape]()
+							{
+								return L->bDestroyLastLandscape ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+							})
+						.OnCheckStateChanged_Lambda([L = Landscape](ECheckBoxState S)
+							{
+								L->bDestroyLastLandscape = (S == ECheckBoxState::Checked);
+							})
+				]
 		]
 
 		// Kilometers 
@@ -58,6 +63,11 @@ void SLandscapePanel::Construct(const FArguments& Args)
 				.Value_Lambda([L=Landscape]()-> TOptional<int32> { return L->Kilometers; })
 				.OnValueChanged_Lambda([L=Landscape](int32 V) { L->Kilometers = V; })
 			]
+		]
+
+		+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)
+		[
+			SNew(SSeparator)
 		]
 
 		// Toggle Advanced
@@ -138,7 +148,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 			+ SVerticalBox::Slot().AutoHeight().Padding(2)
 			[
 				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth()
+				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 				[
 					SNew(STextBlock).Text(FText::FromString("World Partition Grid Size"))
 				]
@@ -149,6 +159,11 @@ void SLandscapePanel::Construct(const FArguments& Args)
 					.OnValueChanged_Lambda([L=Landscape](int32 V) { L->WorldPartitionGridSize = V; })
 				]
 			]
+		]
+
+		+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)
+		[
+			SNew(SSeparator)
 		]
 
 		// Actions
