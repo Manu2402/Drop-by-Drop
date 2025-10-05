@@ -78,12 +78,12 @@ class UErosionLibrary : public UBlueprintFunctionLibrary
 #pragma region Parameters
 
 public:	
-	static int32 ErosionCycles; // ErosionCycles
-	static void SetErosion(const int32 NewErosionCycles)
+	static uint64 ErosionCycles; // ErosionCycles
+	static void SetErosion(const uint64 NewErosionCycles)
 	{
 		ErosionCycles = NewErosionCycles;
 	}
-	static int32 GetErosionCycles()
+	static uint64 GetErosionCycles()
 	{
 		return ErosionCycles;
 	}
@@ -98,12 +98,12 @@ public:
 		return Inertia;
 	}
 	
-	static float Capacity; // pCapacity
-	static void SetCapacity(const float NewCapacity)
+	static uint32 Capacity; // pCapacity
+	static void SetCapacity(const uint32 NewCapacity)
 	{
 		Capacity = NewCapacity;
 	}
-	static float GetCapacity()
+	static uint32 GetCapacity()
 	{
 		return Capacity;
 	}
@@ -138,12 +138,12 @@ public:
 		return ErosionSpeed;
 	}
 	
-	static float Gravity; // pGravity
-	static void SetGravity(const float NewGravity)
+	static uint32 Gravity; // pGravity
+	static void SetGravity(const uint32 NewGravity)
 	{
 		Gravity = NewGravity;
 	}
-	static float GetGravity()
+	static uint32 GetGravity()
 	{
 		return Gravity;
 	}
@@ -158,12 +158,12 @@ public:
 		return Evaporation;
 	}
 	
-	static float MaxPath; // pMaxPath
-	static void SetMaxPath(const float NewMaxPath)
+	static uint32 MaxPath; // pMaxPath
+	static void SetMaxPath(const uint32 NewMaxPath)
 	{
 		MaxPath = NewMaxPath;
 	}
-	static float GetMaxPath()
+	static uint32 GetMaxPath()
 	{
 		return MaxPath;
 	}

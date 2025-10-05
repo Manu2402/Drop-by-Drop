@@ -47,9 +47,9 @@ void SErosionPanel::Construct(const FArguments& Args)
 						]
 						+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 						[
-							SNew(SNumericEntryBox<int32>)
-								.Value_Lambda([]()-> TOptional<int32> { return UErosionLibrary::GetErosionCycles(); })
-								.OnValueChanged_Lambda([](int32 V) { UErosionLibrary::SetErosion(V); })
+							SNew(SNumericEntryBox<uint64>)
+								.Value_Lambda([]()-> TOptional<uint64> { return UErosionLibrary::GetErosionCycles(); })
+								.OnValueChanged_Lambda([](uint64 V) { UErosionLibrary::SetErosion(V); })
 						]
 				]
 
@@ -189,7 +189,7 @@ void SErosionPanel::Construct(const FArguments& Args)
 										[
 											SNew(SNumericEntryBox<float>)
 												.Value_Lambda([]()-> TOptional<float> { return UErosionLibrary::GetInertia(); })
-												.OnValueChanged_Lambda([](float V) { UErosionLibrary::SetInertia(V); })
+												.OnValueChanged_Lambda([](float V) { V = FMath::Clamp(V, 0.f, 1.f); UErosionLibrary::SetInertia(V); })
 										]
 								]
 
@@ -203,9 +203,9 @@ void SErosionPanel::Construct(const FArguments& Args)
 										]
 										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 										[
-											SNew(SNumericEntryBox<int32>)
-												.Value_Lambda([]()-> TOptional<int32> { return UErosionLibrary::GetCapacity(); })
-												.OnValueChanged_Lambda([](int32 V) { UErosionLibrary::SetCapacity(V); })
+											SNew(SNumericEntryBox<uint32>)
+												.Value_Lambda([]()-> TOptional<uint32> { return UErosionLibrary::GetCapacity(); })
+												.OnValueChanged_Lambda([](uint32 V) { UErosionLibrary::SetCapacity(V); })
 										]
 								]
 
@@ -221,7 +221,7 @@ void SErosionPanel::Construct(const FArguments& Args)
 										[
 											SNew(SNumericEntryBox<float>)
 												.Value_Lambda([]()-> TOptional<float> { return UErosionLibrary::GetMinimalSlope(); })
-												.OnValueChanged_Lambda([](float V) { UErosionLibrary::SetMinimalSlope(V); })
+												.OnValueChanged_Lambda([](float V) { V = V >= 0.f ? V : 0.f; UErosionLibrary::SetMinimalSlope(V); })
 										]
 								]
 
@@ -237,7 +237,7 @@ void SErosionPanel::Construct(const FArguments& Args)
 										[
 											SNew(SNumericEntryBox<float>)
 												.Value_Lambda([]()-> TOptional<float> { return UErosionLibrary::GetDepositionSpeed(); })
-												.OnValueChanged_Lambda([](float V) { UErosionLibrary::SetDepositionSpeed(V); })
+												.OnValueChanged_Lambda([](float V) { V = FMath::Clamp(V, 0.f, 1.f); UErosionLibrary::SetDepositionSpeed(V); })
 										]
 								]
 
@@ -253,7 +253,7 @@ void SErosionPanel::Construct(const FArguments& Args)
 										[
 											SNew(SNumericEntryBox<float>)
 												.Value_Lambda([]()-> TOptional<float> { return UErosionLibrary::GetErosionSpeed(); })
-												.OnValueChanged_Lambda([](float V) { UErosionLibrary::SetErosionSpeed(V); })
+												.OnValueChanged_Lambda([](float V) { V = FMath::Clamp(V, 0.f, 1.f); UErosionLibrary::SetErosionSpeed(V); })
 										]
 								]
 
@@ -267,9 +267,9 @@ void SErosionPanel::Construct(const FArguments& Args)
 										]
 										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 										[
-											SNew(SNumericEntryBox<int32>)
-												.Value_Lambda([]()-> TOptional<int32> { return UErosionLibrary::GetGravity(); })
-												.OnValueChanged_Lambda([](int32 V) { UErosionLibrary::SetGravity(V); })
+											SNew(SNumericEntryBox<uint32>)
+												.Value_Lambda([]()-> TOptional<uint32> { return UErosionLibrary::GetGravity(); })
+												.OnValueChanged_Lambda([](uint32 V) { UErosionLibrary::SetGravity(V); })
 										]
 								]
 
@@ -285,7 +285,7 @@ void SErosionPanel::Construct(const FArguments& Args)
 										[
 											SNew(SNumericEntryBox<float>)
 												.Value_Lambda([]()-> TOptional<float> { return UErosionLibrary::GetEvaporation(); })
-												.OnValueChanged_Lambda([](float V) { UErosionLibrary::SetEvaporation(V); })
+												.OnValueChanged_Lambda([](float V) { V = FMath::Clamp(V, 0.f, 1.f); UErosionLibrary::SetEvaporation(V); })
 										]
 								]
 
@@ -299,9 +299,9 @@ void SErosionPanel::Construct(const FArguments& Args)
 										]
 										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 										[
-											SNew(SNumericEntryBox<int32>)
-												.Value_Lambda([]()-> TOptional<int32> { return UErosionLibrary::GetMaxPath(); })
-												.OnValueChanged_Lambda([](int32 V) { UErosionLibrary::SetMaxPath(V); })
+											SNew(SNumericEntryBox<uint32>)
+												.Value_Lambda([]()-> TOptional<uint32> { return UErosionLibrary::GetMaxPath(); })
+												.OnValueChanged_Lambda([](uint32 V) { UErosionLibrary::SetMaxPath(V); })
 										]
 								]
 
@@ -317,7 +317,7 @@ void SErosionPanel::Construct(const FArguments& Args)
 										[
 											SNew(SNumericEntryBox<int32>)
 												.Value_Lambda([]()-> TOptional<int32> { return UErosionLibrary::GetErosionRadius(); })
-												.OnValueChanged_Lambda([](int32 V) { UErosionLibrary::SetErosionRadius(V); })
+												.OnValueChanged_Lambda([](int32 V) { V = V >= 0 ? V : 0; UErosionLibrary::SetErosionRadius(V); })
 										]
 								]
 

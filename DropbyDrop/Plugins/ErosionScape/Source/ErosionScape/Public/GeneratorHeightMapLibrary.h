@@ -7,42 +7,21 @@
 #include "Misc/FileHelper.h"
 #include "GeneratorHeightMapLibrary.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FErosionTemplateRow : public FTableRowBase
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 ErosionCyclesField;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	uint64 ErosionCyclesField;
 	uint8 WindDirection;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float InertiaField;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 CapacityField;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	uint32 CapacityField;
 	float MinSlopeField;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float DepositionSpeedField;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float ErosionSpeedField;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 GravityField;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	uint32 GravityField;
 	float EvaporationField;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 MaxPathField;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	uint32 MaxPathField;
 	int32 ErosionRadiusField;
 };
 
@@ -56,7 +35,6 @@ public:
 
 #pragma region Erosion
 	
-	UFUNCTION(BlueprintCallable, Category = "Erosion")
 	static void GenerateErosion(const FExternalHeightMapSettings& ExternalSettings,
 	                             FLandscapeGenerationSettings& LandscapeSettings,
 	                             const FHeightMapGenerationSettings& HeightMapSetting,
@@ -81,7 +59,6 @@ public:
 
 #pragma region Landscape
 	
-	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	static void GenerateLandscapeFromPNG(const FString& HeightmapPath,
 	                                      FHeightMapGenerationSettings& HeightmapSettings,
 	                                      FExternalHeightMapSettings& ExternalSettings,
@@ -91,7 +68,6 @@ public:
 	FExternalHeightMapSettings& ExternalSettings,
 	 FLandscapeGenerationSettings& LandscapeSettings, FHeightMapGenerationSettings& HeightmapSettings);
 
-	UFUNCTION(BlueprintCallable, Category = "HeightMap")
 	static void SplitLandscapeIntoProxies(FLandscapeGenerationSettings& LandscapeSettings);
 
 	static bool SetLandscapeSizeParam(int32& SubSectionSizeQuads, int32& NumSubsections, int32& MaxX, int32& MaxY,  const int32 Size = 505);
@@ -107,14 +83,11 @@ public:
 
 #pragma region Heightmap
 	
-	UFUNCTION(BlueprintCallable, Category = "HeightMap")
 	static bool CreateAndSaveHeightMap(FHeightMapGenerationSettings& Settings);
 
-	UFUNCTION(BlueprintCallable, Category = "Heightmap")
 	static TArray<float> CreateHeightMapArray(const FHeightMapGenerationSettings& Settings);
 
 	//Function to generate texture2D, using an array<float>
-	UFUNCTION(BlueprintCallable, Category = "HeightMap")
 	static UTexture2D* CreateHeightMapTexture(const TArray<float>& HeightMapData, const int32 Width,
 	                                          const int32 Height);
 
@@ -135,13 +108,10 @@ public:
 	//Wind Preview
 	static float WindPreviewScale;
 
-	UFUNCTION(BlueprintCallable, Category="Erosion|Debug")
 	static void SetWindPreviewScale(float NewScale) { WindPreviewScale = NewScale; }
 
-	UFUNCTION(BlueprintCallable, Category="Erosion|Debug")
 	static float GetWindPreviewScale() { return WindPreviewScale; }
 	
-	UFUNCTION(BlueprintCallable, CallInEditor, Category="Erosion|Debug")
 	static void DrawWindDirectionPreview(
 		const FLandscapeGenerationSettings& LandscapeSettings,
 		float ArrowLength      = 8000.f,

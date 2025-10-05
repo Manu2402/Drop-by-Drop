@@ -59,9 +59,9 @@ void SLandscapePanel::Construct(const FArguments& Args)
 			]
 			+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 			[
-				SNew(SNumericEntryBox<int32>)
-				.Value_Lambda([L=Landscape]()-> TOptional<int32> { return L->Kilometers; })
-				.OnValueChanged_Lambda([L=Landscape](int32 V) { L->Kilometers = V; })
+				SNew(SNumericEntryBox<uint32>)
+				.Value_Lambda([L=Landscape]()-> TOptional<uint32> { return L->Kilometers; })
+				.OnValueChanged_Lambda([L=Landscape](uint32 V) { L->Kilometers = V; })
 			]
 		]
 
@@ -95,7 +95,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 											[
 												SNew(SNumericEntryBox<float>)
 													.Value_Lambda([E = External]()-> TOptional<float> { return E->ScalingX; })
-													.OnValueChanged_Lambda([E = External](float V) { E->ScalingX = V; })
+													.OnValueChanged_Lambda([E = External](float V) { V = V >= 0.f ? V : 0.f; E->ScalingX = V; })
 											]
 									]
 
@@ -111,7 +111,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 											[
 												SNew(SNumericEntryBox<float>)
 													.Value_Lambda([E = External]()-> TOptional<float> { return E->ScalingY; })
-													.OnValueChanged_Lambda([E = External](float V) { E->ScalingY = V; })
+													.OnValueChanged_Lambda([E = External](float V) { V = V >= 0.f ? V : 0.f; E->ScalingY = V; })
 											]
 									]
 
@@ -127,7 +127,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 											[
 												SNew(SNumericEntryBox<float>)
 													.Value_Lambda([E = External]()-> TOptional<float> { return E->ScalingZ; })
-													.OnValueChanged_Lambda([E = External](float V) { E->ScalingZ = V; })
+													.OnValueChanged_Lambda([E = External](float V) { V = V >= 0.f ? V : 0.f; E->ScalingZ = V; })
 											]
 									]
 
@@ -141,9 +141,9 @@ void SLandscapePanel::Construct(const FArguments& Args)
 											]
 											+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 											[
-												SNew(SNumericEntryBox<int32>)
-													.Value_Lambda([L = Landscape]()-> TOptional<int32> { return L->WorldPartitionCellSize; })
-													.OnValueChanged_Lambda([L = Landscape](int32 V) { L->WorldPartitionCellSize = V; })
+												SNew(SNumericEntryBox<uint32>)
+													.Value_Lambda([L = Landscape]()-> TOptional<uint32> { return L->WorldPartitionCellSize; })
+													.OnValueChanged_Lambda([L = Landscape](uint32 V) { V = FMath::Clamp(V, 1, L->Kilometers);  L->WorldPartitionCellSize = V; })
 											]
 									]
 							]
@@ -168,6 +168,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 			+ SHorizontalBox::Slot().AutoWidth().Padding(10, 0)
 			[
 				SNew(SButton)
+				.IsEnabled_Lambda([L = Landscape]() { return L->TargetLandscape && !L->bIsSplittedIntoProxies; })
 				.Text(FText::FromString("Split in Proxies"))
 				.OnClicked(this, &SLandscapePanel::OnSplitInProxiesClicked)
 			]
@@ -190,6 +191,8 @@ void SLandscapePanel::Construct(const FArguments& Args)
 
 FReply SLandscapePanel::OnCreateLandscapeClicked()
 {
+	Landscape->bIsSplittedIntoProxies = false;
+
 	UGeneratorHeightMapLibrary::GenerateLandscapeAuto(*Heightmap, *External, *Landscape);
 	return FReply::Handled();
 }
@@ -205,6 +208,8 @@ FReply SLandscapePanel::OnDestroyLastClicked()
 
 FReply SLandscapePanel::OnSplitInProxiesClicked()
 {
+	Landscape->bIsSplittedIntoProxies = true;
+
 	UGeneratorHeightMapLibrary::SplitLandscapeIntoProxies(*Landscape);
 	return FReply::Handled();
 }

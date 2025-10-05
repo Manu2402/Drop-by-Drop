@@ -261,7 +261,7 @@ void SRootPanel::RefreshRightPreview()
 {
 	UTexture2D* Loaded = Cast<UTexture2D>(
 		StaticLoadObject(UTexture2D::StaticClass(), nullptr,
-			TEXT("/Game/SavedAssets/TextureHeightMap.TextureHeightMap"))
+			TEXT("/ErosionScape/SavedAssets/TextureHeightMap.TextureHeightMap"))
 	);
 
 	RightPreviewTexture.Reset(Loaded);

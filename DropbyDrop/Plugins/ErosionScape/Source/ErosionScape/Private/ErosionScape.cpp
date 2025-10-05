@@ -41,7 +41,7 @@ void FErosionScapeModule::StartupModule()
 	                        .SetMenuType(ETabSpawnerMenuType::Hidden);
 
 	UGeneratorHeightMapLibrary::SetErosionTemplates(
-		TEXT("/Game/Custom/ErosionTemplates/DT_ErosionTemplate.DT_ErosionTemplate"));
+		TEXT("/ErosionScape/DT_ErosionTemplate.DT_ErosionTemplate"));
 
 	//Commands
 	IConsoleManager::Get().RegisterConsoleCommand(

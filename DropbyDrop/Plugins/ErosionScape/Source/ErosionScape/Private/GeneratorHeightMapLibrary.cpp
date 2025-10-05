@@ -17,7 +17,6 @@
 #include "WorldPartition/WorldPartitionSubsystem.h"
 #include "Subsystems/EditorAssetSubsystem.h"
 #include "UObject/SavePackage.h"
-#include "GeneratorHeightMapLibrary.h"
 #include "HAL/IConsoleManager.h"
 
 
@@ -160,7 +159,6 @@ bool UGeneratorHeightMapLibrary::CreateAndSaveHeightMap(FHeightMapGenerationSett
 
 	UTexture2D* Texture = CreateHeightMapTexture(Settings.HeightMap, Settings.Size, Settings.Size);
 
-	//Saving Asset in -> /Game/SavedAssets/
 	if (SaveToAsset(Texture, "TextureHeightMap"))
 	{
 		return true;
@@ -182,7 +180,7 @@ TArray<float> UGeneratorHeightMapLibrary::CreateHeightMapArray(const FHeightMapG
 	TArray<FVector2D> Offsets;
 	Offsets.SetNum(Settings.NumOctaves);
 
-	for (int32 i = 0; i < Settings.NumOctaves; ++i)
+	for (uint32 i = 0; i < Settings.NumOctaves; ++i)
 	{
 		Offsets[i] = FVector2D(
 			RandomStream.FRandRange(-1000.0f, 1000.0f),
@@ -201,7 +199,7 @@ TArray<float> UGeneratorHeightMapLibrary::CreateHeightMapArray(const FHeightMapG
 			float Scale = Settings.InitialScale;
 			float Weight = 1.0f;
 
-			for (int32 i = 0; i < Settings.NumOctaves; ++i)
+			for (uint32 i = 0; i < Settings.NumOctaves; ++i)
 			{
 				FVector2D P = Offsets[i] + FVector2D(x, y) / static_cast<float>(MapSize) * Scale;
 				NoiseValue += FMath::PerlinNoise2D(P) * Weight;
@@ -519,11 +517,6 @@ void UGeneratorHeightMapLibrary::CreateLandscapeFromOtherHeightMap(const FString
 
 void UGeneratorHeightMapLibrary::SplitLandscapeIntoProxies(FLandscapeGenerationSettings& LandscapeSettings)
 {
-	if (!LandscapeSettings.TargetLandscape)
-	{
-		return;
-	}
-
 	ULandscapeInfo* LandscapeInfo = LandscapeSettings.TargetLandscape->GetLandscapeInfo();
 	LandscapeInfo->UpdateLayerInfoMap(LandscapeSettings.TargetLandscape);
 
@@ -549,6 +542,8 @@ void UGeneratorHeightMapLibrary::SplitLandscapeIntoProxies(FLandscapeGenerationS
 			GEditor->RedrawAllViewports();
 		}
 	}
+
+	LandscapeSettings.bIsSplittedIntoProxies = true;
 }
 
 ALandscape* UGeneratorHeightMapLibrary::GenerateLandscape(const FTransform& LandscapeTransform,
@@ -905,7 +900,7 @@ bool UGeneratorHeightMapLibrary::SaveToAsset(UTexture2D* Texture, const FString&
 	// ----------------------------
 	// 3) Create or update the asset as BGRA8 (with preview flags).
 	// ----------------------------
-	const FString PackageName = FString::Printf(TEXT("/Game/SavedAssets/%s"), *AssetName);
+	const FString PackageName = FString::Printf(TEXT("/ErosionScape/SavedAssets/%s"), *AssetName);
 
 	UPackage* ExistingPackage = FindPackage(nullptr, *PackageName);
 	UTexture2D* TargetTexture = ExistingPackage
@@ -932,7 +927,7 @@ bool UGeneratorHeightMapLibrary::SaveToAsset(UTexture2D* Texture, const FString&
 
 		if (FAssetRegistryModule* ARM = FModuleManager::GetModulePtr<FAssetRegistryModule>("AssetRegistry"))
 		{
-			TArray<FString> PathsToScan{TEXT("/Game/SavedAssets")};
+			TArray<FString> PathsToScan{TEXT("/ErosionScape/SavedAssets/")};
 			ARM->Get().ScanModifiedAssetFiles(PathsToScan);
 		}
 
@@ -998,21 +993,18 @@ void UGeneratorHeightMapLibrary::OpenHeightmapFileDialog(
 		OutFiles
 	);
 
-	if (bOpened && OutFiles.Num() > 0)
+	if (!bOpened || OutFiles.Num() <= 0)
 	{
-		const FString& SelectedFile = OutFiles[0];
-
-		if (ExternalSettings.IsValid())
-		{
-			ExternalSettings->bIsExternalHeightMap = true;
-			ExternalSettings->LastPNGPath = SelectedFile;
-		}
-
-		/*CreateLandscapeFromOtherHeightMap(
-			SelectedFile, *ExternalSettings, *LandscapeSettings, *HeightMapSettings
-		); */
+		return;
 	}
+
 	const FString& SelectedFile = OutFiles[0];
+
+	if (ExternalSettings.IsValid())
+	{
+		ExternalSettings->bIsExternalHeightMap = true;
+		ExternalSettings->LastPNGPath = SelectedFile;
+	}
 
 	if (UTexture2D* Imported = FImageUtils::ImportFileAsTexture2D(SelectedFile))
 	{

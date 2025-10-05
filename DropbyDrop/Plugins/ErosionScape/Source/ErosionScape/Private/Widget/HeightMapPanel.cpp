@@ -133,81 +133,81 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 	BuildPresetItems();
 
 	ChildSlot
-	[
-		SNew(SVerticalBox)
-
-		// Hero
-		+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
 		[
-			SNew(STextBlock)
-			.Text(FText::FromString("HeightMap"))
-			.Font(FCoreStyle::GetDefaultFontStyle("Bold", 12))
-		]
+			SNew(SVerticalBox)
 
-		// Presets row
-		+ SVerticalBox::Slot().AutoHeight().Padding(5)
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-			[
-				SNew(STextBlock).Text(FText::FromString("Preset"))
-			]
-			+ SHorizontalBox::Slot().AutoWidth().Padding(8, 0)
-			[
-				SNew(SComboBox<TSharedPtr<FString>>)
-				.OptionsSource(&PresetItems)
-				.InitiallySelectedItem(SelectedPreset)
-				.OnSelectionChanged(this, &SHeightMapPanel::OnPresetChanged)
-				.OnGenerateWidget(this, &SHeightMapPanel::MakePresetItemWidget)
+				// Hero
+				+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text_Lambda([this]()
-					{
-						return FText::FromString(SelectedPreset.IsValid() ? *SelectedPreset : TEXT("Select Preset"));
-					})
+						.Text(FText::FromString("HeightMap"))
+						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 12))
 				]
-			]
-		]
-		// Randomize Seed
-		+ SVerticalBox::Slot().AutoHeight().Padding(5)
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-			[
-				SNew(STextBlock).Text(FText::FromString("Randomize Seed"))
-			]
-			+ SHorizontalBox::Slot().AutoWidth().Padding(8, 0)
-			[
-				SNew(SCheckBox)
-				.IsChecked_Lambda([this]()
-				{
-					return Heightmap->bRandomizeSeed ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-				})
-				.OnCheckStateChanged_Lambda([this](ECheckBoxState State)
-				{
-					Heightmap->bRandomizeSeed = (State == ECheckBoxState::Checked);
-				})
-			]
-		]
 
-		+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)
-		[
-			SNew(SSeparator)
-		]
-
-		// --- Advanced ---
-
-		+ SVerticalBox::Slot().AutoHeight().Padding(5)
-		[
-			SNew(SExpandableArea)
-				.InitiallyCollapsed(true)
-				.AreaTitle(FText::FromString("Advanced"))
-				.BodyContent()
+				// Presets row
+				+ SVerticalBox::Slot().AutoHeight().Padding(5)
 				[
-					SNew(SVerticalBox)
-						+ SVerticalBox::Slot().AutoHeight().Padding(2)
+					SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 						[
-								// Seed
+							SNew(STextBlock).Text(FText::FromString("Preset"))
+						]
+						+ SHorizontalBox::Slot().AutoWidth().Padding(8, 0)
+						[
+							SNew(SComboBox<TSharedPtr<FString>>)
+								.OptionsSource(&PresetItems)
+								.InitiallySelectedItem(SelectedPreset)
+								.OnSelectionChanged(this, &SHeightMapPanel::OnPresetChanged)
+								.OnGenerateWidget(this, &SHeightMapPanel::MakePresetItemWidget)
+								[
+									SNew(STextBlock)
+										.Text_Lambda([this]()
+											{
+												return FText::FromString(SelectedPreset.IsValid() ? *SelectedPreset : TEXT("Select Preset"));
+											})
+								]
+						]
+				]
+			// Randomize Seed
+			+ SVerticalBox::Slot().AutoHeight().Padding(5)
+				[
+					SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+						[
+							SNew(STextBlock).Text(FText::FromString("Randomize Seed"))
+						]
+						+ SHorizontalBox::Slot().AutoWidth().Padding(8, 0)
+						[
+							SNew(SCheckBox)
+								.IsChecked_Lambda([this]()
+									{
+										return Heightmap->bRandomizeSeed ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+									})
+								.OnCheckStateChanged_Lambda([this](ECheckBoxState State)
+									{
+										Heightmap->bRandomizeSeed = (State == ECheckBoxState::Checked);
+									})
+						]
+				]
+
+			+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)
+				[
+					SNew(SSeparator)
+				]
+
+				// --- Advanced ---
+
+				+SVerticalBox::Slot().AutoHeight().Padding(5)
+				[
+					SNew(SExpandableArea)
+						.InitiallyCollapsed(true)
+						.AreaTitle(FText::FromString("Advanced"))
+						.BodyContent()
+						[
+							SNew(SVerticalBox)
+								+ SVerticalBox::Slot().AutoHeight().Padding(2)
+								[
+									// Seed
 									SNew(SHorizontalBox)
 										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 										[
@@ -231,9 +231,9 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 										]
 										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 										[
-											SNew(SNumericEntryBox<int32>)
-												.Value_Lambda([this]()-> TOptional<int32> { return Heightmap->NumOctaves; })
-												.OnValueChanged_Lambda([this](int32 V) { Heightmap->NumOctaves = V; })
+											SNew(SNumericEntryBox<uint32>)
+												.Value_Lambda([this]()-> TOptional<uint32> { return Heightmap->NumOctaves; })
+												.OnValueChanged_Lambda([this](uint32 V) { V = FMath::Clamp<uint32>(V, 1, 8); Heightmap->NumOctaves = V; })
 										]
 								]
 
@@ -249,9 +249,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 										[
 											SNew(SNumericEntryBox<float>)
 												.Value_Lambda([this]()-> TOptional<float> { return Heightmap->Persistence; })
-												.OnValueChanged_Lambda([this](float V) { Heightmap->Persistence = V; })
-												.MinValue(0.0f)
-												.MaxValue(10.0f)
+												.OnValueChanged_Lambda([this](float V) { V = FMath::Clamp<float>(V, 0.f, 1.f);  Heightmap->Persistence = V; })
 										]
 								]
 
@@ -267,9 +265,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 										[
 											SNew(SNumericEntryBox<float>)
 												.Value_Lambda([this]()-> TOptional<float> { return Heightmap->Lacunarity; })
-												.OnValueChanged_Lambda([this](float V) { Heightmap->Lacunarity = V; })
-												.MinValue(0.0f)
-												.MaxValue(10.0f)
+												.OnValueChanged_Lambda([this](float V) { V = V >= 0.f ? V : 0.f; Heightmap->Lacunarity = V; })
 										]
 								]
 
@@ -285,9 +281,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 										[
 											SNew(SNumericEntryBox<float>)
 												.Value_Lambda([this]()-> TOptional<float> { return Heightmap->InitialScale; })
-												.OnValueChanged_Lambda([this](float V) { Heightmap->InitialScale = V; })
-												.MinValue(0.0f)
-												.MaxValue(100.0f)
+												.OnValueChanged_Lambda([this](float V) { V = V >= 0.f ? V : 0.f; Heightmap->InitialScale = V; })
 										]
 								]
 
@@ -301,9 +295,9 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 										]
 										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 										[
-											SNew(SNumericEntryBox<int32>)
-												.Value_Lambda([this]()-> TOptional<int32> { return Heightmap->Size; })
-												.OnValueChanged_Lambda([this](int32 V) { Heightmap->Size = V; })
+											SNew(SNumericEntryBox<uint32>)
+												.Value_Lambda([this]()-> TOptional<uint32> { return Heightmap->Size; })
+												.OnValueChanged_Lambda([this](uint32 V) { Heightmap->Size = V; })
 										]
 								]
 
@@ -319,71 +313,69 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 										[
 											SNew(SNumericEntryBox<float>)
 												.Value_Lambda([this]()-> TOptional<float> { return Heightmap->MaxHeightDifference; })
-												.OnValueChanged_Lambda([this](float V) { Heightmap->MaxHeightDifference = V; })
-												.MinValue(0.0f)
-												.MaxValue(1000.0f)
+												.OnValueChanged_Lambda([this](float V) { V = V >= 0.f ? V : 0.f; Heightmap->MaxHeightDifference = V; })
 										]
 								]
+						]
+
 				]
-			
-		]
 
 
-		+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)
-		[
-			SNew(SSeparator)
-		]
+			+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)
+				[
+					SNew(SSeparator)
+				]
 
-		// Create HeightMap
-		+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-			[
-				SNew(SButton)
-				.Text(FText::FromString("Create HeightMap"))
-				.OnClicked(this, &SHeightMapPanel::OnCreateHeightmapClicked)
-			]
-		]
+				// Create HeightMap
+				+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
+				[
+					SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+						[
+							SNew(SButton)
+								.Text(FText::FromString("Create HeightMap"))
+								.OnClicked(this, &SHeightMapPanel::OnCreateHeightmapClicked)
+						]
+				]
 
-		+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)
-		[
-			SNew(SSeparator)
-		]
+			+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)
+				[
+					SNew(SSeparator)
+				]
 
-		// External HeightMap
-		+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
-		[
-			SNew(STextBlock)
-			.Text(FText::FromString("External HeightMap"))
-			.Font(FCoreStyle::GetDefaultFontStyle("Bold", 12))
-		]
+				// External HeightMap
+				+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
+				[
+					SNew(STextBlock)
+						.Text(FText::FromString("External HeightMap"))
+						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 12))
+				]
 
-		// Create Landscape
-		+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center).Padding(0, 5)
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-			[
-				SNew(SButton)
-				.Text(FText::FromString("Import External Heightmap"))
-				.OnClicked(this, &SHeightMapPanel::OnCreateLandscapeFromPNGClicked)
-			]
-		]
+				// Create Landscape
+				+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center).Padding(0, 5)
+				[
+					SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+						[
+							SNew(SButton)
+								.Text(FText::FromString("Import External Heightmap"))
+								.OnClicked(this, &SHeightMapPanel::OnCreateLandscapeFromPNGClicked)
+						]
+				]
 
-		+ SVerticalBox::Slot().AutoHeight().Padding(5)
-		[
-			SNew(SSeparator)
-		]
-		+ SVerticalBox::Slot().AutoHeight().Padding(5)
-		[
-			SNew(SSeparator)
-		]
-		+ SVerticalBox::Slot().AutoHeight().Padding(5)
-		[
-			SNew(SSeparator)
-		]
-	];
+			+ SVerticalBox::Slot().AutoHeight().Padding(5)
+				[
+					SNew(SSeparator)
+				]
+				+ SVerticalBox::Slot().AutoHeight().Padding(5)
+				[
+					SNew(SSeparator)
+				]
+				+ SVerticalBox::Slot().AutoHeight().Padding(5)
+				[
+					SNew(SSeparator)
+				]
+		];
 
 	RefreshPreview();
 }
@@ -392,7 +384,7 @@ void SHeightMapPanel::RefreshPreview()
 {
 	UTexture2D* Loaded = Cast<UTexture2D>(
 		StaticLoadObject(UTexture2D::StaticClass(), nullptr,
-		                 TEXT("/Game/SavedAssets/TextureHeightMap.TextureHeightMap"))
+			TEXT("/ErosionScape/SavedAssets/TextureHeightMap.TextureHeightMap"))
 	);
 
 	// strong ref per evitare GC

@@ -3,15 +3,15 @@
 
 // TOGLIERE
 #pragma region Parameters
-int32 UErosionLibrary::ErosionCycles = 100000;
+uint64 UErosionLibrary::ErosionCycles = 100000;
 float UErosionLibrary::Inertia = 0.3; // pInertia
-float UErosionLibrary::Capacity = 8; // pCapacity
+uint32 UErosionLibrary::Capacity = 8; // pCapacity
 float UErosionLibrary::MinimalSlope = 0.01f; // pMinSlope
 float UErosionLibrary::DepositionSpeed = 0.2f; // pDeposition
 float UErosionLibrary::ErosionSpeed = 0.7f; // pErosion 
-float UErosionLibrary::Gravity = 10; // pGravity
+uint32 UErosionLibrary::Gravity = 10; // pGravity
 float UErosionLibrary::Evaporation = 0.02f; // pEvaporation 
-float UErosionLibrary::MaxPath = 64; // pMaxPath 
+uint32 UErosionLibrary::MaxPath = 64; // pMaxPath 
 int32 UErosionLibrary::ErosionRadius = 4; // pRadius 
 EWindDirection UErosionLibrary::WindDirection = EWindDirection::Est;
 bool UErosionLibrary::WindBias = false;

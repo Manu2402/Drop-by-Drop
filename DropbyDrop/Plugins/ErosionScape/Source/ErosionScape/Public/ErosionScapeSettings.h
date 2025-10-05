@@ -5,55 +5,34 @@
 class ALandscape;
 
 USTRUCT(BlueprintType)
+
 struct FHeightMapGenerationSettings
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Heightmap")
 	int32 Seed = -4314;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Heightmap")
 	bool bRandomizeSeed = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Heightmap")
-	int32 NumOctaves = 8;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Heightmap")
+	uint32 NumOctaves = 8;
 	float Persistence = 0.45f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Heightmap")
 	float Lacunarity = 2.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Heightmap")
 	float InitialScale = 1.8f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Heightmap")
-	int32 Size = 505;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Heightmap")
+	uint32 Size = 505; // Const.
 	float MaxHeightDifference = 1.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Heightmap")
 	TArray<float> HeightMap;
 };
+
 USTRUCT(BlueprintType)
+
 struct FExternalHeightMapSettings
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ExternalHeightmap")
 	float ScalingX = 100.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ExternalHeightmap")
 	float ScalingY = 100.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ExternalHeightmap")
 	float ScalingZ = 100.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ExternalHeightmap")
 	bool bIsExternalHeightMap = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ExternalHeightmap")
 	FString LastPNGPath;
 };
 
@@ -62,18 +41,11 @@ struct FLandscapeGenerationSettings
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Landscape")
-	int32 Kilometers = 1;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Landscape")
+	uint32 Kilometers = 1;
 	bool bKilometers = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Landscape")
 	bool bDestroyLastLandscape = false;
+	uint32 WorldPartitionCellSize = 4;
+	bool bIsSplittedIntoProxies = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Landscape")
-	int32 WorldPartitionCellSize = 4;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Landscape")
 	TObjectPtr<ALandscape> TargetLandscape = nullptr;
 };
