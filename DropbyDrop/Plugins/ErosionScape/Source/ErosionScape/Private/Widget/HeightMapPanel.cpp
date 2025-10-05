@@ -137,7 +137,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 		SNew(SVerticalBox)
 
 		// Hero
-		+ SVerticalBox::Slot().AutoHeight().Padding(6)
+		+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
 		[
 			SNew(STextBlock)
 			.Text(FText::FromString("HeightMap"))
@@ -335,7 +335,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 		]
 
 		// Create HeightMap
-		+ SVerticalBox::Slot().AutoHeight().Padding(5)
+		+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
@@ -352,7 +352,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 		]
 
 		// External HeightMap
-		+ SVerticalBox::Slot().AutoHeight().Padding(5)
+		+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
 		[
 			SNew(STextBlock)
 			.Text(FText::FromString("External HeightMap"))
@@ -360,7 +360,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 		]
 
 		// Create Landscape
-		+ SVerticalBox::Slot().AutoHeight().Padding(5)
+		+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center).Padding(0, 5)
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)

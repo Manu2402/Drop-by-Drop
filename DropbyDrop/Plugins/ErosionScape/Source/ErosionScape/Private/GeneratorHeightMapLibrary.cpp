@@ -533,7 +533,7 @@ void UGeneratorHeightMapLibrary::SplitLandscapeIntoProxies(FLandscapeGenerationS
 	if (ULandscapeSubsystem* LandscapeSubsystem = GEditor->GetEditorWorldContext().World()->GetSubsystem<
 		ULandscapeSubsystem>())
 	{
-		LandscapeSubsystem->ChangeGridSize(LandscapeInfo, LandscapeSettings.WorldPartitionGridSize);
+		LandscapeSubsystem->ChangeGridSize(LandscapeInfo, LandscapeSettings.WorldPartitionCellSize);
 	}
 
 	SlowTask.EnterProgressFrame(100);

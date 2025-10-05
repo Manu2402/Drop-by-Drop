@@ -83,7 +83,7 @@ TSharedRef<SWidget> SRootPanel::BuildSidebar()
 		.Padding(8)
 		[
 			SNew(SVerticalBox)
-			+ SVerticalBox::Slot().AutoHeight().Padding(2)
+			+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("Tools", "Tools"))
@@ -149,10 +149,10 @@ TSharedRef<SWidget> SRootPanel::BuildRightPanel()
 		SNew(SVerticalBox)
 
 		// Quick actions 
-		+ SVerticalBox::Slot().AutoHeight().Padding(2)
+			+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("QuickActions", "Quick actions"))
+			.Text(LOCTEXT("QuickActions", "Quick Actions"))
 			.Font(FCoreStyle::GetDefaultFontStyle("Bold", 12))
 		]
 
@@ -161,6 +161,7 @@ TSharedRef<SWidget> SRootPanel::BuildRightPanel()
 			SNew(SButton)
 			.Text(LOCTEXT("CreateHM", "Create HeightMap"))
 			.OnClicked(this, &SRootPanel::OnActionCreateHeightMap)
+			.HAlign(HAlign_Center)
 		]
 
 		+ SVerticalBox::Slot().AutoHeight().Padding(2)
@@ -168,13 +169,15 @@ TSharedRef<SWidget> SRootPanel::BuildRightPanel()
 			SNew(SButton)
 			.Text(LOCTEXT("CreateLS", "Create Landscape"))
 			.OnClicked(this, &SRootPanel::OnActionCreateLandscapeInternal)
+			.HAlign(HAlign_Center)
 		]
 
 		+ SVerticalBox::Slot().AutoHeight().Padding(2)
 		[
 			SNew(SButton)
-			.Text(LOCTEXT("ImportPNG", "Create Landscape from PNG"))
+			.Text(LOCTEXT("ImportPNG", "Create Landscape from External HeightMap"))
 			.OnClicked(this, &SRootPanel::OnActionImportPNG)
+			.HAlign(HAlign_Center)
 		]
 
 		+ SVerticalBox::Slot().AutoHeight().Padding(8)
@@ -183,7 +186,7 @@ TSharedRef<SWidget> SRootPanel::BuildRightPanel()
 		]
 
 		// Preview heightmap 
-		+ SVerticalBox::Slot().AutoHeight().Padding(2)
+		+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("Preview", "Preview"))

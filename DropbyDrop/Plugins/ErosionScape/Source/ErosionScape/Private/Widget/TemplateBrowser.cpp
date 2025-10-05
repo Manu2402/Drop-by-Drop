@@ -35,7 +35,7 @@ void STemplateBrowser::Construct(const FArguments& Args)
 			SAssignNew(NameTextBox, SEditableTextBox).HintText(FText::FromString("Template name"))
 		]
 
-		+ SVerticalBox::Slot().AutoHeight().Padding(4)
+		+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center).Padding(4)
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot().AutoWidth().Padding(2)

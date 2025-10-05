@@ -72,7 +72,7 @@ struct FLandscapeGenerationSettings
 	bool bDestroyLastLandscape = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Landscape")
-	int32 WorldPartitionGridSize = 4;
+	int32 WorldPartitionCellSize = 4;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Landscape")
 	TObjectPtr<ALandscape> TargetLandscape = nullptr;

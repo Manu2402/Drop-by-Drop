@@ -20,7 +20,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 		SNew(SVerticalBox)
 
 		// Title
-		+ SVerticalBox::Slot().AutoHeight().Padding(6)
+		+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
 		[
 			SNew(STextBlock)
 			.Text(FText::FromString("Landscape"))
@@ -131,19 +131,19 @@ void SLandscapePanel::Construct(const FArguments& Args)
 											]
 									]
 
-								// World Partition Grid Size
+								// World Partition Cell Size
 								+ SVerticalBox::Slot().AutoHeight().Padding(2)
 									[
 										SNew(SHorizontalBox)
 											+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 											[
-												SNew(STextBlock).Text(FText::FromString("World Partition Grid Size"))
+												SNew(STextBlock).Text(FText::FromString("World Partition Cell Size"))
 											]
 											+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 											[
 												SNew(SNumericEntryBox<int32>)
-													.Value_Lambda([L = Landscape]()-> TOptional<int32> { return L->WorldPartitionGridSize; })
-													.OnValueChanged_Lambda([L = Landscape](int32 V) { L->WorldPartitionGridSize = V; })
+													.Value_Lambda([L = Landscape]()-> TOptional<int32> { return L->WorldPartitionCellSize; })
+													.OnValueChanged_Lambda([L = Landscape](int32 V) { L->WorldPartitionCellSize = V; })
 											]
 									]
 							]
@@ -156,7 +156,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 		]
 
 		// Actions
-		+ SVerticalBox::Slot().AutoHeight().Padding(5)
+		+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot().AutoWidth()
