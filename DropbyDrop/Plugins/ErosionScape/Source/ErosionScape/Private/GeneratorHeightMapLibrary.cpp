@@ -1060,6 +1060,7 @@ void UGeneratorHeightMapLibrary::DrawWindDirectionPreview(
     float ConeHalfAngleDeg)
 {
 #if WITH_EDITOR
+	WindPreviewScale = 10.f;
     const float Scale = WindPreviewScale;
 
     UWorld* World = nullptr;
@@ -1070,45 +1071,74 @@ void UGeneratorHeightMapLibrary::DrawWindDirectionPreview(
     }
     if (!World) return;
 
-    const FVector Start = GetWindPreviewStart(LandscapeSettings, World);
+	const FVector Start = GetWindPreviewStart(LandscapeSettings, World);
+	float MeanDeg = 0.f;
+	if (!UErosionLibrary::TryGetWindMeanAngleDegrees(MeanDeg))
+	{
+		return;
+	}
+	const FVector2D Dir2D = UErosionLibrary::GetWindUnitVectorFromAngle(MeanDeg);
+	const FVector Dir3D(Dir2D.X, Dir2D.Y, 0.f);
+	const FVector End = Start + Dir3D * (ArrowLength * Scale);
 
-    const float MeanDeg = UErosionLibrary::GetWindMeanAngleDegrees();
-    const FVector2D Dir2D = UErosionLibrary::GetWindUnitVectorFromAngle(MeanDeg);
-    const FVector Dir3D(Dir2D.X, Dir2D.Y, 0.f);
-    const FVector End = Start + Dir3D * (ArrowLength * Scale);
+	// Asta della freccia spessa
+	const FVector ArrowBodyEnd = Start + Dir3D * (ArrowLength * Scale * 0.6f);
+	DrawDebugLine(World, Start, ArrowBodyEnd, FColor::Cyan, false, Duration, 0, ArrowThickness * Scale * 3.f);
 
-    DrawDebugDirectionalArrow(World, Start, End, ArrowHeadSize * Scale,
-                              FColor::Cyan, false, Duration, 0, ArrowThickness * Scale);
+	// PUNTA GIGANTE - Cono 3D enorme
+	const float HugeHeadSize = ArrowHeadSize * Scale * 8.f; // 8x più grande!
+	const FVector ConeStart = End - Dir3D * HugeHeadSize;
+	DrawDebugCone(World, ConeStart, Dir3D, HugeHeadSize,
+		FMath::DegreesToRadians(30.f), FMath::DegreesToRadians(30.f),
+		24, FColor::Yellow, false, Duration, 0, 4.f * Scale);
 
-    // Cardinal cross
-    const float Cross = ArrowLength * 0.25f * Scale;
-    DrawDebugLine(World, Start - FVector(Cross,0,0), Start + FVector(Cross,0,0),
-                  FColor(128,128,128), false, Duration, 0, 1.f * Scale);
-    DrawDebugLine(World, Start - FVector(0,Cross,0), Start + FVector(0,Cross,0),
-                  FColor(128,128,128), false, Duration, 0, 1.f * Scale);
+	// Outline nero spesso per contrasto massimo
+	DrawDebugCone(World, ConeStart - Dir3D * (5.f * Scale), Dir3D, HugeHeadSize * 1.1f,
+		FMath::DegreesToRadians(32.f), FMath::DegreesToRadians(32.f),
+		24, FColor::Black, false, Duration, 1, 2.f * Scale);
 
-    DrawDebugString(World, Start + FVector(Cross,0,50*Scale),  TEXT("E"), nullptr, FColor::White, Duration, false);
-    DrawDebugString(World, Start + FVector(-Cross,0,50*Scale), TEXT("W"), nullptr, FColor::White, Duration, false);
-    DrawDebugString(World, Start + FVector(0,Cross,50*Scale),  TEXT("N"), nullptr, FColor::White, Duration, false);
-    DrawDebugString(World, Start + FVector(0,-Cross,50*Scale), TEXT("S"), nullptr, FColor::White, Duration, false);
+	// Cono rosso interno per più contrasto
+	DrawDebugCone(World, ConeStart, Dir3D, HugeHeadSize * 0.7f,
+		FMath::DegreesToRadians(25.f), FMath::DegreesToRadians(25.f),
+		16, FColor::Red, false, Duration, 2, 3.f * Scale);
 
-    // Bias cone
-    if (bAlsoDrawCone && UErosionLibrary::GetWindBias())
-    {
-        const int32 Spokes = 6;
-        for (int32 i = 0; i <= Spokes; ++i)
-        {
-            const float T   = (Spokes == 0) ? 0.f : float(i)/float(Spokes);
-            const float Deg = MeanDeg - ConeHalfAngleDeg + (2.f * ConeHalfAngleDeg) * T;
+	// Sfera GIGANTE sulla punta finale
+	DrawDebugSphere(World, End, 80.f * Scale, 16, FColor::Orange, false, Duration, 0, 5.f * Scale);
 
-            const FVector2D S2D = UErosionLibrary::GetWindUnitVectorFromAngle(Deg);
-            const FVector   S3D(S2D.X, S2D.Y, 0.f);
-            const FVector   SEnd = Start + S3D * (ArrowLength * 0.85f * Scale);
+	// Sfera interna rossa
+	DrawDebugSphere(World, End, 50.f * Scale, 12, FColor::Red, false, Duration, 1, 4.f * Scale);
 
-            DrawDebugDirectionalArrow(World, Start, SEnd, ArrowHeadSize*0.75f*Scale,
-                                      FColor(0,200,255), false, Duration, 0, ArrowThickness*0.75f*Scale);
-        }
-    }
+	// Linee di evidenziazione che puntano alla punta
+	for (int32 i = 0; i < 8; ++i)
+	{
+		const float Angle = (360.f / 8.f) * i;
+		const float Rad = FMath::DegreesToRadians(Angle);
+		const FVector Offset(FMath::Cos(Rad) * 100.f * Scale, FMath::Sin(Rad) * 100.f * Scale, 0.f);
+		DrawDebugLine(World, End + Offset, End, FColor::Yellow, false, Duration, 0, 2.f * Scale);
+	}
+
+	// Cardinal cross
+	const float Cross = ArrowLength * 0.25f * Scale;
+	DrawDebugLine(World, Start - FVector(Cross, 0, 0), Start + FVector(Cross, 0, 0),
+		FColor(128, 128, 128), false, Duration, 0, 1.f * Scale);
+	DrawDebugLine(World, Start - FVector(0, Cross, 0), Start + FVector(0, Cross, 0),
+		FColor(128, 128, 128), false, Duration, 0, 1.f * Scale);
+
+	// Bias cone
+	if (bAlsoDrawCone && UErosionLibrary::GetWindBias())
+	{
+		const int32 Spokes = 6;
+		for (int32 i = 0; i <= Spokes; ++i)
+		{
+			const float T = (Spokes == 0) ? 0.f : float(i) / float(Spokes);
+			const float Deg = MeanDeg - ConeHalfAngleDeg + (2.f * ConeHalfAngleDeg) * T;
+			const FVector2D S2D = UErosionLibrary::GetWindUnitVectorFromAngle(Deg);
+			const FVector   S3D(S2D.X, S2D.Y, 0.f);
+			const FVector   SEnd = Start + S3D * (ArrowLength * 0.85f * Scale);
+			DrawDebugDirectionalArrow(World, Start, SEnd, ArrowHeadSize * 0.75f * Scale,
+				FColor(0, 200, 255), false, Duration, 0, ArrowThickness * 0.75f * Scale);
+		}
+	}
 #endif
 }
 #pragma endregion

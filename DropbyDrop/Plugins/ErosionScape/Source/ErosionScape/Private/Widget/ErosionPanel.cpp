@@ -4,8 +4,11 @@
 #include "ErosionLibrary.h"
 #include "GeneratorHeightMapLibrary.h"
 
+#include "Landscape.h"
+
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SNumericEntryBox.h"
+#include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SComboBox.h"
 #include "Widgets/Input/SCheckBox.h"
@@ -337,6 +340,7 @@ void SErosionPanel::Construct(const FArguments& Args)
 						[
 							SNew(SButton)
 								.Text(FText::FromString("Erode"))
+								.IsEnabled_Lambda([L = Landscape]() { return L && IsValid(L->TargetLandscape); })
 								.OnClicked(this, &SErosionPanel::OnErodeClicked)
 						]
 				]

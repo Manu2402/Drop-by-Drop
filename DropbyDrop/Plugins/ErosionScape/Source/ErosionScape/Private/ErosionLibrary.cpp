@@ -224,107 +224,78 @@ FVector2D UErosionLibrary::GetWindDirection()
 {
 	const float MinAngle = 0.f;
 	const float MaxAngle = 360.f;
-
 	float Mu = 0.f;
-	float Angle = 0.f;
+	const float Sigma = 15.f;
 
-	const float Sigma = 15.f; // Tuned.
-
-	float& WindAngle = Mu;
-
+	// Top-Left Pivot.
 	switch (WindDirection)
 	{
-	case EWindDirection::Est:
-		WindAngle = 0.f;
-		break;
-	case EWindDirection::Nord_Est:
-		WindAngle = 45.f;
-		break;
-	case EWindDirection::Nord:
-		WindAngle = 90.f;
-		break;
-	case EWindDirection::Nord_Ovest:
-		WindAngle = 135.f;
-		break;
-	case EWindDirection::Ovest:
-		WindAngle = 180.f;
-		break;
-	case EWindDirection::Sud_Ovest:
-		WindAngle = 225.f;
-		break;
-	case EWindDirection::Sud:
-		WindAngle = 270.f;
-		break;
-	case EWindDirection::Sud_Est:
-		WindAngle = 315.f;
-		break;
+	case EWindDirection::Est:        Mu = 0.f;   break;
+	case EWindDirection::Sud_Est:    Mu = 45.f;  break;
+	case EWindDirection::Sud:        Mu = 90.f;  break;
+	case EWindDirection::Sud_Ovest:  Mu = 135.f; break;
+	case EWindDirection::Ovest:      Mu = 180.f; break;
+	case EWindDirection::Nord_Ovest: Mu = 225.f; break;
+	case EWindDirection::Nord:       Mu = 270.f; break;
+	case EWindDirection::Nord_Est:   Mu = 315.f; break;
 	case EWindDirection::Random:
 	default:
-		WindAngle = FMath::RandRange(MinAngle, MaxAngle);
+		Mu = FMath::RandRange(MinAngle, MaxAngle);
 		break;
 	}
+
+	float FinalAngle = Mu;
 
 	if (WindBias)
 	{
-		// Box-Muller algorithm.
-
-		// Uniformed numbers generation (0, 1] with same probability.
+		// Box-Muller algorithm
 		const float First = FMath::FRandRange(0.f + KINDA_SMALL_NUMBER, 1.f);
 		const float Second = FMath::FRandRange(0.f + KINDA_SMALL_NUMBER, 1.f);
-
-		// Box-Muller transformation.
 		const float Z = FMath::Sqrt(-2.f * FMath::Loge(First)) * FMath::Cos(2.f * PI * Second);
 
-		// Adapting to our normal distribution.
-		WindAngle = Mu + (Sigma * Z);
+		// Gaussian distribution.
+		FinalAngle = Mu + (Sigma * Z);
 
-		const float CurrentAngle = FMath::RandRange(MinAngle, MaxAngle);  
-
-		if (WindAngle < 0)
-		{
-			// Make "WindAngle" as a positive angle.
-			WindAngle = MaxAngle + CurrentAngle;
-		}
-
-		WindAngle = CurrentAngle;
+		while (FinalAngle < 0.f) FinalAngle += 360.f;
+		while (FinalAngle >= 360.f) FinalAngle -= 360.f;
 	}
 
+	const float Rad = FMath::DegreesToRadians(FinalAngle);
 	const float Strength = FMath::RandRange(0.f, 1.f);
-	return FVector2D(FMath::Cos(WindAngle), FMath::Sin(WindAngle)) * Strength;
+
+	return FVector2D(FMath::Cos(Rad), FMath::Sin(Rad)) * Strength;
 }
 
-float UErosionLibrary::GetWindMeanAngleDegrees()
+bool UErosionLibrary::TryGetWindMeanAngleDegrees(float& MeanAngle)
 {
 	float Mu = 0.f;
 
 	switch (WindDirection)
 	{
-	case EWindDirection::Nord:       Mu = 90.f;  break;   // +Y
-	case EWindDirection::Sud:        Mu = 270.f; break;   // -Y
-	case EWindDirection::Est:        Mu = 0.f;   break;   // +X
-	case EWindDirection::Ovest:      Mu = 180.f; break;   // -X
-	case EWindDirection::Nord_Est:   Mu = 45.f;  break;
-	case EWindDirection::Nord_Ovest: Mu = 135.f; break;
-	case EWindDirection::Sud_Est:    Mu = 315.f; break;
-	case EWindDirection::Sud_Ovest:  Mu = 225.f; break;
+	case EWindDirection::Est:        Mu = 0.f;   break;
+	case EWindDirection::Sud_Est:    Mu = 45.f;  break;
+	case EWindDirection::Sud:        Mu = 90.f;  break;
+	case EWindDirection::Sud_Ovest:  Mu = 135.f; break;
+	case EWindDirection::Ovest:      Mu = 180.f; break;
+	case EWindDirection::Nord_Ovest: Mu = 225.f; break;
+	case EWindDirection::Nord:       Mu = 270.f; break;
+	case EWindDirection::Nord_Est:   Mu = 315.f; break;
 	case EWindDirection::Random:
-	default:
-		// When Random is selected, "mean" has no fixed semantic; we show a random angle for preview.
-		Mu = FMath::RandRange(0.f, 360.f);
-		break;
+	default: return false;
 	}
 
-	// NormalizeAngle360.
 	float R = FMath::Fmod(Mu, 360.f);
-	return (R < 0.f) ? (R + 360.f) : R;
+	MeanAngle = (R < 0.f) ? (R + 360.f) : R;
+	return true;
 }
 
 FVector2D UErosionLibrary::GetWindUnitVectorFromAngle(float Degrees)
 {
 	const float Rad = FMath::DegreesToRadians(Degrees);
-	// Convention matches MapWindDirection: X = cos, Y = sin
+
 	const float X = FMath::Cos(Rad);
 	const float Y = FMath::Sin(Rad);
+
 	return FVector2D(X, Y).GetSafeNormal();
 }
 

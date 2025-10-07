@@ -168,7 +168,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 			+ SHorizontalBox::Slot().AutoWidth().Padding(10, 0)
 			[
 				SNew(SButton)
-				.IsEnabled_Lambda([L = Landscape]() { return L->TargetLandscape && !L->bIsSplittedIntoProxies; })
+				.IsEnabled_Lambda([L = Landscape]() { return L && IsValid(L->TargetLandscape) && !L->bIsSplittedIntoProxies; })
 				.Text(FText::FromString("Split in Proxies"))
 				.OnClicked(this, &SLandscapePanel::OnSplitInProxiesClicked)
 			]

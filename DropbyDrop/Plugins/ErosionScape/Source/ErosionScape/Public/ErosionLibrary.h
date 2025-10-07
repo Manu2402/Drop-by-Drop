@@ -207,7 +207,7 @@ public:
 	static void Erosion(FErosionContext& ErosionContext, const int32 GridSize); // ✔
 	
 	UFUNCTION(BlueprintCallable, Category="Erosion|Debug")
-	static float GetWindMeanAngleDegrees();
+	static bool TryGetWindMeanAngleDegrees(float& NormalizedAngle);
 	UFUNCTION(BlueprintCallable, Category="Erosion|Debug")
 	static FVector2D GetWindUnitVectorFromAngle(float Degrees);
 	
