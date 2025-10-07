@@ -27,6 +27,7 @@ void SRootPanel::Construct(const FArguments& InArgs)
 	External  = MakeShared<FExternalHeightMapSettings>();
 	Landscape = MakeShared<FLandscapeGenerationSettings>();
 	ErosionTemplateManager = NewObject<UErosionTemplateManager>();
+
 	// Brush & preview
 	RightPreviewBrush = MakeShared<FSlateBrush>();
 

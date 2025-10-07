@@ -22,6 +22,8 @@ public:
 
 	void Construct(const FArguments& InArgs);
 
+	FORCEINLINE TSharedPtr<FLandscapeGenerationSettings> GetLandscapeSettings() const { return Landscape; }
+
 private:
 	// Settings 
 	TSharedPtr<FHeightMapGenerationSettings>  Heightmap;

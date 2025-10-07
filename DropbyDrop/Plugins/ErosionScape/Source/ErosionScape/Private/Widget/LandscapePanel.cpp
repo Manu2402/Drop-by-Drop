@@ -199,7 +199,7 @@ FReply SLandscapePanel::OnCreateLandscapeClicked()
 
 FReply SLandscapePanel::OnDestroyLastClicked()
 {
-	if (Landscape->bDestroyLastLandscape && Landscape->TargetLandscape)
+	if (Landscape->bDestroyLastLandscape && IsValid(Landscape->TargetLandscape))
 	{
 		Landscape->TargetLandscape->Destroy();
 	}

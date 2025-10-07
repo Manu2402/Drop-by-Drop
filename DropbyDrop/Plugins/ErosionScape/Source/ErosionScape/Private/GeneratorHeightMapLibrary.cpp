@@ -46,7 +46,7 @@ void UGeneratorHeightMapLibrary::GenerateErosion(const FExternalHeightMapSetting
 	// Generate new landscape.
 	const FTransform LandscapeTransform = GetNewTransform(ExternalSettings, LandscapeSettings, HeightMapSize);
 
-	if (LandscapeSettings.bDestroyLastLandscape && LandscapeSettings.TargetLandscape)
+	if (LandscapeSettings.bDestroyLastLandscape && IsValid(LandscapeSettings.TargetLandscape))
 	{
 		LandscapeSettings.TargetLandscape->Destroy();
 	}
@@ -55,7 +55,7 @@ void UGeneratorHeightMapLibrary::GenerateErosion(const FExternalHeightMapSetting
 
 	SlowTask.EnterProgressFrame(50);
 
-	if (LandscapeSettings.TargetLandscape)
+	if (IsValid(LandscapeSettings.TargetLandscape))
 	{
 		UE_LOG(LogTemp, Log, TEXT("Landscape created successfully!"));
 	}
@@ -437,13 +437,12 @@ void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& Heightm
 	const FTransform LandscapeTransform = GetNewTransform(ExternalSettings, LandscapeSettings, HeightmapSettings.Size);
 
 	//If destroy last landscape
-	if (LandscapeSettings.bDestroyLastLandscape && LandscapeSettings.TargetLandscape)
+	if (LandscapeSettings.bDestroyLastLandscape && IsValid(LandscapeSettings.TargetLandscape))
 	{
 		LandscapeSettings.TargetLandscape->Destroy();
 	}
-	LandscapeSettings.TargetLandscape = GenerateLandscape(LandscapeTransform, HeightData);
 
-	if (LandscapeSettings.TargetLandscape)
+	if (IsValid(GenerateLandscape(LandscapeTransform, HeightData)))
 	{
 		UE_LOG(LogTemp, Log, TEXT("Landscape created successfully!"));
 	}
@@ -488,7 +487,7 @@ void UGeneratorHeightMapLibrary::CreateLandscapeFromOtherHeightMap(const FString
 	ExternalSettings.LastPNGPath = FilePath;
 
 	//If destroy last landscape
-	if (LandscapeSettings.bDestroyLastLandscape && LandscapeSettings.TargetLandscape)
+	if (LandscapeSettings.bDestroyLastLandscape && IsValid(LandscapeSettings.TargetLandscape))
 	{
 		LandscapeSettings.TargetLandscape->Destroy();
 	}
@@ -506,7 +505,7 @@ void UGeneratorHeightMapLibrary::CreateLandscapeFromOtherHeightMap(const FString
 	const FTransform LandscapeTransform = GetNewTransform(ExternalSettings, LandscapeSettings, HeightmapSettings.Size);
 	// Create Landscape using ExternalSetting for Transform (Avoid Kilometers)
 	LandscapeSettings.TargetLandscape = GenerateLandscape(LandscapeTransform, HeightmapInt16);
-	if (!LandscapeSettings.TargetLandscape)
+	if (!IsValid(LandscapeSettings.TargetLandscape))
 	{
 		UE_LOG(LogTemp, Error, TEXT("Failed to generate landscape from heightmap."));
 		return;
@@ -662,7 +661,7 @@ void UGeneratorHeightMapLibrary::DestroyLastLandscape(const FLandscapeGeneration
 {
 	if (LandscapeSettings.bDestroyLastLandscape)
 	{
-		if (LandscapeSettings.TargetLandscape != nullptr)
+		if (IsValid(LandscapeSettings.TargetLandscape))
 		{
 			LandscapeSettings.TargetLandscape->Destroy();
 		}
@@ -1023,7 +1022,7 @@ void UGeneratorHeightMapLibrary::OpenHeightmapFileDialog(
 static FVector GetWindPreviewStart(const FLandscapeGenerationSettings& LS, UWorld* World)
 {
     // If we have a target landscape, use its bounds center; else use world origin slightly lifted.
-    if (LS.TargetLandscape)
+    if (IsValid(LS.TargetLandscape))
     {
         FBox Bounds(ForceInitToZero);
         TArray<ULandscapeComponent*> Comps;

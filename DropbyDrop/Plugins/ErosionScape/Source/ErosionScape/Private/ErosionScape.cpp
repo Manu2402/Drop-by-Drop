@@ -11,6 +11,9 @@
 #include "Widget/LandscapePanel.h"
 #include "Widget/ErosionPanel.h"
 #include "Widget/RootPanel.h"
+#include "Editor.h"
+#include "Editor/UnrealEd/Public/Selection.h"
+#include "Landscape.h"
 
 static const FName ErosionScapeTabName("ErosionScape");
 #define LOCTEXT_NAMESPACE "FErosionScapeModule"
@@ -61,6 +64,29 @@ void FErosionScapeModule::StartupModule()
 		}),
 		ECVF_Default
 	);
+
+#if WITH_EDITOR
+	OnActorSelectedHandle = GEditor->GetSelectedActors()->SelectObjectEvent.AddRaw(this, &FErosionScapeModule::OnActorSelected);
+#endif
+}
+
+void FErosionScapeModule::OnActorSelected(UObject* Object)
+{
+	if (!Landscape.IsValid())
+	{
+		Landscape = RootPanel->GetLandscapeSettings();
+	}
+
+#if WITH_EDITOR
+	if (ALandscape* L = Cast<ALandscape>(Object))
+	{
+		Landscape->TargetLandscape = L;
+	}
+	else
+	{
+		Landscape->TargetLandscape = nullptr;
+	}
+#endif
 }
 
 void FErosionScapeModule::ShutdownModule()
@@ -81,7 +107,7 @@ TSharedRef<SDockTab> FErosionScapeModule::OnSpawnPluginTab(const FSpawnTabArgs& 
 	return SNew(SDockTab)
 	.TabRole(ETabRole::NomadTab)
 	[
-		SNew(SRootPanel)
+		SAssignNew(RootPanel, SRootPanel)
 	];
 }
 
