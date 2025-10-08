@@ -35,5 +35,4 @@ private:
 
 	void OnActorSelected(UObject* NewSelection);
 	FDelegateHandle OnActorSelectedHandle;
-
 };

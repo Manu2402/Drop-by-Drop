@@ -8,7 +8,6 @@
 #include "Landscape.h"
 #include "LandscapeComponent.h"
 #include "ErosionLibrary.h"
-#include "ErosionScapeSettings.h"
 #include "IDesktopPlatform.h"
 #include "LandscapeImportHelper.h"
 #include "LandscapeSubsystem.h"
@@ -19,16 +18,10 @@
 #include "UObject/SavePackage.h"
 #include "HAL/IConsoleManager.h"
 
-
-#pragma region InitParam
-
-float UGeneratorHeightMapLibrary::WindPreviewScale = 1.0f;
-UDataTable* UGeneratorHeightMapLibrary::ErosionTemplatesDataTable = nullptr;
-#pragma endregion
-
 #pragma region Erosion
 void UGeneratorHeightMapLibrary::GenerateErosion(const FExternalHeightMapSettings& ExternalSettings,
                                                  FLandscapeGenerationSettings& LandscapeSettings,
+											     FErosionSettings& ErosionSettings,
                                                  const FHeightMapGenerationSettings& HeightMapSettings,
                                                  int32 HeightMapSize)
 {
@@ -37,7 +30,7 @@ void UGeneratorHeightMapLibrary::GenerateErosion(const FExternalHeightMapSetting
 
 	FErosionContext ErosionContext;
 	UErosionLibrary::SetHeights(ErosionContext, HeightMapSettings.HeightMap);
-	UErosionLibrary::Erosion(ErosionContext, HeightMapSettings.Size);
+	UErosionLibrary::Erosion(ErosionContext, ErosionSettings, HeightMapSettings.Size);
 
 	SlowTask.EnterProgressFrame(50, FText::FromString("Adapting into the landscape..."));
 
@@ -86,7 +79,7 @@ bool UGeneratorHeightMapLibrary::SaveErosionTemplate(const FString& TemplateName
 	ErosionTemplateRow.MaxPathField = MaxPathValue;
 	ErosionTemplateRow.ErosionRadiusField = ErosionRadiusValue;
 
-	ErosionTemplatesDataTable->AddRow(FName(TemplateName), ErosionTemplateRow);
+	FDropByDropSettings::Get().ErosionTemplatesDataTable->AddRow(FName(TemplateName), ErosionTemplateRow);
 	return SaveErosionTemplates();
 }
 
@@ -94,7 +87,7 @@ FErosionTemplateRow* UGeneratorHeightMapLibrary::LoadErosionTemplate(const FStri
 {
 	FString ContextString = TEXT("DataTable Context");
 
-	FErosionTemplateRow* RowData = ErosionTemplatesDataTable->FindRow<FErosionTemplateRow>(
+	FErosionTemplateRow* RowData = FDropByDropSettings::Get().ErosionTemplatesDataTable->FindRow<FErosionTemplateRow>(
 		FName(RowName), ContextString);
 
 	if (!RowData)
@@ -107,39 +100,38 @@ FErosionTemplateRow* UGeneratorHeightMapLibrary::LoadErosionTemplate(const FStri
 
 UDataTable* UGeneratorHeightMapLibrary::GetErosionTemplates()
 {
-	return ErosionTemplatesDataTable;
+	return FDropByDropSettings::Get().ErosionTemplatesDataTable;
 }
 
 void UGeneratorHeightMapLibrary::SetErosionTemplates(const TCHAR* DataTablePath)
 {
-	ErosionTemplatesDataTable = LoadObject<UDataTable>(nullptr, DataTablePath);
+	FDropByDropSettings::Get().ErosionTemplatesDataTable = LoadObject<UDataTable>(nullptr, DataTablePath);
 }
 
-void UGeneratorHeightMapLibrary::LoadRowIntoErosionFields(const FErosionTemplateRow* TemplateDatas)
+void UGeneratorHeightMapLibrary::LoadRowIntoErosionFields(TSharedPtr<FErosionSettings>& OutErosionSettings, const FErosionTemplateRow* TemplateDatas)
 {
-	UErosionLibrary::SetErosion(TemplateDatas->ErosionCyclesField);
-
-	UErosionLibrary::SetWindDirection(static_cast<EWindDirection>(TemplateDatas->WindDirection));
-	UErosionLibrary::SetInertia(TemplateDatas->InertiaField);
-	UErosionLibrary::SetCapacity(TemplateDatas->CapacityField);
-	UErosionLibrary::SetMinimalSlope(TemplateDatas->MinSlopeField);
-	UErosionLibrary::SetDepositionSpeed(TemplateDatas->DepositionSpeedField);
-	UErosionLibrary::SetErosionSpeed(TemplateDatas->ErosionSpeedField);
-	UErosionLibrary::SetGravity(TemplateDatas->GravityField);
-	UErosionLibrary::SetEvaporation(TemplateDatas->EvaporationField);
-	UErosionLibrary::SetMaxPath(TemplateDatas->MaxPathField);
-	UErosionLibrary::SetErosionRadius(TemplateDatas->ErosionRadiusField);
+	OutErosionSettings->ErosionCycles = TemplateDatas->ErosionCyclesField;
+	OutErosionSettings->WindDirection = TemplateDatas->WindDirection;
+	OutErosionSettings->Inertia = TemplateDatas->InertiaField;
+	OutErosionSettings->Capacity = TemplateDatas->CapacityField;
+	OutErosionSettings->MinimalSlope = TemplateDatas->MinSlopeField;
+	OutErosionSettings->DepositionSpeed = TemplateDatas->DepositionSpeedField;
+	OutErosionSettings->ErosionSpeed = TemplateDatas->ErosionSpeedField;
+	OutErosionSettings->Gravity = TemplateDatas->GravityField;
+	OutErosionSettings->Evaporation = TemplateDatas->EvaporationField;
+	OutErosionSettings->MaxPath = TemplateDatas->MaxPathField;
+	OutErosionSettings->ErosionRadius = TemplateDatas->ErosionRadiusField;
 }
 
 bool UGeneratorHeightMapLibrary::DeleteErosionTemplate(const FString& TemplateName)
 {
-	ErosionTemplatesDataTable->RemoveRow(FName(TemplateName));
+	FDropByDropSettings::Get().ErosionTemplatesDataTable->RemoveRow(FName(TemplateName));
 	return SaveErosionTemplates();
 }
 
 bool UGeneratorHeightMapLibrary::SaveErosionTemplates()
 {
-	UPackage* ErostionTemplatesPackage = ErosionTemplatesDataTable->GetPackage();
+	UPackage* ErostionTemplatesPackage = FDropByDropSettings::Get().ErosionTemplatesDataTable->GetPackage();
 	if (!ErostionTemplatesPackage)
 	{
 		return false;
@@ -147,7 +139,7 @@ bool UGeneratorHeightMapLibrary::SaveErosionTemplates()
 
 	ErostionTemplatesPackage->MarkPackageDirty();
 
-	return GEditor->GetEditorSubsystem<UEditorAssetSubsystem>()->SaveLoadedAsset(ErosionTemplatesDataTable);
+	return GEditor->GetEditorSubsystem<UEditorAssetSubsystem>()->SaveLoadedAsset(FDropByDropSettings::Get().ErosionTemplatesDataTable);
 }
 #pragma endregion
 
@@ -1016,8 +1008,6 @@ void UGeneratorHeightMapLibrary::OpenHeightmapFileDialog(
 			UE_LOG(LogTemp, Warning, TEXT("Failed to overwrite preview from PNG: %s"), *SelectedFile);
 		}
 	}
-
-	//CreateLandscapeFromOtherHeightMap(SelectedFile, *ExternalSettings, *LandscapeSettings, *HeightMapSettings);
 }
 static FVector GetWindPreviewStart(const FLandscapeGenerationSettings& LS, UWorld* World)
 {
@@ -1050,6 +1040,7 @@ static FVector GetWindPreviewStart(const FLandscapeGenerationSettings& LS, UWorl
 }
 
 void UGeneratorHeightMapLibrary::DrawWindDirectionPreview(
+	const FErosionSettings& ErosionSettings,
     const FLandscapeGenerationSettings& LandscapeSettings,
     float ArrowLength,
     float ArrowThickness,
@@ -1059,8 +1050,8 @@ void UGeneratorHeightMapLibrary::DrawWindDirectionPreview(
     float ConeHalfAngleDeg)
 {
 #if WITH_EDITOR
-	WindPreviewScale = 10.f;
-    const float Scale = WindPreviewScale;
+	FDropByDropSettings::Get().WindPreviewScale = 10.f;
+    const float Scale = FDropByDropSettings::Get().WindPreviewScale;
 
     UWorld* World = nullptr;
     if (GEditor)
@@ -1072,7 +1063,7 @@ void UGeneratorHeightMapLibrary::DrawWindDirectionPreview(
 
 	const FVector Start = GetWindPreviewStart(LandscapeSettings, World);
 	float MeanDeg = 0.f;
-	if (!UErosionLibrary::TryGetWindMeanAngleDegrees(MeanDeg))
+	if (!UErosionLibrary::TryGetWindMeanAngleDegrees(ErosionSettings, MeanDeg))
 	{
 		return;
 	}
@@ -1124,7 +1115,7 @@ void UGeneratorHeightMapLibrary::DrawWindDirectionPreview(
 		FColor(128, 128, 128), false, Duration, 0, 1.f * Scale);
 
 	// Bias cone
-	if (bAlsoDrawCone && UErosionLibrary::GetWindBias())
+	if (bAlsoDrawCone && ErosionSettings.bWindBias)
 	{
 		const int32 Spokes = 6;
 		for (int32 i = 0; i <= Spokes; ++i)

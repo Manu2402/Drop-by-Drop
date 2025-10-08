@@ -44,7 +44,7 @@ void FErosionScapeModule::StartupModule()
 	                        .SetMenuType(ETabSpawnerMenuType::Hidden);
 
 	UGeneratorHeightMapLibrary::SetErosionTemplates(
-		TEXT("/ErosionScape/DT_ErosionTemplate.DT_ErosionTemplate"));
+		TEXT("/ErosionScape/DT_ErosionTemplates.DT_ErosionTemplates"));
 
 	//Commands
 	IConsoleManager::Get().RegisterConsoleCommand(
@@ -68,6 +68,7 @@ void FErosionScapeModule::StartupModule()
 #if WITH_EDITOR
 	OnActorSelectedHandle = GEditor->GetSelectedActors()->SelectObjectEvent.AddRaw(this, &FErosionScapeModule::OnActorSelected);
 #endif
+
 }
 
 void FErosionScapeModule::OnActorSelected(UObject* Object)

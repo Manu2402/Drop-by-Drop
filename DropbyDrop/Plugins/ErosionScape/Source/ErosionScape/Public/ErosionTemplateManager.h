@@ -3,10 +3,16 @@
 #include "UObject/Object.h"
 #include "ErosionTemplateManager.generated.h"
 
+struct FErosionSettings;
+
 UCLASS()
 class UErosionTemplateManager : public UObject
 {
 	GENERATED_BODY()
+
+private:
+	TSharedPtr<FErosionSettings> ErosionSettingsReference;
+
 public:
 	TArray<FString> GetAllTemplateNames() const;
 	TArray<FString> FindTemplateNames(const FString& Query) const;
@@ -14,4 +20,6 @@ public:
 	void SaveCurrentAsTemplate(const FString& Name);
 	void LoadTemplate(const FString& Name);
 	void DeleteTemplate(const FString& Name);
+
+	void SetErosionSettingsReference(const TSharedPtr<FErosionSettings>& ErosionSettings);
 };

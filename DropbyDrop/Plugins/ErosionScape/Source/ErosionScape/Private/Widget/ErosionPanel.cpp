@@ -9,7 +9,6 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SNumericEntryBox.h"
 #include "Widgets/Input/SButton.h"
-#include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SComboBox.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Layout/SSeparator.h"
@@ -21,9 +20,10 @@ void SErosionPanel::Construct(const FArguments& Args)
 	Heightmap = Args._Heightmap;
 	External = Args._External;
 	Landscape = Args._Landscape;
+	Erosion = Args._Erosion;
 	TemplateManager = Args._TemplateManager;
 
-	check(Heightmap.IsValid() && External.IsValid() && Landscape.IsValid());
+	check(Heightmap.IsValid() && External.IsValid() && Landscape.IsValid() && Erosion.IsValid());
 
 	BuildWindDirections();
 
@@ -51,8 +51,8 @@ void SErosionPanel::Construct(const FArguments& Args)
 						+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 						[
 							SNew(SNumericEntryBox<uint64>)
-								.Value_Lambda([]()-> TOptional<uint64> { return UErosionLibrary::GetErosionCycles(); })
-								.OnValueChanged_Lambda([](uint64 V) { UErosionLibrary::SetErosion(V); })
+								.Value_Lambda([E = Erosion]()-> TOptional<uint64> { return E->ErosionCycles; })
+								.OnValueChanged_Lambda([E = Erosion](uint64 V) { E->ErosionCycles = V; })
 						]
 				]
 
@@ -98,7 +98,7 @@ void SErosionPanel::Construct(const FArguments& Args)
 													const int32 WindValue = WindDirectionEnumPtr->GetValueByNameString(*Option);
 													if (WindValue != INDEX_NONE)
 													{
-														UErosionLibrary::SetWindDirection(static_cast<EWindDirection>(WindValue));
+														Erosion->WindDirection = static_cast<EWindDirection>(WindValue);
 														return;
 													}
 												}
@@ -114,7 +114,7 @@ void SErosionPanel::Construct(const FArguments& Args)
 												else if (Name == TEXT("Sud_Ovest")) Dir = EWindDirection::Sud_Ovest;
 												else if (Name == TEXT("Sud_Est")) Dir = EWindDirection::Sud_Est;
 
-												UErosionLibrary::SetWindDirection(Dir);
+												Erosion->WindDirection = Dir;
 											})
 										[
 											// Selected content
@@ -139,9 +139,9 @@ void SErosionPanel::Construct(const FArguments& Args)
 										+ SHorizontalBox::Slot().AutoWidth().Padding(8, 0)
 										[
 											SNew(SCheckBox)
-												.OnCheckStateChanged_Lambda([](ECheckBoxState S)
+												.OnCheckStateChanged_Lambda([E = Erosion](ECheckBoxState S)
 													{
-														UErosionLibrary::SetWindBias(S == ECheckBoxState::Checked);
+														E->bWindBias = (S == ECheckBoxState::Checked);
 													})
 										]
 								]
@@ -157,7 +157,7 @@ void SErosionPanel::Construct(const FArguments& Args)
 										if (!Landscape.IsValid())
 											return FReply::Handled();
 
-										UGeneratorHeightMapLibrary::DrawWindDirectionPreview(
+										UGeneratorHeightMapLibrary::DrawWindDirectionPreview(*Erosion,
 											*Landscape, /*ArrowLength*/8000.f, /*Thickness*/12.f, /*Head*/300.f,
 											/*Duration*/6.f, /*Cone*/true, /*ConeHalf*/15.f);
 
@@ -191,8 +191,8 @@ void SErosionPanel::Construct(const FArguments& Args)
 										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 										[
 											SNew(SNumericEntryBox<float>)
-												.Value_Lambda([]()-> TOptional<float> { return UErosionLibrary::GetInertia(); })
-												.OnValueChanged_Lambda([](float V) { V = FMath::Clamp(V, 0.f, 1.f); UErosionLibrary::SetInertia(V); })
+												.Value_Lambda([E = Erosion]()-> TOptional<float> { return E->Inertia; })
+												.OnValueChanged_Lambda([E = Erosion](float V) { V = FMath::Clamp(V, 0.f, 1.f); E->Inertia = V; })
 										]
 								]
 
@@ -207,8 +207,8 @@ void SErosionPanel::Construct(const FArguments& Args)
 										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 										[
 											SNew(SNumericEntryBox<uint32>)
-												.Value_Lambda([]()-> TOptional<uint32> { return UErosionLibrary::GetCapacity(); })
-												.OnValueChanged_Lambda([](uint32 V) { UErosionLibrary::SetCapacity(V); })
+												.Value_Lambda([E = Erosion]()-> TOptional<uint32> { return E->Capacity; })
+												.OnValueChanged_Lambda([E = Erosion](uint32 V) { E->Capacity = V; })
 										]
 								]
 
@@ -223,8 +223,8 @@ void SErosionPanel::Construct(const FArguments& Args)
 										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 										[
 											SNew(SNumericEntryBox<float>)
-												.Value_Lambda([]()-> TOptional<float> { return UErosionLibrary::GetMinimalSlope(); })
-												.OnValueChanged_Lambda([](float V) { V = V >= 0.f ? V : 0.f; UErosionLibrary::SetMinimalSlope(V); })
+												.Value_Lambda([E = Erosion]()-> TOptional<float> { return E->MinimalSlope; })
+												.OnValueChanged_Lambda([E = Erosion](float V) { V = V >= 0.f ? V : 0.f; E->MinimalSlope = V; })
 										]
 								]
 
@@ -239,8 +239,8 @@ void SErosionPanel::Construct(const FArguments& Args)
 										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 										[
 											SNew(SNumericEntryBox<float>)
-												.Value_Lambda([]()-> TOptional<float> { return UErosionLibrary::GetDepositionSpeed(); })
-												.OnValueChanged_Lambda([](float V) { V = FMath::Clamp(V, 0.f, 1.f); UErosionLibrary::SetDepositionSpeed(V); })
+												.Value_Lambda([E = Erosion]()-> TOptional<float> { return E->DepositionSpeed; })
+												.OnValueChanged_Lambda([E = Erosion](float V) { V = FMath::Clamp(V, 0.f, 1.f); E->DepositionSpeed = V; })
 										]
 								]
 
@@ -255,8 +255,8 @@ void SErosionPanel::Construct(const FArguments& Args)
 										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 										[
 											SNew(SNumericEntryBox<float>)
-												.Value_Lambda([]()-> TOptional<float> { return UErosionLibrary::GetErosionSpeed(); })
-												.OnValueChanged_Lambda([](float V) { V = FMath::Clamp(V, 0.f, 1.f); UErosionLibrary::SetErosionSpeed(V); })
+												.Value_Lambda([E = Erosion]()-> TOptional<float> { return E->ErosionSpeed; })
+												.OnValueChanged_Lambda([E = Erosion](float V) { V = FMath::Clamp(V, 0.f, 1.f); E->ErosionSpeed = V; })
 										]
 								]
 
@@ -271,8 +271,8 @@ void SErosionPanel::Construct(const FArguments& Args)
 										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 										[
 											SNew(SNumericEntryBox<uint32>)
-												.Value_Lambda([]()-> TOptional<uint32> { return UErosionLibrary::GetGravity(); })
-												.OnValueChanged_Lambda([](uint32 V) { UErosionLibrary::SetGravity(V); })
+												.Value_Lambda([E = Erosion]()-> TOptional<uint32> { return E->Gravity; })
+												.OnValueChanged_Lambda([E = Erosion](uint32 V) { E->Gravity = V; })
 										]
 								]
 
@@ -287,8 +287,8 @@ void SErosionPanel::Construct(const FArguments& Args)
 										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 										[
 											SNew(SNumericEntryBox<float>)
-												.Value_Lambda([]()-> TOptional<float> { return UErosionLibrary::GetEvaporation(); })
-												.OnValueChanged_Lambda([](float V) { V = FMath::Clamp(V, 0.f, 1.f); UErosionLibrary::SetEvaporation(V); })
+												.Value_Lambda([E = Erosion]()-> TOptional<float> { return E->Evaporation; })
+												.OnValueChanged_Lambda([E = Erosion](float V) { V = FMath::Clamp(V, 0.f, 1.f); E->Evaporation = V; })
 										]
 								]
 
@@ -303,8 +303,8 @@ void SErosionPanel::Construct(const FArguments& Args)
 										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 										[
 											SNew(SNumericEntryBox<uint32>)
-												.Value_Lambda([]()-> TOptional<uint32> { return UErosionLibrary::GetMaxPath(); })
-												.OnValueChanged_Lambda([](uint32 V) { UErosionLibrary::SetMaxPath(V); })
+												.Value_Lambda([E = Erosion]()-> TOptional<uint32> { return E->MaxPath; })
+												.OnValueChanged_Lambda([E = Erosion](uint32 V) { E->MaxPath = V; })
 										]
 								]
 
@@ -319,8 +319,8 @@ void SErosionPanel::Construct(const FArguments& Args)
 										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 										[
 											SNew(SNumericEntryBox<int32>)
-												.Value_Lambda([]()-> TOptional<int32> { return UErosionLibrary::GetErosionRadius(); })
-												.OnValueChanged_Lambda([](int32 V) { V = V >= 0 ? V : 0; UErosionLibrary::SetErosionRadius(V); })
+												.Value_Lambda([E = Erosion]()-> TOptional<int32> { return E->ErosionRadius; })
+												.OnValueChanged_Lambda([E = Erosion](int32 V) { V = V >= 0 ? V : 0; E->ErosionRadius = V; })
 										]
 								]
 
@@ -400,7 +400,7 @@ void SErosionPanel::BuildWindDirections()
 			const int32 WindValue = WindDirectionEnumPtr->GetValueByNameString(*CurrentWindDirection);
 			if (WindValue != INDEX_NONE)
 			{
-				UErosionLibrary::SetWindDirection(static_cast<EWindDirection>(WindValue));
+				Erosion->WindDirection = static_cast<EWindDirection>(WindValue);
 			}
 		}
 		else
@@ -417,7 +417,7 @@ void SErosionPanel::BuildWindDirections()
 			else if (Name == TEXT("Sud_Ovest")) Dir = EWindDirection::Sud_Ovest;
 			else if (Name == TEXT("Sud_Est")) Dir = EWindDirection::Sud_Est;
 
-			UErosionLibrary::SetWindDirection(Dir);
+			Erosion->WindDirection = Dir;
 		}
 	}
 }
@@ -429,6 +429,7 @@ FReply SErosionPanel::OnErodeClicked()
 	UGeneratorHeightMapLibrary::GenerateErosion(
 		*External,
 		*Landscape,
+		*Erosion,
 		*Heightmap,
 		Heightmap->Size
 	);

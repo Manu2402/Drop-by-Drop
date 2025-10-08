@@ -1,22 +1,6 @@
 #include "ErosionLibrary.h"
+#include "ErosionScapeSettings.h"
 #include "Math/UnrealMathUtility.h"
-
-// TOGLIERE
-#pragma region Parameters
-uint64 UErosionLibrary::ErosionCycles = 100000;
-float UErosionLibrary::Inertia = 0.3; // pInertia
-uint32 UErosionLibrary::Capacity = 8; // pCapacity
-float UErosionLibrary::MinimalSlope = 0.01f; // pMinSlope
-float UErosionLibrary::DepositionSpeed = 0.2f; // pDeposition
-float UErosionLibrary::ErosionSpeed = 0.7f; // pErosion 
-uint32 UErosionLibrary::Gravity = 10; // pGravity
-float UErosionLibrary::Evaporation = 0.02f; // pEvaporation 
-uint32 UErosionLibrary::MaxPath = 64; // pMaxPath 
-int32 UErosionLibrary::ErosionRadius = 4; // pRadius 
-EWindDirection UErosionLibrary::WindDirection = EWindDirection::Est;
-bool UErosionLibrary::WindBias = false;
-
-#pragma endregion // Parameters
 
 void UErosionLibrary::SetHeights(FErosionContext& ErosionContext, const TArray<float>& InHeights)
 {
@@ -29,12 +13,12 @@ TArray<float> UErosionLibrary::GetHeights(const FErosionContext& ErosionContext)
 	return ErosionContext.GridHeights;
 }
 
-FDrop& UErosionLibrary::InitDrop(FDrop& OutDrop, const int32 GridSize /* GridSize = MapSize / CellSize */)
+FDrop& UErosionLibrary::InitDrop(const FErosionSettings& ErosionSettings, FDrop& OutDrop, const int32 GridSize /* GridSize = MapSize / CellSize */)
 {
 	const float Limit = static_cast<float>(GridSize - 1);
 
 	OutDrop.Position = FVector2D(FMath::RandRange(0.f, Limit), FMath::RandRange(0.f, Limit));
-	OutDrop.Direction = GetWindDirection();
+	OutDrop.Direction = GetWindDirection(ErosionSettings);
 
 	OutDrop.Velocity = 1;
 	OutDrop.Water = 1;
@@ -42,12 +26,12 @@ FDrop& UErosionLibrary::InitDrop(FDrop& OutDrop, const int32 GridSize /* GridSiz
 	return OutDrop;
 }
 
-FDrop& UErosionLibrary::SetDrop(FDrop& Drop, const int32 GridSize, const FVector2D& Position, const FVector2D& Direction, const float Velocity, const float Water)
+FDrop& UErosionLibrary::SetDrop(const FErosionSettings& ErosionSettings, FDrop& Drop, const int32 GridSize, const FVector2D& Position, const FVector2D& Direction, const float Velocity, const float Water)
 {
 	if (IsOutOfBound(Drop.Position, GridSize))
 	{
 		UE_LOG(LogTemp, Error, TEXT("You inserted an invalid position value! The drop's params will be generated automatically!"));
-		return InitDrop(Drop, GridSize);
+		return InitDrop(ErosionSettings, Drop, GridSize);
 	}
 
 	Drop.Position = Position;
@@ -55,7 +39,7 @@ FDrop& UErosionLibrary::SetDrop(FDrop& Drop, const int32 GridSize, const FVector
 	if (Direction.X < -1 || Direction.X > 1 || Direction.Y < -1 || Direction.Y > 1)
 	{
 		UE_LOG(LogTemp, Error, TEXT("You inserted an invalid direction value! The drop's params will be generated automatically!"));
-		return InitDrop(Drop, GridSize);
+		return InitDrop(ErosionSettings, Drop, GridSize);
 	}
 
 	Drop.Direction = Direction;
@@ -124,16 +108,16 @@ float UErosionLibrary::GetBilinearInterpolation(const FVector2D& OffsetPosition,
 		CornersHeights.X1_Y1 * OffsetPosition.X * OffsetPosition.Y;
 }
 
-void UErosionLibrary::SetInRadiusPoints(FErosionContext& ErosionContext, const FVector2D& DropPosition, const int32 GridSize)
+void UErosionLibrary::SetInRadiusPoints(FErosionContext& ErosionContext, const FErosionSettings& ErosionSettings, const FVector2D& DropPosition, const int32 GridSize)
 {
 	// pRadius = 1 --> 9
 	// pRadius = 2 --> 25
 	// pRadius = 3 --> 49
 	// ..................
 
-	for (int32 Y = -ErosionRadius; Y <= ErosionRadius; Y++)
+	for (int32 Y = -ErosionSettings.ErosionRadius; Y <= ErosionSettings.ErosionRadius; Y++)
 	{
-		for (int32 X = -ErosionRadius; X <= ErosionRadius; X++)
+		for (int32 X = -ErosionSettings.ErosionRadius; X <= ErosionSettings.ErosionRadius; X++)
 		{
 			const float PosX = FMath::Floor(DropPosition.X) + X;
 			const float PosY = FMath::Floor(DropPosition.Y) + Y;
@@ -149,9 +133,9 @@ void UErosionLibrary::SetInRadiusPoints(FErosionContext& ErosionContext, const F
 	}
 }
 
-float UErosionLibrary::GetRelativeWeightOnPoint(const FVector2D& DropPosition, const FVector2D& PointPosition)
+float UErosionLibrary::GetRelativeWeightOnPoint(const FErosionSettings& ErosionSettings, const FVector2D& DropPosition, const FVector2D& PointPosition)
 {
-	const int32 SquaredErosionRadius =  ErosionRadius * ErosionRadius;
+	const int32 SquaredErosionRadius =  ErosionSettings.ErosionRadius * ErosionSettings.ErosionRadius;
 	return FMath::Max(0, SquaredErosionRadius - (PointPosition - DropPosition).SquaredLength());
 }
 
@@ -220,7 +204,7 @@ EOutOfBoundResult UErosionLibrary::GetOutOfBoundAsResult(const FVector2D& Intege
 	return EOutOfBoundResult::No_Error;
 }
 
-FVector2D UErosionLibrary::GetWindDirection()
+FVector2D UErosionLibrary::GetWindDirection(const FErosionSettings& ErosionSettings)
 {
 	const float MinAngle = 0.f;
 	const float MaxAngle = 360.f;
@@ -228,7 +212,7 @@ FVector2D UErosionLibrary::GetWindDirection()
 	const float Sigma = 15.f;
 
 	// Top-Left Pivot.
-	switch (WindDirection)
+	switch (ErosionSettings.WindDirection)
 	{
 	case EWindDirection::Est:        Mu = 0.f;   break;
 	case EWindDirection::Sud_Est:    Mu = 45.f;  break;
@@ -246,7 +230,7 @@ FVector2D UErosionLibrary::GetWindDirection()
 
 	float FinalAngle = Mu;
 
-	if (WindBias)
+	if (ErosionSettings.bWindBias)
 	{
 		// Box-Muller algorithm
 		const float First = FMath::FRandRange(0.f + KINDA_SMALL_NUMBER, 1.f);
@@ -266,11 +250,11 @@ FVector2D UErosionLibrary::GetWindDirection()
 	return FVector2D(FMath::Cos(Rad), FMath::Sin(Rad)) * Strength;
 }
 
-bool UErosionLibrary::TryGetWindMeanAngleDegrees(float& MeanAngle)
+bool UErosionLibrary::TryGetWindMeanAngleDegrees(const FErosionSettings& ErosionSettings, float& MeanAngle)
 {
 	float Mu = 0.f;
 
-	switch (WindDirection)
+	switch (ErosionSettings.WindDirection)
 	{
 	case EWindDirection::Est:        Mu = 0.f;   break;
 	case EWindDirection::Sud_Est:    Mu = 45.f;  break;
@@ -299,11 +283,11 @@ FVector2D UErosionLibrary::GetWindUnitVectorFromAngle(float Degrees)
 	return FVector2D(X, Y).GetSafeNormal();
 }
 
-void UErosionLibrary::ApplyErosion(FErosionContext& ErosionContext, FDrop& Drop, const int32 GridSize)
+void UErosionLibrary::ApplyErosion(FErosionContext& ErosionContext, const FErosionSettings& ErosionSettings, FDrop& Drop, const int32 GridSize)
 {
 	float Sediment = 0;
 
-	for (uint64 Cycle = 0; Cycle < MaxPath; Cycle++)
+	for (uint64 Cycle = 0; Cycle < ErosionSettings.MaxPath; Cycle++)
 	{
 		// 0) Drop's position computation on grid.
 		if (IsOutOfBound(Drop.Position, GridSize))
@@ -328,7 +312,7 @@ void UErosionLibrary::ApplyErosion(FErosionContext& ErosionContext, FDrop& Drop,
 		);
 		
 		// Phase three: inertia blends.
-		Drop.Direction = Drop.Direction * Inertia - DropGradient * (1 - Inertia);
+		Drop.Direction = Drop.Direction * ErosionSettings.Inertia - DropGradient * (1 - ErosionSettings.Inertia);
 
 		if (Drop.Direction.SquaredLength() <= 0)
 		{
@@ -345,7 +329,7 @@ void UErosionLibrary::ApplyErosion(FErosionContext& ErosionContext, FDrop& Drop,
 			return;
 		}
 
-		InitWeights(ErosionContext, Drop.Position, GridSize);
+		InitWeights(ErosionContext, ErosionSettings, Drop.Position, GridSize);
 
 		// Phase five: heights differences.
 		const float HeightPosOld = GetBilinearInterpolation(OffsetPosOld, PosOldHeights);
@@ -362,21 +346,21 @@ void UErosionLibrary::ApplyErosion(FErosionContext& ErosionContext, FDrop& Drop,
 		// Phase six: deposit and erosion calculus.
 
 		// Capacity calculus.
-		const float C = FMath::Max(-HeightsDifference, MinimalSlope) * Drop.Velocity * Drop.Water * Capacity;
+		const float C = FMath::Max(-HeightsDifference, ErosionSettings.MinimalSlope) * Drop.Velocity * Drop.Water * ErosionSettings.Capacity;
 
 		const bool bDropHasMovingUp = HeightsDifference > 0;
 		const bool bDropHasToDeposit = Sediment > C;
 
 		if (bDropHasMovingUp || bDropHasToDeposit)
 		{
-			float Deposit = bDropHasMovingUp ? FMath::Min(HeightsDifference, Sediment) : (Sediment - C) * DepositionSpeed;
+			float Deposit = bDropHasMovingUp ? FMath::Min(HeightsDifference, Sediment) : (Sediment - C) * ErosionSettings.DepositionSpeed;
 			Sediment -= Deposit;
 
 			ComputeDepositOnPoints(ErosionContext, TruncatedPosOld, OffsetPosOld, Deposit, GridSize);
 		}
 		else
 		{
-			float Erosion = FMath::Min((C - Sediment) * ErosionSpeed, -HeightsDifference);
+			float Erosion = FMath::Min((C - Sediment) * ErosionSettings.ErosionSpeed, -HeightsDifference);
 
 			TArray<float> ErosionValues = GetErosionOnPoints(ErosionContext, Erosion);
 			for (int32 Index = 0; Index < ErosionValues.Num(); Index++)
@@ -390,14 +374,14 @@ void UErosionLibrary::ApplyErosion(FErosionContext& ErosionContext, FDrop& Drop,
 		}
 
 		// Phase seven: drop's mutation.
-		const float Velocity = ((Drop.Velocity * Drop.Velocity) + (-HeightsDifference) * Gravity);
+		const float Velocity = ((Drop.Velocity * Drop.Velocity) + (-HeightsDifference) * ErosionSettings.Gravity);
 		Drop.Velocity = Velocity > 0 ? FMath::Sqrt(Velocity) : 0;
 
-		Drop.Water = Drop.Water * (1 - Evaporation);
+		Drop.Water = Drop.Water * (1 - ErosionSettings.Evaporation);
 	}
 }
 
-void UErosionLibrary::InitWeights(FErosionContext& ErosionContext, const FVector2D& DropPosition, const int32 GridSize)
+void UErosionLibrary::InitWeights(FErosionContext& ErosionContext, const FErosionSettings& ErosionSettings, const FVector2D& DropPosition, const int32 GridSize)
 {
 	ErosionContext.SquaredWeights.Reset();
 	ErosionContext.Points.Reset();
@@ -405,32 +389,32 @@ void UErosionLibrary::InitWeights(FErosionContext& ErosionContext, const FVector
 	float RelativeSquaredWeightsSum = 0;
 	TArray<float> RelativeSquaredWeights;
 
-	SetInRadiusPoints(ErosionContext, DropPosition, GridSize);
+	SetInRadiusPoints(ErosionContext, ErosionSettings, DropPosition, GridSize);
 
 	for (int32 Index = 0; Index < ErosionContext.Points.Num(); Index++)
 	{
-		RelativeSquaredWeights.Add(GetRelativeWeightOnPoint(DropPosition, ErosionContext.Points[Index]));
+		RelativeSquaredWeights.Add(GetRelativeWeightOnPoint(ErosionSettings, DropPosition, ErosionContext.Points[Index]));
 		RelativeSquaredWeightsSum += RelativeSquaredWeights[Index];
 	}
 
 	for (int32 Index = 0; Index < ErosionContext.Points.Num(); Index++)
 	{
-		ErosionContext.SquaredWeights.Add(GetRelativeWeightOnPoint(DropPosition, ErosionContext.Points[Index]) / RelativeSquaredWeightsSum);
+		ErosionContext.SquaredWeights.Add(GetRelativeWeightOnPoint(ErosionSettings, DropPosition, ErosionContext.Points[Index]) / RelativeSquaredWeightsSum);
 	}
 }
 
 // Erosion started.
-void UErosionLibrary::Erosion(FErosionContext& ErosionContext, const int32 GridSize)
+void UErosionLibrary::Erosion(FErosionContext& ErosionContext, const FErosionSettings& ErosionSettings, const int32 GridSize)
 {
-	const int32 SampledPointsInRadius = (2 * ErosionRadius + 1) * (2 * ErosionRadius + 1);
+	const int32 SampledPointsInRadius = (2 * ErosionSettings.ErosionRadius + 1) * (2 * ErosionSettings.ErosionRadius + 1);
 	ErosionContext.SquaredWeights.Reserve(SampledPointsInRadius);
 	ErosionContext.Points.Reserve(SampledPointsInRadius);
 	
-	for (uint64 Index = 0; Index < ErosionCycles; Index++)
+	for (uint64 Index = 0; Index < ErosionSettings.ErosionCycles; Index++)
 	{
 		FDrop Drop;
-		InitDrop(Drop, GridSize);
-		ApplyErosion(ErosionContext, Drop, GridSize);
+		InitDrop(ErosionSettings, Drop, GridSize);
+		ApplyErosion(ErosionContext, ErosionSettings, Drop, GridSize);
 
 		// Drop death.
 	}

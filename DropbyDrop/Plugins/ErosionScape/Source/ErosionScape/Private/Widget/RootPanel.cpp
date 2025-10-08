@@ -26,7 +26,10 @@ void SRootPanel::Construct(const FArguments& InArgs)
 	Heightmap = MakeShared<FHeightMapGenerationSettings>();
 	External  = MakeShared<FExternalHeightMapSettings>();
 	Landscape = MakeShared<FLandscapeGenerationSettings>();
+	Erosion = MakeShared<FErosionSettings>();
 	ErosionTemplateManager = NewObject<UErosionTemplateManager>();
+
+	ErosionTemplateManager->SetErosionSettingsReference(Erosion);
 
 	// Brush & preview
 	RightPreviewBrush = MakeShared<FSlateBrush>();
@@ -137,7 +140,8 @@ TSharedRef<SWidget> SRootPanel::BuildCenter()
 		.Heightmap(Heightmap.ToSharedRef())
 		.External(External.ToSharedRef())
 		.Landscape(Landscape.ToSharedRef())
-		.TemplateManager(ErosionTemplateManager) 
+		.Erosion(Erosion.ToSharedRef())
+		.TemplateManager(ErosionTemplateManager)
 	];
 }
 
@@ -254,6 +258,7 @@ FReply SRootPanel::OnActionCreateLandscapeInternal()
 FReply SRootPanel::OnActionImportPNG()
 {
 	UGeneratorHeightMapLibrary::OpenHeightmapFileDialog(External, Landscape, Heightmap);
+	UGeneratorHeightMapLibrary::CreateLandscapeFromOtherHeightMap(External->LastPNGPath, *External, *Landscape, *Heightmap);
 	RefreshRightPreview();
 	return FReply::Handled();
 }

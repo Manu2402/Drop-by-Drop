@@ -6,6 +6,7 @@
 struct FHeightMapGenerationSettings;
 struct FExternalHeightMapSettings;
 struct FLandscapeGenerationSettings;
+struct FErosionSettings;
 
 class SWidgetSwitcher;
 class SImage;
@@ -29,6 +30,10 @@ private:
 	TSharedPtr<FHeightMapGenerationSettings>  Heightmap;
 	TSharedPtr<FExternalHeightMapSettings>    External;
 	TSharedPtr<FLandscapeGenerationSettings>  Landscape;
+	TSharedPtr<FErosionSettings>              Erosion;
+
+	//Template
+	TObjectPtr<UErosionTemplateManager> ErosionTemplateManager;
 
 	// Switcher 
 	TSharedPtr<SWidgetSwitcher> Switcher;
@@ -41,9 +46,6 @@ private:
 	// NavButtonTexts
 	TArray<TSharedPtr<STextBlock>> NavButtonTexts;
 	int32 ActiveIndex = 0; // 0 = HeightMap, 1 = Landscape, 2 = Erosion
-
-	//Template
-	TObjectPtr<UErosionTemplateManager> ErosionTemplateManager;
 
 private:
 	// UI

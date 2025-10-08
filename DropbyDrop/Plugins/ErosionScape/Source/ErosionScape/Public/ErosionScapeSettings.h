@@ -5,7 +5,6 @@
 class ALandscape;
 
 USTRUCT(BlueprintType)
-
 struct FHeightMapGenerationSettings
 {
 	GENERATED_BODY()
@@ -48,4 +47,45 @@ struct FLandscapeGenerationSettings
 	bool bIsSplittedIntoProxies = false;
 
 	TObjectPtr<ALandscape> TargetLandscape = nullptr;
+};
+
+USTRUCT(BlueprintType)
+struct FErosionSettings
+{
+	GENERATED_BODY()
+
+	uint64 ErosionCycles = 100000;
+	uint8 WindDirection = 0;
+	bool bWindBias = false;
+	float Inertia = 0.3f;
+	uint32 Capacity = 8;
+	float MinimalSlope = 0.01f;
+	float DepositionSpeed = 0.2f;
+	float ErosionSpeed = 0.7f;
+	uint32 Gravity = 10;
+	float Evaporation = 0.02f;
+	uint32 MaxPath = 64;
+	int32 ErosionRadius = 4;
+};
+
+class FDropByDropSettings
+{
+public:
+	float WindPreviewScale = 5.0f;
+	UDataTable* ErosionTemplatesDataTable = nullptr;
+
+public:
+	FORCEINLINE static FDropByDropSettings& Get()
+	{
+		static FDropByDropSettings Instance;
+		return Instance;
+	}
+
+private:
+	FDropByDropSettings() = default;
+	FDropByDropSettings(const FDropByDropSettings& Other) = delete;
+	FDropByDropSettings& operator=(const FDropByDropSettings& Other) = delete;
+	FDropByDropSettings(FDropByDropSettings&& Other) = delete;
+	FDropByDropSettings& operator=(FDropByDropSettings&& Other) = delete;
+
 };

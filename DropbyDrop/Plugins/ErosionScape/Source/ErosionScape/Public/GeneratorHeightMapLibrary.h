@@ -5,6 +5,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Engine/Texture2D.h"
 #include "Misc/FileHelper.h"
+#include "ErosionScapeSettings.h"
 #include "GeneratorHeightMapLibrary.generated.h"
 
 USTRUCT(BlueprintType)
@@ -31,12 +32,11 @@ class UGeneratorHeightMapLibrary : public UBlueprintFunctionLibrary
 	GENERATED_BODY()
 
 public:
-	static UDataTable* ErosionTemplatesDataTable;
-
 #pragma region Erosion
 	
 	static void GenerateErosion(const FExternalHeightMapSettings& ExternalSettings,
 	                             FLandscapeGenerationSettings& LandscapeSettings,
+		                          FErosionSettings& ErosionSettings,
 	                             const FHeightMapGenerationSettings& HeightMapSetting,
 	                            int32 HeightMapSize);
 	
@@ -51,7 +51,7 @@ public:
 	static bool DeleteErosionTemplate(const FString& TemplateName);
 	static bool SaveErosionTemplates();
 
-	static void LoadRowIntoErosionFields(const FErosionTemplateRow* TemplateDatas);
+	static void LoadRowIntoErosionFields(TSharedPtr<FErosionSettings>& OutErosionSettings, const FErosionTemplateRow* TemplateDatas);
 
 	static UDataTable* GetErosionTemplates();
 	static void SetErosionTemplates(const TCHAR* DataTablePath);
@@ -105,14 +105,12 @@ public:
 		TSharedPtr<struct FHeightMapGenerationSettings> HeightMapSettings = nullptr
 	);
 
-	//Wind Preview
-	static float WindPreviewScale;
+	static void SetWindPreviewScale(float NewScale) { FDropByDropSettings::Get().WindPreviewScale = NewScale; }
 
-	static void SetWindPreviewScale(float NewScale) { WindPreviewScale = NewScale; }
-
-	static float GetWindPreviewScale() { return WindPreviewScale; }
+	static float GetWindPreviewScale() { return FDropByDropSettings::Get().WindPreviewScale; }
 	
 	static void DrawWindDirectionPreview(
+		const FErosionSettings& ErosionSettings,
 		const FLandscapeGenerationSettings& LandscapeSettings,
 		float ArrowLength      = 8000.f,
 		float ArrowThickness   = 12.f,
@@ -128,4 +126,5 @@ private:
 	                                  int32 HeightmapSize);
 	static void DestroyLastLandscape(const FLandscapeGenerationSettings& LandscapeSettings);
 #pragma endregion
+
 };
