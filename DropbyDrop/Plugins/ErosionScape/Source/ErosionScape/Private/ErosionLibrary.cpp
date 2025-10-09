@@ -1,6 +1,7 @@
 #include "ErosionLibrary.h"
 #include "ErosionScapeSettings.h"
 #include "Math/UnrealMathUtility.h"
+#include "DropByDropLogger.h"
 
 void UErosionLibrary::SetHeights(FErosionContext& ErosionContext, const TArray<float>& InHeights)
 {
@@ -30,7 +31,7 @@ FDrop& UErosionLibrary::SetDrop(const FErosionSettings& ErosionSettings, FDrop& 
 {
 	if (IsOutOfBound(Drop.Position, GridSize))
 	{
-		UE_LOG(LogTemp, Error, TEXT("You inserted an invalid position value! The drop's params will be generated automatically!"));
+		UE_LOG(LogDropByDropErosion, Error, TEXT("You inserted an invalid position value! The drop's params will be generated automatically!"));
 		return InitDrop(ErosionSettings, Drop, GridSize);
 	}
 
@@ -38,7 +39,7 @@ FDrop& UErosionLibrary::SetDrop(const FErosionSettings& ErosionSettings, FDrop& 
 
 	if (Direction.X < -1 || Direction.X > 1 || Direction.Y < -1 || Direction.Y > 1)
 	{
-		UE_LOG(LogTemp, Error, TEXT("You inserted an invalid direction value! The drop's params will be generated automatically!"));
+		UE_LOG(LogDropByDropErosion, Error, TEXT("You inserted an invalid direction value! The drop's params will be generated automatically!"));
 		return InitDrop(ErosionSettings, Drop, GridSize);
 	}
 

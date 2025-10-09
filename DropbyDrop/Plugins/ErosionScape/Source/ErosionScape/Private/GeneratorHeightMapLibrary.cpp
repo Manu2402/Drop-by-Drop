@@ -17,6 +17,7 @@
 #include "Subsystems/EditorAssetSubsystem.h"
 #include "UObject/SavePackage.h"
 #include "HAL/IConsoleManager.h"
+#include "DropByDropLogger.h"
 
 #pragma region Erosion
 void UGeneratorHeightMapLibrary::GenerateErosion(const FExternalHeightMapSettings& ExternalSettings,
@@ -50,11 +51,11 @@ void UGeneratorHeightMapLibrary::GenerateErosion(const FExternalHeightMapSetting
 
 	if (IsValid(LandscapeSettings.TargetLandscape))
 	{
-		UE_LOG(LogTemp, Log, TEXT("Landscape created successfully!"));
+		UE_LOG(LogDropByDropLandscape, Log, TEXT("Landscape created successfully!"));
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to create landscape."));
+		UE_LOG(LogDropByDropLandscape, Error, TEXT("Failed to create landscape."));
 	}
 }
 
@@ -228,7 +229,7 @@ UTexture2D* UGeneratorHeightMapLibrary::CreateHeightMapTexture(const TArray<floa
 
 	if (!Texture)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to create texture!"));
+		UE_LOG(LogDropByDropHeightmap, Error, TEXT("Failed to create texture!"));
 		return nullptr;
 	}
 
@@ -285,7 +286,7 @@ void UGeneratorHeightMapLibrary::LoadHeightmapFromPNG(const FString& FilePath, T
 	UTexture2D* Texture = FImageUtils::ImportFileAsTexture2D(FilePath);
 	if (!Texture)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to load PNG file: %s"), *FilePath);
+		UE_LOG(LogDropByDropHeightmap, Error, TEXT("Failed to load PNG file: %s"), *FilePath);
 		return;
 	}
 
@@ -295,7 +296,7 @@ void UGeneratorHeightMapLibrary::LoadHeightmapFromPNG(const FString& FilePath, T
 	int32 Width = MipMap.SizeX;
 	int32 Height = MipMap.SizeY;
 
-	UE_LOG(LogTemp, Log, TEXT("Loaded PNG: Width=%d, Height=%d"), Width, Height);
+	UE_LOG(LogDropByDropHeightmap, Log, TEXT("Loaded PNG: Width=%d, Height=%d"), Width, Height);
 
 	uint32 MinPixel = TNumericLimits<uint32>::Max();
 	uint32 MaxPixel = TNumericLimits<uint32>::Min();
@@ -339,7 +340,7 @@ void UGeneratorHeightMapLibrary::LoadHeightmapFromPNG(const FString& FilePath, T
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("Unsupported pixel format in PNG!"));
+		UE_LOG(LogDropByDropHeightmap, Error, TEXT("Unsupported pixel format in PNG!"));
 		MipMap.BulkData.Unlock();
 		return;
 	}
@@ -359,7 +360,7 @@ void UGeneratorHeightMapLibrary::LoadHeightmapFromPNG(const FString& FilePath, T
 		}
 	}
 	Settings.bIsExternalHeightMap = true;
-	UE_LOG(LogTemp, Log, TEXT("Heightmap Min: %u, Max: %u"), MinPixel, MaxPixel);
+	UE_LOG(LogDropByDropHeightmap, Log, TEXT("Heightmap Min: %u, Max: %u"), MinPixel, MaxPixel);
 }
 
 void CompareHeightmaps(const FString& RawFilePath, const TArray<uint16>& GeneratedHeightmap, int32 Width, int32 Height)
@@ -368,7 +369,7 @@ void CompareHeightmaps(const FString& RawFilePath, const TArray<uint16>& Generat
 	TArray<uint8> RawData;
 	if (!FFileHelper::LoadFileToArray(RawData, *RawFilePath))
 	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to load RAW file: %s"), *RawFilePath);
+		UE_LOG(LogDropByDropHeightmap, Error, TEXT("Failed to load RAW file: %s"), *RawFilePath);
 		return;
 	}
 
@@ -376,7 +377,7 @@ void CompareHeightmaps(const FString& RawFilePath, const TArray<uint16>& Generat
 	const uint64 ExpectedSize = static_cast<uint64>(Width) * static_cast<uint64>(Height) * sizeof(uint16);
 	if (RawData.Num() != ExpectedSize)
 	{
-		UE_LOG(LogTemp, Error, TEXT("RAW file size does not match the expected size: %llu vs %llu"),
+		UE_LOG(LogDropByDropHeightmap, Error, TEXT("RAW file size does not match the expected size: %llu vs %llu"),
 		       static_cast<uint64>(RawData.Num()), ExpectedSize);
 		return;
 	}
@@ -389,7 +390,7 @@ void CompareHeightmaps(const FString& RawFilePath, const TArray<uint16>& Generat
 	//Compare the values
 	for (int32 i = 0; i < FMath::Min(10, UnrealHeightmap.Num()); ++i)
 	{
-		UE_LOG(LogTemp, Log, TEXT("RAW[%d]: %d, Generated[%d]: %d"),
+		UE_LOG(LogDropByDropHeightmap, Log, TEXT("RAW[%d]: %d, Generated[%d]: %d"),
 		       i, UnrealHeightmap[i], i, GeneratedHeightmap[i]);
 	}
 }
@@ -419,7 +420,7 @@ void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& Heightm
 	const UWorld* World = GEditor->GetEditorWorldContext().World();
 	if (!World)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to get editor world"));
+		UE_LOG(LogDropByDropLandscape, Error, TEXT("Failed to get editor world"));
 		return;
 	}
 
@@ -436,11 +437,11 @@ void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& Heightm
 
 	if (IsValid(GenerateLandscape(LandscapeTransform, HeightData)))
 	{
-		UE_LOG(LogTemp, Log, TEXT("Landscape created successfully!"));
+		UE_LOG(LogDropByDropLandscape, Log, TEXT("Landscape created successfully!"));
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to create landscape."));
+		UE_LOG(LogDropByDropLandscape, Error, TEXT("Failed to create landscape."));
 	}
 }
 
@@ -491,7 +492,7 @@ void UGeneratorHeightMapLibrary::CreateLandscapeFromOtherHeightMap(const FString
 	CompareHeightmaps(HeightMapPath, HeightmapInt16, 505, 505);
 	if (HeightmapInt16.Num() == 0)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to load heightmap from PNG file: %s"), *FilePath);
+		UE_LOG(LogDropByDropLandscape, Error, TEXT("Failed to load heightmap from PNG file: %s"), *FilePath);
 		return;
 	}
 	const FTransform LandscapeTransform = GetNewTransform(ExternalSettings, LandscapeSettings, HeightmapSettings.Size);
@@ -499,11 +500,11 @@ void UGeneratorHeightMapLibrary::CreateLandscapeFromOtherHeightMap(const FString
 	LandscapeSettings.TargetLandscape = GenerateLandscape(LandscapeTransform, HeightmapInt16);
 	if (!IsValid(LandscapeSettings.TargetLandscape))
 	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to generate landscape from heightmap."));
+		UE_LOG(LogDropByDropLandscape, Error, TEXT("Failed to generate landscape from heightmap."));
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("Landscape successfully created from PNG: %s"), *FilePath);
+	UE_LOG(LogDropByDropLandscape, Log, TEXT("Landscape successfully created from PNG: %s"), *FilePath);
 }
 
 void UGeneratorHeightMapLibrary::SplitLandscapeIntoProxies(FLandscapeGenerationSettings& LandscapeSettings)
@@ -562,7 +563,7 @@ ALandscape* UGeneratorHeightMapLibrary::GenerateLandscape(const FTransform& Land
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("Heightmap dimensions do not match the generated landscape: %d != %d x %d"),
+		UE_LOG(LogDropByDropLandscape, Error, TEXT("Heightmap dimensions do not match the generated landscape: %d != %d x %d"),
 		       Heightmap.Num(), MaxX, MaxY);
 		return nullptr;
 	}
@@ -578,7 +579,7 @@ ALandscape* UGeneratorHeightMapLibrary::GenerateLandscape(const FTransform& Land
 	// Assign an appropriate material if needed
 	Landscape->SetActorTransform(LandscapeTransform);
 
-	UE_LOG(LogTemp, Error, TEXT("NumSubSections: %d; SubSectionSizeQuads:%d; MaxX,Y: %d;"), NumSubsections,
+	UE_LOG(LogDropByDropLandscape, Error, TEXT("NumSubSections: %d; SubSectionSizeQuads:%d; MaxX,Y: %d;"), NumSubsections,
 	       SubSectionSizeQuads, MaxY);
 
 	Landscape->Import(
@@ -613,7 +614,7 @@ bool UGeneratorHeightMapLibrary::SetLandscapeSizeParam(int32& SubSectionSizeQuad
 
 	if (MaxX != HeightmapSize || MaxY != HeightmapSize)
 	{
-		UE_LOG(LogTemp, Error,
+		UE_LOG(LogDropByDropLandscape, Error,
 		       TEXT("Size calculated (%d x %d) not match with size of HeightMap (%d x %d)."))
 		return false;
 	}
@@ -678,7 +679,7 @@ bool UGeneratorHeightMapLibrary::SaveToAsset(UTexture2D* Texture, const FString&
 {
 	if (!Texture)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Texture is null!"));
+		UE_LOG(LogDropByDropHeightmap, Error, TEXT("Texture is null!"));
 		return false;
 	}
 
@@ -750,7 +751,7 @@ bool UGeneratorHeightMapLibrary::SaveToAsset(UTexture2D* Texture, const FString&
 		FTexturePlatformData* PD = Texture->GetPlatformData();
 		if (!PD || PD->Mips.Num() == 0)
 		{
-			UE_LOG(LogTemp, Error, TEXT("No Texture Source and no PlatformData available."));
+			UE_LOG(LogDropByDropHeightmap, Error, TEXT("No Texture Source and no PlatformData available."));
 			return false;
 		}
 
@@ -758,7 +759,7 @@ bool UGeneratorHeightMapLibrary::SaveToAsset(UTexture2D* Texture, const FString&
 		const int64 DataSize = Mip.BulkData.GetBulkDataSize();
 		if (DataSize <= 0)
 		{
-			UE_LOG(LogTemp, Error, TEXT("Platform mip has no data."));
+			UE_LOG(LogDropByDropHeightmap, Error, TEXT("Platform mip has no data."));
 			return false;
 		}
 
@@ -766,7 +767,7 @@ bool UGeneratorHeightMapLibrary::SaveToAsset(UTexture2D* Texture, const FString&
 		if (!MipData)
 		{
 			Mip.BulkData.Unlock();
-			UE_LOG(LogTemp, Error, TEXT("Failed to lock platform mip data."));
+			UE_LOG(LogDropByDropHeightmap, Error, TEXT("Failed to lock platform mip data."));
 			return false;
 		}
 
@@ -803,7 +804,7 @@ bool UGeneratorHeightMapLibrary::SaveToAsset(UTexture2D* Texture, const FString&
 
 	if (InFmt == ERawFmt::Unknown || Raw.Num() == 0 || W <= 0 || H <= 0)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Unsupported or empty source format when saving preview asset."));
+		UE_LOG(LogDropByDropHeightmap, Error, TEXT("Unsupported or empty source format when saving preview asset."));
 		return false;
 	}
 
@@ -871,7 +872,7 @@ bool UGeneratorHeightMapLibrary::SaveToAsset(UTexture2D* Texture, const FString&
 			break;
 		}
 	default:
-		UE_LOG(LogTemp, Error, TEXT("Unexpected raw format during grayscale conversion."));
+		UE_LOG(LogDropByDropHeightmap, Error, TEXT("Unexpected raw format during grayscale conversion."));
 		return false;
 	}
 
@@ -912,7 +913,7 @@ bool UGeneratorHeightMapLibrary::SaveToAsset(UTexture2D* Texture, const FString&
 
 		if (!UPackage::SavePackage(Pkg, Asset, *PkgFilename, SaveArgs))
 		{
-			UE_LOG(LogTemp, Error, TEXT("Failed to save package '%s'"), *PackageName);
+			UE_LOG(LogDropByDropHeightmap, Error, TEXT("Failed to save package '%s'"), *PackageName);
 			return false;
 		}
 
@@ -922,7 +923,7 @@ bool UGeneratorHeightMapLibrary::SaveToAsset(UTexture2D* Texture, const FString&
 			ARM->Get().ScanModifiedAssetFiles(PathsToScan);
 		}
 
-		UE_LOG(LogTemp, Log, TEXT("Saved texture to: %s"), *PkgFilename);
+		UE_LOG(LogDropByDropHeightmap, Log, TEXT("Saved texture to: %s"), *PkgFilename);
 		return true;
 	};
 
@@ -945,7 +946,7 @@ bool UGeneratorHeightMapLibrary::SaveToAsset(UTexture2D* Texture, const FString&
 
 	if (TargetTexture)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Texture '%s' already exists, updating asset..."), *AssetName);
+		UE_LOG(LogDropByDropHeightmap, Warning, TEXT("Texture '%s' already exists, updating asset..."), *AssetName);
 		WriteBGRA8ToTexture(TargetTexture);
 		return SaveAndRescan(TargetTexture->GetOutermost(), TargetTexture);
 	}
@@ -1001,11 +1002,11 @@ void UGeneratorHeightMapLibrary::OpenHeightmapFileDialog(
 	{
 		if (SaveToAsset(Imported, TEXT("TextureHeightMap")))
 		{
-			UE_LOG(LogTemp, Log, TEXT("Preview overwritten from external PNG: %s"), *SelectedFile);
+			UE_LOG(LogDropByDropHeightmap, Log, TEXT("Preview overwritten from external PNG: %s"), *SelectedFile);
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Failed to overwrite preview from PNG: %s"), *SelectedFile);
+			UE_LOG(LogDropByDropHeightmap, Warning, TEXT("Failed to overwrite preview from PNG: %s"), *SelectedFile);
 		}
 	}
 }

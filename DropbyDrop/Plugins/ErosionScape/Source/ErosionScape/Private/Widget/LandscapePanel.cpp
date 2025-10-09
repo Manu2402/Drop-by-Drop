@@ -34,6 +34,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 				[
 					SNew(STextBlock).Text(FText::FromString("Destroy Last Landscape"))
+					.ToolTipText(FText::FromString("Whether the last generated landscape will be destroyed when a new landscape is generated."))
 				]
 				+ SHorizontalBox::Slot().AutoWidth().Padding(8, 0)
 				[
@@ -56,6 +57,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 			[
 				SNew(STextBlock).Text(FText::FromString("Kilometers"))
+				.ToolTipText(FText::FromString("Controls the overall size of the landscape in terms of real-world scale. The value entered represents the width and length of the landscape in kilometers."))
 			]
 			+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 			[
@@ -90,6 +92,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 											+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 											[
 												SNew(STextBlock).Text(FText::FromString("Scale X"))
+												.ToolTipText(FText::FromString("Dimension on the X-axis of the landscape generated after selecting a heightmap from the file system."))
 											]
 											+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 											[
@@ -106,6 +109,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 											+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 											[
 												SNew(STextBlock).Text(FText::FromString("Scale Y"))
+												.ToolTipText(FText::FromString("Dimension on the Y-axis of the landscape generated after selecting a heightmap from the file system."))
 											]
 											+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 											[
@@ -122,6 +126,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 											+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 											[
 												SNew(STextBlock).Text(FText::FromString("Scale Z"))
+												.ToolTipText(FText::FromString("Dimension on the Z-axis of the landscape generated after selecting a heightmap from the file system."))
 											]
 											+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 											[
@@ -138,6 +143,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 											+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 											[
 												SNew(STextBlock).Text(FText::FromString("World Partition Cell Size"))
+												.ToolTipText(FText::FromString("Defines the size of the landscape proxy. The values represent the grid size, in quad, of the proxy. A higher value creates a bigger proxy while a lower value divides into more proxies, but increases the process time."))
 											]
 											+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 											[

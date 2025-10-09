@@ -14,6 +14,7 @@
 #include "Editor.h"
 #include "Editor/UnrealEd/Public/Selection.h"
 #include "Landscape.h"
+#include "DropByDropLogger.h"
 
 static const FName ErosionScapeTabName("ErosionScape");
 #define LOCTEXT_NAMESPACE "FErosionScapeModule"
@@ -54,13 +55,13 @@ void FErosionScapeModule::StartupModule()
 		{
 			if (Args.Num() == 0)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Usage: WindPreview.Scale <float>"));
+				UE_LOG(LogDropByDrop, Warning, TEXT("Usage: WindPreview.Scale <float>"));
 				return;
 			}
 
 			const float NewScale = FCString::Atof(*Args[0]);
 			UGeneratorHeightMapLibrary::SetWindPreviewScale(NewScale);
-			UE_LOG(LogTemp, Log, TEXT("WindPreview scale set to %f"), NewScale);
+			UE_LOG(LogDropByDrop, Log, TEXT("WindPreview scale set to %f"), NewScale);
 		}),
 		ECVF_Default
 	);
@@ -101,6 +102,8 @@ void FErosionScapeModule::ShutdownModule()
 	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ErosionScapeTabName);
 
 	IConsoleManager::Get().UnregisterConsoleObject(TEXT("WindPreview.Scale"), false);
+
+
 }
 
 TSharedRef<SDockTab> FErosionScapeModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)

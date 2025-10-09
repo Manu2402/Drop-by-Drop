@@ -5,7 +5,6 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Engine/Texture2D.h"
 #include "Misc/FileHelper.h"
-#include "ErosionScapeSettings.h"
 #include "GeneratorHeightMapLibrary.generated.h"
 
 USTRUCT(BlueprintType)

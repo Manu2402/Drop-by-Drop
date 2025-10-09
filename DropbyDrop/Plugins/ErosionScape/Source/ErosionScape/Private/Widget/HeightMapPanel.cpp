@@ -132,6 +132,8 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 	InitPresets();
 	BuildPresetItems();
 
+	OnCreateHeightmapClicked();
+
 	ChildSlot
 		[
 			SNew(SVerticalBox)
@@ -151,6 +153,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 						+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 						[
 							SNew(STextBlock).Text(FText::FromString("Preset"))
+							.ToolTipText(FText::FromString("List of three presets that define three different versions of heightmap generation configurations, starting from a flatter heightmap to a more mountainous heightmap."))
 						]
 						+ SHorizontalBox::Slot().AutoWidth().Padding(8, 0)
 						[
@@ -175,6 +178,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 						+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 						[
 							SNew(STextBlock).Text(FText::FromString("Randomize Seed"))
+							.ToolTipText(FText::FromString("Whether a new random seed is generated for each heightmap. If set to true, a random seed will be used, creating a unique heightmap each time. If false, the specified seed will be used, ensuring consistent results."))
 						]
 						+ SHorizontalBox::Slot().AutoWidth().Padding(8, 0)
 						[
@@ -212,6 +216,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 										[
 											SNew(STextBlock).Text(FText::FromString("Seed"))
+												.ToolTipText(FText::FromString("Initialization of the random number generator. The seed determines the starting point of the random sequence, which affects the noise output. A fixed seed will result in the same heightmap for a given set of parameters. Changing the seed will generate a different heightmap."))
 										]
 										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 										[
@@ -228,6 +233,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 										[
 											SNew(STextBlock).Text(FText::FromString("Octaves"))
+												.ToolTipText(FText::FromString("The number of octaves used in the Perlin Noise generation. Octaves represent different layers of noise, each with varying frequencies and ampli tudes. More octaves introduce more detail to the heightmap, as finer features are added with each additional octave."))
 										]
 										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 										[
@@ -244,6 +250,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 										[
 											SNew(STextBlock).Text(FText::FromString("Persistence"))
+											.ToolTipText(FText::FromString("Controls the amplitude of each successive octave. It determines how much influence each octave has on the final noise value. Lower persistence values result in smoother terrain because higher octaves (which add finer details) contribute less to the final noise. Higher persistence makes the finer details more pronounced."))
 										]
 										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 										[
@@ -260,6 +267,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 										[
 											SNew(STextBlock).Text(FText::FromString("Lacunarity"))
+											.ToolTipText(FText::FromString("Controls the frequency of successive octaves, essentially defining how zoomed in the noise features become in each additional layer. Higher lacunarity values increase the frequency, creating smaller, more frequent details in the heightmap. A lower value produces smoother and larger features."))
 										]
 										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 										[
@@ -276,6 +284,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 										[
 											SNew(STextBlock).Text(FText::FromString("Initial Scale"))
+											.ToolTipText(FText::FromString("Starting scale for the Perlin Noise calculation and determines the size of features in the generated heightmap. A larger initial scale produces larger, more gradual features, while a smaller scale results in more frequent, smaller features. It sets the base level for how stretched or compressed the noise pattern is."))
 										]
 										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 										[
@@ -292,12 +301,13 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 										[
 											SNew(STextBlock).Text(FText::FromString("Size"))
+											.ToolTipText(FText::FromString("Represents the resolution of the heightmap, defining both width and height simultaneously. The maximum supported value is 505 pixels."))
 										]
 										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 										[
 											SNew(SNumericEntryBox<uint32>)
 												.Value_Lambda([this]()-> TOptional<uint32> { return Heightmap->Size; })
-												.OnValueChanged_Lambda([this](uint32 V) { Heightmap->Size = V; })
+												.OnValueChanged_Lambda([this](uint32 V) { V = FMath::Clamp(V, 1, 505); Heightmap->Size = V; })
 										]
 								]
 
@@ -308,6 +318,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 										[
 											SNew(STextBlock).Text(FText::FromString("Max Height Difference"))
+											.ToolTipText(FText::FromString("The maximum height difference in the generated terrain. The noise values typically range between [0, 1] and are then multiplied by MaxHeightDifference to scale them to the desired height range. It directly influences the elevation variation in the final heightmap."))
 										]
 										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 										[
