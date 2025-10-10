@@ -30,8 +30,9 @@ private:
 
 private:
 	TSharedPtr<class FUICommandList> PluginCommands;
+
 	TSharedPtr<class SRootPanel> RootPanel;
-	TSharedPtr<struct FLandscapeGenerationSettings> Landscape;
+	TObjectPtr<class ALandscape> SelectedLandscape;
 
 	void OnActorSelected(UObject* NewSelection);
 	FDelegateHandle OnActorSelectedHandle;

@@ -14,12 +14,14 @@
 #include "Widgets/Layout/SSeparator.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
 #include "Widgets/SBoxPanel.h"
+#include "DropByDropLandscape.h"
 
 void SErosionPanel::Construct(const FArguments& Args)
 {
 	Heightmap = Args._Heightmap;
 	External = Args._External;
 	Landscape = Args._Landscape;
+	SelectedLandscape = Args._SelectedLandscape;
 	Erosion = Args._Erosion;
 	TemplateManager = Args._TemplateManager;
 
@@ -51,9 +53,9 @@ void SErosionPanel::Construct(const FArguments& Args)
 						]
 						+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 						[
-							SNew(SNumericEntryBox<uint64>)
-								.Value_Lambda([E = Erosion]()-> TOptional<uint64> { return E->ErosionCycles; })
-								.OnValueChanged_Lambda([E = Erosion](uint64 V) { E->ErosionCycles = V; })
+							SNew(SNumericEntryBox<int64>)
+								.Value_Lambda([E = Erosion]()-> TOptional<int64> { return E->ErosionCycles; })
+								.OnValueChanged_Lambda([E = Erosion](int64 V) { V = V >= 0 ? V : 0; E->ErosionCycles = V; })
 						]
 				]
 
@@ -153,6 +155,15 @@ void SErosionPanel::Construct(const FArguments& Args)
 						[
 
 							SNew(SButton)
+								.IsEnabled_Lambda([L = SelectedLandscape]() {
+								if (L && IsValid(*L))
+								{
+									ULandscapeInfoComponent* Info = (*L)->FindComponentByClass<ULandscapeInfoComponent>();
+									return IsValid(Info) && !Info->bIsSplittedIntoProxies;
+								}
+
+								return false; })
+								.IsEnabled_Lambda([L = SelectedLandscape, E = Erosion]() { return L && IsValid(*L) && E->WindDirection != EWindDirection::Random; })
 								.Text(FText::FromString("Wind Preview"))
 								.OnClicked_Lambda([this]()
 									{
@@ -160,7 +171,7 @@ void SErosionPanel::Construct(const FArguments& Args)
 											return FReply::Handled();
 
 										UGeneratorHeightMapLibrary::DrawWindDirectionPreview(*Erosion,
-											*Landscape, /*ArrowLength*/8000.f, /*Thickness*/12.f, /*Head*/300.f,
+											*SelectedLandscape, /*ArrowLength*/8000.f, /*Thickness*/12.f, /*Head*/300.f,
 											/*Duration*/6.f, /*Cone*/true, /*ConeHalf*/15.f);
 
 										return FReply::Handled();
@@ -210,9 +221,9 @@ void SErosionPanel::Construct(const FArguments& Args)
 										]
 										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 										[
-											SNew(SNumericEntryBox<uint32>)
-												.Value_Lambda([E = Erosion]()-> TOptional<uint32> { return E->Capacity; })
-												.OnValueChanged_Lambda([E = Erosion](uint32 V) { E->Capacity = V; })
+											SNew(SNumericEntryBox<int32>)
+												.Value_Lambda([E = Erosion]()-> TOptional<int32> { return E->Capacity; })
+												.OnValueChanged_Lambda([E = Erosion](int32 V) { V = V >= 0 ? V : 0; E->Capacity = V; })
 										]
 								]
 
@@ -278,9 +289,9 @@ void SErosionPanel::Construct(const FArguments& Args)
 										]
 										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 										[
-											SNew(SNumericEntryBox<uint32>)
-												.Value_Lambda([E = Erosion]()-> TOptional<uint32> { return E->Gravity; })
-												.OnValueChanged_Lambda([E = Erosion](uint32 V) { E->Gravity = V; })
+											SNew(SNumericEntryBox<int32>)
+												.Value_Lambda([E = Erosion]()-> TOptional<int32> { return E->Gravity; })
+												.OnValueChanged_Lambda([E = Erosion](int32 V) { V = V >= 0 ? V : 0; E->Gravity = V; })
 										]
 								]
 
@@ -312,9 +323,9 @@ void SErosionPanel::Construct(const FArguments& Args)
 										]
 										+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 										[
-											SNew(SNumericEntryBox<uint32>)
-												.Value_Lambda([E = Erosion]()-> TOptional<uint32> { return E->MaxPath; })
-												.OnValueChanged_Lambda([E = Erosion](uint32 V) { E->MaxPath = V; })
+											SNew(SNumericEntryBox<int32>)
+												.Value_Lambda([E = Erosion]()-> TOptional<int32> { return E->MaxPath; })
+												.OnValueChanged_Lambda([E = Erosion](int32 V) { V = V >= 0 ? V : 0; E->MaxPath = V; })
 										]
 								]
 
@@ -351,7 +362,14 @@ void SErosionPanel::Construct(const FArguments& Args)
 						[
 							SNew(SButton)
 								.Text(FText::FromString("Erode"))
-								.IsEnabled_Lambda([L = Landscape]() { return L && IsValid(L->TargetLandscape); })
+								.IsEnabled_Lambda([L = SelectedLandscape]() { 
+								if (L && IsValid(*L))
+								{
+									ULandscapeInfoComponent* Info = (*L)->FindComponentByClass<ULandscapeInfoComponent>();
+									return IsValid(Info) && !Info->bIsEroded && !Info->bIsSplittedIntoProxies;
+								}
+
+								return false; })
 								.OnClicked(this, &SErosionPanel::OnErodeClicked)
 						]
 				]
@@ -438,11 +456,7 @@ FReply SErosionPanel::OnErodeClicked()
 {
 	// Drive the erosion pipeline (reads current HeightMap from UGeneratorHeightMapLibrary)
 	UGeneratorHeightMapLibrary::GenerateErosion(
-		*External,
-		*Landscape,
-		*Erosion,
-		*Heightmap,
-		Heightmap->Size
+		*SelectedLandscape, *Erosion
 	);
 	return FReply::Handled();
 }

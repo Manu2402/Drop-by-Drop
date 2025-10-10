@@ -17,6 +17,7 @@
 #include "Widget/LandscapePanel.h"
 #include "Widget/ErosionPanel.h"
 #include "Widgets/Layout/SWidgetSwitcher.h"
+#include "DropByDropLandscape.h"
 
 #define LOCTEXT_NAMESPACE "RootPanel"
 
@@ -26,6 +27,7 @@ void SRootPanel::Construct(const FArguments& InArgs)
 	Heightmap = MakeShared<FHeightMapGenerationSettings>();
 	External  = MakeShared<FExternalHeightMapSettings>();
 	Landscape = MakeShared<FLandscapeGenerationSettings>();
+	SelectedLandscape = InArgs._SelectedLandscape;
 	Erosion = MakeShared<FErosionSettings>();
 	ErosionTemplateManager = NewObject<UErosionTemplateManager>();
 
@@ -131,6 +133,7 @@ TSharedRef<SWidget> SRootPanel::BuildCenter()
 		.Heightmap(Heightmap.ToSharedRef())
 		.External(External.ToSharedRef())
 		.Landscape(Landscape.ToSharedRef())
+		.SelectedLandscape(SelectedLandscape)
 	]
 		
 	// Erosion
@@ -140,6 +143,7 @@ TSharedRef<SWidget> SRootPanel::BuildCenter()
 		.Heightmap(Heightmap.ToSharedRef())
 		.External(External.ToSharedRef())
 		.Landscape(Landscape.ToSharedRef())
+		.SelectedLandscape(SelectedLandscape)
 		.Erosion(Erosion.ToSharedRef())
 		.TemplateManager(ErosionTemplateManager)
 	];

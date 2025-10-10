@@ -19,6 +19,7 @@ class SRootPanel : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SRootPanel) {}
+		SLATE_ARGUMENT(TObjectPtr<class ALandscape>*, SelectedLandscape)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs);
@@ -30,6 +31,7 @@ private:
 	TSharedPtr<FHeightMapGenerationSettings>  Heightmap;
 	TSharedPtr<FExternalHeightMapSettings>    External;
 	TSharedPtr<FLandscapeGenerationSettings>  Landscape;
+	TObjectPtr<class ALandscape>* SelectedLandscape;
 	TSharedPtr<FErosionSettings>              Erosion;
 
 	//Template

@@ -6,6 +6,7 @@
 struct FHeightMapGenerationSettings;
 struct FExternalHeightMapSettings;
 struct FLandscapeGenerationSettings;
+class ALandscape;
 struct FErosionSettings;
 
 class UErosionTemplateManager;
@@ -21,6 +22,7 @@ public:
 		SLATE_ARGUMENT(TSharedPtr<FHeightMapGenerationSettings>, Heightmap)
 		SLATE_ARGUMENT(TSharedPtr<FExternalHeightMapSettings>, External)
 		SLATE_ARGUMENT(TSharedPtr<FLandscapeGenerationSettings>, Landscape)
+		SLATE_ARGUMENT(TObjectPtr<ALandscape>*, SelectedLandscape)
 		SLATE_ARGUMENT(TSharedPtr<FErosionSettings>, Erosion)
 		SLATE_ARGUMENT(TObjectPtr<UErosionTemplateManager>, TemplateManager)
 	SLATE_END_ARGS()
@@ -32,6 +34,7 @@ private:
 	TSharedPtr<FHeightMapGenerationSettings> Heightmap;
 	TSharedPtr<FExternalHeightMapSettings> External;
 	TSharedPtr<FLandscapeGenerationSettings> Landscape;
+	TObjectPtr<ALandscape>* SelectedLandscape;
 	TSharedPtr<FErosionSettings> Erosion;
 	TObjectPtr<UErosionTemplateManager> TemplateManager = nullptr;
 

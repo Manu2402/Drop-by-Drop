@@ -18,40 +18,43 @@
 #include "UObject/SavePackage.h"
 #include "HAL/IConsoleManager.h"
 #include "DropByDropLogger.h"
+#include "DropByDropLandscape.h"
 
 #pragma region Erosion
-void UGeneratorHeightMapLibrary::GenerateErosion(const FExternalHeightMapSettings& ExternalSettings,
-                                                 FLandscapeGenerationSettings& LandscapeSettings,
-											     FErosionSettings& ErosionSettings,
-                                                 const FHeightMapGenerationSettings& HeightMapSettings,
-                                                 int32 HeightMapSize)
+void UGeneratorHeightMapLibrary::GenerateErosion(TObjectPtr<ALandscape> SelectedLandscape, FErosionSettings& ErosionSettings)
 {
 	FScopedSlowTask SlowTask(100, FText::FromString("Erosion in progress..."));
 	SlowTask.MakeDialog(true);
 
+	ULandscapeInfoComponent* LandscapeInfo = SelectedLandscape->FindComponentByClass<ULandscapeInfoComponent>();
+	if (!LandscapeInfo) return;
+
 	FErosionContext ErosionContext;
-	UErosionLibrary::SetHeights(ErosionContext, HeightMapSettings.HeightMap);
-	UErosionLibrary::Erosion(ErosionContext, ErosionSettings, HeightMapSettings.Size);
+	UErosionLibrary::SetHeights(ErosionContext, LandscapeInfo->HeightMapSettings.HeightMap);
+	UErosionLibrary::Erosion(ErosionContext, ErosionSettings, LandscapeInfo->HeightMapSettings.Size);
 
 	SlowTask.EnterProgressFrame(50, FText::FromString("Adapting into the landscape..."));
 
 	TArray<uint16> ErodedHeightmapU16 = ConvertFloatArrayToUint16(UErosionLibrary::GetHeights(ErosionContext));
 
 	// Generate new landscape.
-	const FTransform LandscapeTransform = GetNewTransform(ExternalSettings, LandscapeSettings, HeightMapSize);
-
-	if (LandscapeSettings.bDestroyLastLandscape && IsValid(LandscapeSettings.TargetLandscape))
-	{
-		LandscapeSettings.TargetLandscape->Destroy();
-	}
-
-	LandscapeSettings.TargetLandscape = GenerateLandscape(LandscapeTransform, ErodedHeightmapU16);
+	const FTransform LandscapeTransform = GetNewTransform(LandscapeInfo->ExternalSettings, LandscapeInfo->LandscapeSettings, LandscapeInfo->HeightMapSettings.Size);
 
 	SlowTask.EnterProgressFrame(50);
 
-	if (IsValid(LandscapeSettings.TargetLandscape))
+	ALandscape* NewLandscape = GenerateLandscape(LandscapeTransform, ErodedHeightmapU16);
+
+	if (NewLandscape)
 	{
 		UE_LOG(LogDropByDropLandscape, Log, TEXT("Landscape created successfully!"));
+
+		ULandscapeInfoComponent* NewLandscapeInfo = NewLandscape->FindComponentByClass<ULandscapeInfoComponent>();
+		if (!NewLandscapeInfo) return;
+
+		NewLandscapeInfo->bIsEroded = true;
+		NewLandscapeInfo->ExternalSettings = LandscapeInfo->ExternalSettings;
+		NewLandscapeInfo->HeightMapSettings = LandscapeInfo->HeightMapSettings;
+		NewLandscapeInfo->LandscapeSettings = LandscapeInfo->LandscapeSettings;
 	}
 	else
 	{
@@ -61,18 +64,18 @@ void UGeneratorHeightMapLibrary::GenerateErosion(const FExternalHeightMapSetting
 
 
 bool UGeneratorHeightMapLibrary::SaveErosionTemplate(const FString& TemplateName, const int32 ErosionCyclesValue,
-                                                     const float InertiaValue, const int32 CapacityValue,
-                                                     const float MinSlopeValue, const float DepositionSpeedValue,
-                                                     const float ErosionSpeedValue, const int32 GravityValue,
-                                                     const float EvaporationValue, const int32 MaxPathValue,
-                                                     const int32 ErosionRadiusValue)
+	const float InertiaValue, const int32 CapacityValue,
+	const float MinSlopeValue, const float DepositionSpeedValue,
+	const float ErosionSpeedValue, const int32 GravityValue,
+	const float EvaporationValue, const int32 MaxPathValue,
+	const int32 ErosionRadiusValue)
 {
 	// Row fields.
 	FErosionTemplateRow ErosionTemplateRow;
 	ErosionTemplateRow.ErosionCyclesField = ErosionCyclesValue;
 	ErosionTemplateRow.InertiaField = InertiaValue;
 	ErosionTemplateRow.CapacityField = CapacityValue;
-	ErosionTemplateRow.MinSlopeField = MinSlopeValue;
+	ErosionTemplateRow.MinimalSlopeField = MinSlopeValue;
 	ErosionTemplateRow.DepositionSpeedField = DepositionSpeedValue;
 	ErosionTemplateRow.ErosionSpeedField = ErosionSpeedValue;
 	ErosionTemplateRow.GravityField = GravityValue;
@@ -115,7 +118,7 @@ void UGeneratorHeightMapLibrary::LoadRowIntoErosionFields(TSharedPtr<FErosionSet
 	OutErosionSettings->WindDirection = TemplateDatas->WindDirection;
 	OutErosionSettings->Inertia = TemplateDatas->InertiaField;
 	OutErosionSettings->Capacity = TemplateDatas->CapacityField;
-	OutErosionSettings->MinimalSlope = TemplateDatas->MinSlopeField;
+	OutErosionSettings->MinimalSlope = TemplateDatas->MinimalSlopeField;
 	OutErosionSettings->DepositionSpeed = TemplateDatas->DepositionSpeedField;
 	OutErosionSettings->ErosionSpeed = TemplateDatas->ErosionSpeedField;
 	OutErosionSettings->Gravity = TemplateDatas->GravityField;
@@ -221,11 +224,11 @@ TArray<float> UGeneratorHeightMapLibrary::CreateHeightMapArray(const FHeightMapG
 }
 
 UTexture2D* UGeneratorHeightMapLibrary::CreateHeightMapTexture(const TArray<float>& HeightMapData, const int32 Width,
-                                                               const int32 Height)
+	const int32 Height)
 {
 	UTexture2D* Texture = NewObject<UTexture2D>(GetTransientPackage(), UTexture2D::StaticClass(),
-	                                            FName(*FString::Printf(TEXT("GeneratedTexture_%d"), FMath::Rand())),
-	                                            RF_Public | RF_Standalone);
+		FName(*FString::Printf(TEXT("GeneratedTexture_%d"), FMath::Rand())),
+		RF_Public | RF_Standalone);
 
 	if (!Texture)
 	{
@@ -276,8 +279,8 @@ UTexture2D* UGeneratorHeightMapLibrary::CreateHeightMapTexture(const TArray<floa
 
 
 void UGeneratorHeightMapLibrary::LoadHeightmapFromPNG(const FString& FilePath, TArray<uint16>& OutHeightmap,
-                                                      TArray<float>& OutNormalizedHeightmap,
-                                                      FExternalHeightMapSettings& Settings)
+	TArray<float>& OutNormalizedHeightmap,
+	FExternalHeightMapSettings& Settings)
 {
 	OutHeightmap.Empty();
 	OutNormalizedHeightmap.Empty();
@@ -378,7 +381,7 @@ void CompareHeightmaps(const FString& RawFilePath, const TArray<uint16>& Generat
 	if (RawData.Num() != ExpectedSize)
 	{
 		UE_LOG(LogDropByDropHeightmap, Error, TEXT("RAW file size does not match the expected size: %llu vs %llu"),
-		       static_cast<uint64>(RawData.Num()), ExpectedSize);
+			static_cast<uint64>(RawData.Num()), ExpectedSize);
 		return;
 	}
 
@@ -391,16 +394,16 @@ void CompareHeightmaps(const FString& RawFilePath, const TArray<uint16>& Generat
 	for (int32 i = 0; i < FMath::Min(10, UnrealHeightmap.Num()); ++i)
 	{
 		UE_LOG(LogDropByDropHeightmap, Log, TEXT("RAW[%d]: %d, Generated[%d]: %d"),
-		       i, UnrealHeightmap[i], i, GeneratedHeightmap[i]);
+			i, UnrealHeightmap[i], i, GeneratedHeightmap[i]);
 	}
 }
 #pragma endregion
 
 #pragma region Landscape
 void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& HeightmapPath,
-                                                          FHeightMapGenerationSettings& HeightmapSettings,
-                                                          FExternalHeightMapSettings& ExternalSettings,
-                                                          FLandscapeGenerationSettings& LandscapeSettings)
+	FHeightMapGenerationSettings& HeightmapSettings,
+	FExternalHeightMapSettings& ExternalSettings,
+	FLandscapeGenerationSettings& LandscapeSettings)
 {
 	ExternalSettings.bIsExternalHeightMap = false;
 	if (HeightmapSettings.HeightMap.Num() == 0)
@@ -429,20 +432,21 @@ void UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(const FString& Heightm
 
 	const FTransform LandscapeTransform = GetNewTransform(ExternalSettings, LandscapeSettings, HeightmapSettings.Size);
 
-	//If destroy last landscape
-	if (LandscapeSettings.bDestroyLastLandscape && IsValid(LandscapeSettings.TargetLandscape))
-	{
-		LandscapeSettings.TargetLandscape->Destroy();
-	}
+	ALandscape* NewLandscape = GenerateLandscape(LandscapeTransform, HeightData);
 
-	if (IsValid(GenerateLandscape(LandscapeTransform, HeightData)))
-	{
-		UE_LOG(LogDropByDropLandscape, Log, TEXT("Landscape created successfully!"));
-	}
-	else
+	if (!NewLandscape)
 	{
 		UE_LOG(LogDropByDropLandscape, Error, TEXT("Failed to create landscape."));
+		return;
 	}
+
+	ULandscapeInfoComponent* NewLandscapeInfo = NewLandscape->FindComponentByClass<ULandscapeInfoComponent>();
+
+	NewLandscapeInfo->HeightMapSettings = HeightmapSettings;
+	NewLandscapeInfo->LandscapeSettings = LandscapeSettings;
+	NewLandscapeInfo->ExternalSettings = ExternalSettings;
+
+	UE_LOG(LogDropByDropLandscape, Log, TEXT("Landscape created successfully!"));
 }
 
 void UGeneratorHeightMapLibrary::GenerateLandscapeAuto(
@@ -472,18 +476,13 @@ void UGeneratorHeightMapLibrary::GenerateLandscapeAuto(
 
 
 void UGeneratorHeightMapLibrary::CreateLandscapeFromOtherHeightMap(const FString& FilePath,
-                                                                   FExternalHeightMapSettings& ExternalSettings,
-                                                                   FLandscapeGenerationSettings& LandscapeSettings,
-                                                                   FHeightMapGenerationSettings& HeightmapSettings)
+	FExternalHeightMapSettings& ExternalSettings,
+	FLandscapeGenerationSettings& LandscapeSettings,
+	FHeightMapGenerationSettings& HeightmapSettings)
 {
 	ExternalSettings.bIsExternalHeightMap = true;
 	ExternalSettings.LastPNGPath = FilePath;
 
-	//If destroy last landscape
-	if (LandscapeSettings.bDestroyLastLandscape && IsValid(LandscapeSettings.TargetLandscape))
-	{
-		LandscapeSettings.TargetLandscape->Destroy();
-	}
 	// Load HeightMap from PNG
 	TArray<uint16> HeightmapInt16;
 	LoadHeightmapFromPNG(FilePath, HeightmapInt16, HeightmapSettings.HeightMap, ExternalSettings);
@@ -497,34 +496,46 @@ void UGeneratorHeightMapLibrary::CreateLandscapeFromOtherHeightMap(const FString
 	}
 	const FTransform LandscapeTransform = GetNewTransform(ExternalSettings, LandscapeSettings, HeightmapSettings.Size);
 	// Create Landscape using ExternalSetting for Transform (Avoid Kilometers)
-	LandscapeSettings.TargetLandscape = GenerateLandscape(LandscapeTransform, HeightmapInt16);
-	if (!IsValid(LandscapeSettings.TargetLandscape))
+
+	ALandscape* NewLandscape = GenerateLandscape(LandscapeTransform, HeightmapInt16);
+
+	if (!NewLandscape)
 	{
 		UE_LOG(LogDropByDropLandscape, Error, TEXT("Failed to generate landscape from heightmap."));
 		return;
 	}
 
+	ULandscapeInfoComponent* NewLandscapeInfo = NewLandscape->FindComponentByClass<class ULandscapeInfoComponent>();
+
+	NewLandscapeInfo->HeightMapSettings = HeightmapSettings;
+	NewLandscapeInfo->ExternalSettings = ExternalSettings;
+	NewLandscapeInfo->LandscapeSettings = LandscapeSettings;
+
 	UE_LOG(LogDropByDropLandscape, Log, TEXT("Landscape successfully created from PNG: %s"), *FilePath);
 }
 
-void UGeneratorHeightMapLibrary::SplitLandscapeIntoProxies(FLandscapeGenerationSettings& LandscapeSettings)
+void UGeneratorHeightMapLibrary::SplitLandscapeIntoProxies(ALandscape& SelectedLandscape)
 {
-	ULandscapeInfo* LandscapeInfo = LandscapeSettings.TargetLandscape->GetLandscapeInfo();
-	LandscapeInfo->UpdateLayerInfoMap(LandscapeSettings.TargetLandscape);
+	ULandscapeInfo* LandscapeInfo = SelectedLandscape.GetLandscapeInfo();
+	LandscapeInfo->UpdateLayerInfoMap(&SelectedLandscape);
 
-	LandscapeSettings.TargetLandscape->RegisterAllComponents();
+	SelectedLandscape.RegisterAllComponents();
 	FScopedSlowTask SlowTask(100, FText::FromString("Split Landscape"));
 	SlowTask.MakeDialog(true);
+
+	ULandscapeInfoComponent* LandscapeInfoComponent = nullptr;
+
 	if (ULandscapeSubsystem* LandscapeSubsystem = GEditor->GetEditorWorldContext().World()->GetSubsystem<
 		ULandscapeSubsystem>())
 	{
-		LandscapeSubsystem->ChangeGridSize(LandscapeInfo, LandscapeSettings.WorldPartitionCellSize);
+		LandscapeInfoComponent = SelectedLandscape.FindComponentByClass<ULandscapeInfoComponent>();
+		LandscapeSubsystem->ChangeGridSize(LandscapeInfo, LandscapeInfoComponent->LandscapeSettings.WorldPartitionCellSize);
 	}
 
 	SlowTask.EnterProgressFrame(100);
 
 	//After fixing the WorldPartition that part of code can be delated, for now leave that part for a future fix.
-	LandscapeSettings.TargetLandscape->PostEditChange();
+	SelectedLandscape.PostEditChange();
 	if (GEditor && GEditor->GetEditorWorldContext().World())
 	{
 		const UWorld* World = GEditor->GetEditorWorldContext().World();
@@ -535,11 +546,14 @@ void UGeneratorHeightMapLibrary::SplitLandscapeIntoProxies(FLandscapeGenerationS
 		}
 	}
 
-	LandscapeSettings.bIsSplittedIntoProxies = true;
+	if (LandscapeInfoComponent)
+	{
+		LandscapeInfoComponent->bIsSplittedIntoProxies = true;
+	}
 }
 
 ALandscape* UGeneratorHeightMapLibrary::GenerateLandscape(const FTransform& LandscapeTransform,
-                                                          TArray<uint16>& Heightmap)
+	TArray<uint16>& Heightmap)
 {
 	int32 SubSectionSizeQuads;
 	int32 NumSubsections;
@@ -564,7 +578,7 @@ ALandscape* UGeneratorHeightMapLibrary::GenerateLandscape(const FTransform& Land
 	else
 	{
 		UE_LOG(LogDropByDropLandscape, Error, TEXT("Heightmap dimensions do not match the generated landscape: %d != %d x %d"),
-		       Heightmap.Num(), MaxX, MaxY);
+			Heightmap.Num(), MaxX, MaxY);
 		return nullptr;
 	}
 
@@ -573,14 +587,19 @@ ALandscape* UGeneratorHeightMapLibrary::GenerateLandscape(const FTransform& Land
 		const FWorldContext& EditorWorldContext = GEditor->GetEditorWorldContext();
 		World = EditorWorldContext.World();
 	}
+
 	ALandscape* Landscape = World->SpawnActor<ALandscape>();
+	ULandscapeInfoComponent* LandscapeInfo = NewObject<ULandscapeInfoComponent>(Landscape);
+	LandscapeInfo->RegisterComponent();
+	Landscape->AddInstanceComponent(LandscapeInfo);
+
 	Landscape->bCanHaveLayersContent = true;
 	Landscape->LandscapeMaterial = nullptr;
 	// Assign an appropriate material if needed
 	Landscape->SetActorTransform(LandscapeTransform);
 
 	UE_LOG(LogDropByDropLandscape, Error, TEXT("NumSubSections: %d; SubSectionSizeQuads:%d; MaxX,Y: %d;"), NumSubsections,
-	       SubSectionSizeQuads, MaxY);
+		SubSectionSizeQuads, MaxY);
 
 	Landscape->Import(
 		FGuid::NewGuid(),
@@ -598,13 +617,13 @@ ALandscape* UGeneratorHeightMapLibrary::GenerateLandscape(const FTransform& Land
 }
 
 bool UGeneratorHeightMapLibrary::SetLandscapeSizeParam(int32& SubSectionSizeQuads, int32& NumSubsections, int32& MaxX,
-                                                       int32& MaxY, const int32 Size)
+	int32& MaxY, const int32 Size)
 {
 	const int32 HeightmapSize = Size;
 	FIntPoint NewLandscapeComponentCount;
 	FLandscapeImportHelper::ChooseBestComponentSizeForImport(HeightmapSize, HeightmapSize, SubSectionSizeQuads,
-	                                                         NumSubsections,
-	                                                         NewLandscapeComponentCount);
+		NumSubsections,
+		NewLandscapeComponentCount);
 
 	const int32 ComponentCountX = NewLandscapeComponentCount.X;
 	const int32 ComponentCountY = NewLandscapeComponentCount.Y;
@@ -615,8 +634,8 @@ bool UGeneratorHeightMapLibrary::SetLandscapeSizeParam(int32& SubSectionSizeQuad
 	if (MaxX != HeightmapSize || MaxY != HeightmapSize)
 	{
 		UE_LOG(LogDropByDropLandscape, Error,
-		       TEXT("Size calculated (%d x %d) not match with size of HeightMap (%d x %d)."))
-		return false;
+			TEXT("Size calculated (%d x %d) not match with size of HeightMap (%d x %d)."))
+			return false;
 	}
 
 	return true;
@@ -625,8 +644,8 @@ bool UGeneratorHeightMapLibrary::SetLandscapeSizeParam(int32& SubSectionSizeQuad
 
 #pragma region Utilities
 FTransform UGeneratorHeightMapLibrary::GetNewTransform(const FExternalHeightMapSettings& ExternalSettings,
-                                                       const FLandscapeGenerationSettings& LandscapeSettings,
-                                                       int32 HeightmapSize)
+	const FLandscapeGenerationSettings& LandscapeSettings,
+	int32 HeightmapSize)
 {
 	FVector NewScale;
 
@@ -648,17 +667,6 @@ FTransform UGeneratorHeightMapLibrary::GetNewTransform(const FExternalHeightMapS
 	}
 
 	return FTransform(FQuat::Identity, FVector(-100800, -100800, 17200), NewScale);
-}
-
-void UGeneratorHeightMapLibrary::DestroyLastLandscape(const FLandscapeGenerationSettings& LandscapeSettings)
-{
-	if (LandscapeSettings.bDestroyLastLandscape)
-	{
-		if (IsValid(LandscapeSettings.TargetLandscape))
-		{
-			LandscapeSettings.TargetLandscape->Destroy();
-		}
-	}
 }
 
 TArray<uint16> UGeneratorHeightMapLibrary::ConvertFloatArrayToUint16(const TArray<float>& FloatData)
@@ -685,16 +693,16 @@ bool UGeneratorHeightMapLibrary::SaveToAsset(UTexture2D* Texture, const FString&
 
 	// --- Preview-friendly flags: grayscale look, no mips/streaming/srgb, clamp ---
 	auto ApplyPreviewTextureFlags = [](UTexture2D* T)
-	{
-		T->SRGB = true;
-		// Use an un-intrusive compression setting for UI preview (no BC artifacts).
-		T->CompressionSettings = TC_Default; // very light/no compression for UI icons
-		T->MipGenSettings = TMGS_NoMipmaps;
-		T->LODGroup = TEXTUREGROUP_Pixels2D;
-		T->NeverStream = true;
-		T->AddressX = TA_Clamp;
-		T->AddressY = TA_Clamp;
-	};
+		{
+			T->SRGB = true;
+			// Use an un-intrusive compression setting for UI preview (no BC artifacts).
+			T->CompressionSettings = TC_Default; // very light/no compression for UI icons
+			T->MipGenSettings = TMGS_NoMipmaps;
+			T->LODGroup = TEXTUREGROUP_Pixels2D;
+			T->NeverStream = true;
+			T->AddressX = TA_Clamp;
+			T->AddressY = TA_Clamp;
+		};
 
 	// ----------------------------
 	// 1) Read raw pixels from source (preferred) or platform mip[0].
@@ -818,59 +826,59 @@ bool UGeneratorHeightMapLibrary::SaveToAsset(UTexture2D* Texture, const FString&
 	switch (InFmt)
 	{
 	case ERawFmt::BGRA8:
+	{
+		const uint8* p = Raw.GetData();
+		for (int64 i = 0; i < NumPx; ++i)
 		{
-			const uint8* p = Raw.GetData();
-			for (int64 i = 0; i < NumPx; ++i)
-			{
-				// BGRA: B=0,G=1,R=2,A=3 
-				Gray[i] = p[i * 4 + 2];
-			}
-			break;
+			// BGRA: B=0,G=1,R=2,A=3 
+			Gray[i] = p[i * 4 + 2];
 		}
+		break;
+	}
 	case ERawFmt::RGBA8:
+	{
+		const uint8* p = Raw.GetData();
+		for (int64 i = 0; i < NumPx; ++i)
 		{
-			const uint8* p = Raw.GetData();
-			for (int64 i = 0; i < NumPx; ++i)
-			{
-				// RGBA: R=0,G=1,B=2,A=3
-				Gray[i] = p[i * 4 + 0];
-			}
-			break;
+			// RGBA: R=0,G=1,B=2,A=3
+			Gray[i] = p[i * 4 + 0];
 		}
+		break;
+	}
 	case ERawFmt::G8:
-		{
-			FMemory::Memcpy(Gray.GetData(), Raw.GetData(), Gray.Num());
-			break;
-		}
+	{
+		FMemory::Memcpy(Gray.GetData(), Raw.GetData(), Gray.Num());
+		break;
+	}
 	case ERawFmt::G16:
+	{
+		const uint16* p = reinterpret_cast<const uint16*>(Raw.GetData());
+		for (int64 i = 0; i < NumPx; ++i)
 		{
-			const uint16* p = reinterpret_cast<const uint16*>(Raw.GetData());
-			for (int64 i = 0; i < NumPx; ++i)
-			{
-				Gray[i] = uint8(p[i] >> 8); // keep MSB
-			}
-			break;
+			Gray[i] = uint8(p[i] >> 8); // keep MSB
 		}
+		break;
+	}
 	case ERawFmt::R32F:
+	{
+		const float* p = reinterpret_cast<const float*>(Raw.GetData());
+		for (int64 i = 0; i < NumPx; ++i)
 		{
-			const float* p = reinterpret_cast<const float*>(Raw.GetData());
-			for (int64 i = 0; i < NumPx; ++i)
-			{
-				const float v = FMath::Clamp(p[i], 0.f, 1.f);
-				Gray[i] = uint8(FMath::RoundToInt(v * 255.f));
-			}
-			break;
+			const float v = FMath::Clamp(p[i], 0.f, 1.f);
+			Gray[i] = uint8(FMath::RoundToInt(v * 255.f));
 		}
+		break;
+	}
 	case ERawFmt::RGBA16F:
+	{
+		const FFloat16Color* p = reinterpret_cast<const FFloat16Color*>(Raw.GetData());
+		for (int64 i = 0; i < NumPx; ++i)
 		{
-			const FFloat16Color* p = reinterpret_cast<const FFloat16Color*>(Raw.GetData());
-			for (int64 i = 0; i < NumPx; ++i)
-			{
-				const float R = FMath::Clamp(p[i].R, 0.f, 1.f);
-				Gray[i] = uint8(FMath::RoundToInt(R * 255.f));
-			}
-			break;
+			const float R = FMath::Clamp(p[i].R, 0.f, 1.f);
+			Gray[i] = uint8(FMath::RoundToInt(R * 255.f));
 		}
+		break;
+	}
 	default:
 		UE_LOG(LogDropByDropHeightmap, Error, TEXT("Unexpected raw format during grayscale conversion."));
 		return false;
@@ -896,53 +904,53 @@ bool UGeneratorHeightMapLibrary::SaveToAsset(UTexture2D* Texture, const FString&
 
 	UPackage* ExistingPackage = FindPackage(nullptr, *PackageName);
 	UTexture2D* TargetTexture = ExistingPackage
-		                            ? Cast<UTexture2D>(
-			                            StaticFindObject(UTexture2D::StaticClass(), ExistingPackage, *AssetName))
-		                            : nullptr;
+		? Cast<UTexture2D>(
+			StaticFindObject(UTexture2D::StaticClass(), ExistingPackage, *AssetName))
+		: nullptr;
 
 	auto SaveAndRescan = [&](UPackage* Pkg, UObject* Asset)-> bool
-	{
-		FlushRenderingCommands();
-
-		FSavePackageArgs SaveArgs;
-		SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
-		SaveArgs.SaveFlags = SAVE_NoError;
-
-		const FString PkgFilename = FPackageName::LongPackageNameToFilename(
-			PackageName, FPackageName::GetAssetPackageExtension());
-
-		if (!UPackage::SavePackage(Pkg, Asset, *PkgFilename, SaveArgs))
 		{
-			UE_LOG(LogDropByDropHeightmap, Error, TEXT("Failed to save package '%s'"), *PackageName);
-			return false;
-		}
+			FlushRenderingCommands();
 
-		if (FAssetRegistryModule* ARM = FModuleManager::GetModulePtr<FAssetRegistryModule>("AssetRegistry"))
-		{
-			TArray<FString> PathsToScan{TEXT("/ErosionScape/SavedAssets/")};
-			ARM->Get().ScanModifiedAssetFiles(PathsToScan);
-		}
+			FSavePackageArgs SaveArgs;
+			SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+			SaveArgs.SaveFlags = SAVE_NoError;
 
-		UE_LOG(LogDropByDropHeightmap, Log, TEXT("Saved texture to: %s"), *PkgFilename);
-		return true;
-	};
+			const FString PkgFilename = FPackageName::LongPackageNameToFilename(
+				PackageName, FPackageName::GetAssetPackageExtension());
+
+			if (!UPackage::SavePackage(Pkg, Asset, *PkgFilename, SaveArgs))
+			{
+				UE_LOG(LogDropByDropHeightmap, Error, TEXT("Failed to save package '%s'"), *PackageName);
+				return false;
+			}
+
+			if (FAssetRegistryModule* ARM = FModuleManager::GetModulePtr<FAssetRegistryModule>("AssetRegistry"))
+			{
+				TArray<FString> PathsToScan{ TEXT("/ErosionScape/SavedAssets/") };
+				ARM->Get().ScanModifiedAssetFiles(PathsToScan);
+			}
+
+			UE_LOG(LogDropByDropHeightmap, Log, TEXT("Saved texture to: %s"), *PkgFilename);
+			return true;
+		};
 
 	auto WriteBGRA8ToTexture = [&](UTexture2D* T)
-	{
-		T->Modify();
+		{
+			T->Modify();
 
-		// Bake as BGRA8 so Slate always sees grayscale (R=G=B) instead of a red-only channel.
-		T->Source.Init(W, H, 1, 1, TSF_BGRA8);
-		void* Dest = T->Source.LockMip(0);
-		const int64 DestSize = NumPx * 4;
-		FMemory::Memcpy(Dest, BGRA.GetData(), DestSize);
-		T->Source.UnlockMip(0);
+			// Bake as BGRA8 so Slate always sees grayscale (R=G=B) instead of a red-only channel.
+			T->Source.Init(W, H, 1, 1, TSF_BGRA8);
+			void* Dest = T->Source.LockMip(0);
+			const int64 DestSize = NumPx * 4;
+			FMemory::Memcpy(Dest, BGRA.GetData(), DestSize);
+			T->Source.UnlockMip(0);
 
-		ApplyPreviewTextureFlags(T);
-		T->PostEditChange();
-		T->UpdateResource();
-		(void)T->MarkPackageDirty();
-	};
+			ApplyPreviewTextureFlags(T);
+			T->PostEditChange();
+			T->UpdateResource();
+			(void)T->MarkPackageDirty();
+		};
 
 	if (TargetTexture)
 	{
@@ -1010,66 +1018,74 @@ void UGeneratorHeightMapLibrary::OpenHeightmapFileDialog(
 		}
 	}
 }
-static FVector GetWindPreviewStart(const FLandscapeGenerationSettings& LS, UWorld* World)
+static FVector GetWindPreviewStart(const ALandscape* SelectedLandscape, UWorld* World)
 {
-    // If we have a target landscape, use its bounds center; else use world origin slightly lifted.
-    if (IsValid(LS.TargetLandscape))
-    {
-        FBox Bounds(ForceInitToZero);
-        TArray<ULandscapeComponent*> Comps;
-        LS.TargetLandscape->GetComponents(Comps);
-        for (ULandscapeComponent* C : Comps)
-        {
-            if (!C) continue;
-            Bounds += C->Bounds.GetBox();
-        }
-        if (Bounds.IsValid)
-        {
-            FVector Center = Bounds.GetCenter();
-            Center.Z += 200.f;
-            return Center;
-        }
+	FBox Bounds(ForceInitToZero);
+	TArray<ULandscapeComponent*> Comps;
+	SelectedLandscape->GetComponents(Comps);
+	for (ULandscapeComponent* C : Comps)
+	{
+		if (!C) continue;
+		Bounds += C->Bounds.GetBox();
+	}
+	if (Bounds.IsValid)
+	{
+		FVector Center = Bounds.GetCenter();
+		Center.Z += 200.f;
+		return Center;
+	}
 
-        // Fallback: actor location
-        FVector Loc = LS.TargetLandscape->GetActorLocation();
-        Loc.Z += 200.f;
-        return Loc;
-    }
-
-    // Last resort: world origin
-    return FVector(0,0,200);
+	FVector Loc = SelectedLandscape->GetActorLocation();
+	Loc.Z += 200.f;
+	return Loc;
 }
 
 void UGeneratorHeightMapLibrary::DrawWindDirectionPreview(
 	const FErosionSettings& ErosionSettings,
-    const FLandscapeGenerationSettings& LandscapeSettings,
-    float ArrowLength,
-    float ArrowThickness,
-    float ArrowHeadSize,
-    float Duration,
-    bool  bAlsoDrawCone,
-    float ConeHalfAngleDeg)
+	const ALandscape* SelectedLandscape,
+	float ArrowLength,
+	float ArrowThickness,
+	float ArrowHeadSize,
+	float Duration,
+	bool  bAlsoDrawCone,
+	float ConeHalfAngleDeg)
 {
 #if WITH_EDITOR
-	FDropByDropSettings::Get().WindPreviewScale = 10.f;
-    const float Scale = FDropByDropSettings::Get().WindPreviewScale;
 
-    UWorld* World = nullptr;
-    if (GEditor)
-    {
-        const FWorldContext& Ctx = GEditor->GetEditorWorldContext();
-        World = Ctx.World();
-    }
-    if (!World) return;
+	// Calcola la scala media del landscape considerando X e Y
+	const FVector LandscapeScale = SelectedLandscape->GetActorScale3D();
+	const float AverageLandscapeScale = ((LandscapeScale.X / 198.f) + (LandscapeScale.Y / 198.f)) * 0.5f;
 
-	const FVector Start = GetWindPreviewStart(LandscapeSettings, World);
+	const float Scale = FDropByDropSettings::Get().WindPreviewScale * AverageLandscapeScale;
+
+	UWorld* World = nullptr;
+	if (GEditor)
+	{
+		const FWorldContext& Ctx = GEditor->GetEditorWorldContext();
+		World = Ctx.World();
+	}
+	if (!World) return;
+
+	const FVector Start = GetWindPreviewStart(SelectedLandscape, World);
+
 	float MeanDeg = 0.f;
 	if (!UErosionLibrary::TryGetWindMeanAngleDegrees(ErosionSettings, MeanDeg))
 	{
 		return;
 	}
+
+	// Ottieni la direzione del vento in spazio locale (2D)
 	const FVector2D Dir2D = UErosionLibrary::GetWindUnitVectorFromAngle(MeanDeg);
-	const FVector Dir3D(Dir2D.X, Dir2D.Y, 0.f);
+	FVector Dir3D(Dir2D.X, Dir2D.Y, 0.f);
+
+	// Applica la rotazione Z del landscape
+	if (SelectedLandscape)
+	{
+		const FRotator LandscapeRotation = SelectedLandscape->GetActorRotation();
+		const FQuat LandscapeQuat = FQuat(FRotator(0.f, LandscapeRotation.Yaw, 0.f));
+		Dir3D = LandscapeQuat.RotateVector(Dir3D);
+	}
+
 	const FVector End = Start + Dir3D * (ArrowLength * Scale);
 
 	// Asta della freccia spessa
@@ -1077,7 +1093,7 @@ void UGeneratorHeightMapLibrary::DrawWindDirectionPreview(
 	DrawDebugLine(World, Start, ArrowBodyEnd, FColor::Cyan, false, Duration, 0, ArrowThickness * Scale * 3.f);
 
 	// PUNTA GIGANTE - Cono 3D enorme
-	const float HugeHeadSize = ArrowHeadSize * Scale * 8.f; // 8x più grande!
+	const float HugeHeadSize = ArrowHeadSize * Scale * 8.f;
 	const FVector ConeStart = End - Dir3D * HugeHeadSize;
 	DrawDebugCone(World, ConeStart, Dir3D, HugeHeadSize,
 		FMath::DegreesToRadians(30.f), FMath::DegreesToRadians(30.f),
@@ -1108,11 +1124,22 @@ void UGeneratorHeightMapLibrary::DrawWindDirectionPreview(
 		DrawDebugLine(World, End + Offset, End, FColor::Yellow, false, Duration, 0, 2.f * Scale);
 	}
 
-	// Cardinal cross
+	// Cardinal cross (ruotato con il landscape)
 	const float Cross = ArrowLength * 0.25f * Scale;
-	DrawDebugLine(World, Start - FVector(Cross, 0, 0), Start + FVector(Cross, 0, 0),
+	FVector CrossX(Cross, 0, 0);
+	FVector CrossY(0, Cross, 0);
+
+	if (SelectedLandscape)
+	{
+		const FRotator LandscapeRotation = SelectedLandscape->GetActorRotation();
+		const FQuat LandscapeQuat = FQuat(FRotator(0.f, LandscapeRotation.Yaw, 0.f));
+		CrossX = LandscapeQuat.RotateVector(CrossX);
+		CrossY = LandscapeQuat.RotateVector(CrossY);
+	}
+
+	DrawDebugLine(World, Start - CrossX, Start + CrossX,
 		FColor(128, 128, 128), false, Duration, 0, 1.f * Scale);
-	DrawDebugLine(World, Start - FVector(0, Cross, 0), Start + FVector(0, Cross, 0),
+	DrawDebugLine(World, Start - CrossY, Start + CrossY,
 		FColor(128, 128, 128), false, Duration, 0, 1.f * Scale);
 
 	// Bias cone
@@ -1124,8 +1151,17 @@ void UGeneratorHeightMapLibrary::DrawWindDirectionPreview(
 			const float T = (Spokes == 0) ? 0.f : float(i) / float(Spokes);
 			const float Deg = MeanDeg - ConeHalfAngleDeg + (2.f * ConeHalfAngleDeg) * T;
 			const FVector2D S2D = UErosionLibrary::GetWindUnitVectorFromAngle(Deg);
-			const FVector   S3D(S2D.X, S2D.Y, 0.f);
-			const FVector   SEnd = Start + S3D * (ArrowLength * 0.85f * Scale);
+			FVector S3D(S2D.X, S2D.Y, 0.f);
+
+			// Applica la rotazione anche alle linee del cono
+			if (SelectedLandscape)
+			{
+				const FRotator LandscapeRotation = SelectedLandscape->GetActorRotation();
+				const FQuat LandscapeQuat = FQuat(FRotator(0.f, LandscapeRotation.Yaw, 0.f));
+				S3D = LandscapeQuat.RotateVector(S3D);
+			}
+
+			const FVector SEnd = Start + S3D * (ArrowLength * 0.85f * Scale);
 			DrawDebugDirectionalArrow(World, Start, SEnd, ArrowHeadSize * 0.75f * Scale,
 				FColor(0, 200, 255), false, Duration, 0, ArrowThickness * 0.75f * Scale);
 		}

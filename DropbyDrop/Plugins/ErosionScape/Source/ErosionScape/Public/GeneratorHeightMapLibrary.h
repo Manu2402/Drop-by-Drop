@@ -12,16 +12,37 @@ struct FErosionTemplateRow : public FTableRowBase
 {
 	GENERATED_BODY()
 
-	uint64 ErosionCyclesField;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int64 ErosionCyclesField;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	uint8 WindDirection;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float InertiaField;
-	uint32 CapacityField;
-	float MinSlopeField;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 CapacityField;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MinimalSlopeField;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float DepositionSpeedField;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float ErosionSpeedField;
-	uint32 GravityField;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 GravityField;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float EvaporationField;
-	uint32 MaxPathField;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 MaxPathField;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 ErosionRadiusField;
 };
 
@@ -33,11 +54,7 @@ class UGeneratorHeightMapLibrary : public UBlueprintFunctionLibrary
 public:
 #pragma region Erosion
 	
-	static void GenerateErosion(const FExternalHeightMapSettings& ExternalSettings,
-	                             FLandscapeGenerationSettings& LandscapeSettings,
-		                          FErosionSettings& ErosionSettings,
-	                             const FHeightMapGenerationSettings& HeightMapSetting,
-	                            int32 HeightMapSize);
+	static void GenerateErosion(TObjectPtr<ALandscape> SelectedLandscape, FErosionSettings& ErosionSettings);
 	
 	static bool SaveErosionTemplate(const FString& TemplateName, const int32 ErosionCyclesValue,
 	                                const float InertiaValue, const int32 CapacityValue,
@@ -67,14 +84,15 @@ public:
 	FExternalHeightMapSettings& ExternalSettings,
 	 FLandscapeGenerationSettings& LandscapeSettings, FHeightMapGenerationSettings& HeightmapSettings);
 
-	static void SplitLandscapeIntoProxies(FLandscapeGenerationSettings& LandscapeSettings);
+	static void SplitLandscapeIntoProxies(class ALandscape& LandscapeSettings);
 
 	static bool SetLandscapeSizeParam(int32& SubSectionSizeQuads, int32& NumSubsections, int32& MaxX, int32& MaxY,  const int32 Size = 505);
 
-	static ALandscape* GenerateLandscape(const FTransform& LandscapeTransform, TArray<uint16>& Heightmap);
+	static class ALandscape* GenerateLandscape(const FTransform& LandscapeTransform, TArray<uint16>& Heightmap);
 
 	// --- One-click landscape creation (prefer preview asset, fallback to internal) ---
-	static void GenerateLandscapeAuto(FHeightMapGenerationSettings& HeightmapSettings,
+	static void GenerateLandscapeAuto(
+		                              FHeightMapGenerationSettings& HeightmapSettings,
 									  FExternalHeightMapSettings&   ExternalSettings,
 									  FLandscapeGenerationSettings& LandscapeSettings);
 
@@ -110,7 +128,7 @@ public:
 	
 	static void DrawWindDirectionPreview(
 		const FErosionSettings& ErosionSettings,
-		const FLandscapeGenerationSettings& LandscapeSettings,
+		const class ALandscape* SelectedLandscape,
 		float ArrowLength      = 8000.f,
 		float ArrowThickness   = 12.f,
 		float ArrowHeadSize    = 300.f,
@@ -123,7 +141,6 @@ private:
 	static FTransform GetNewTransform(const FExternalHeightMapSettings& ExternalSettings,
 	                                  const FLandscapeGenerationSettings& LandscapeSettings,
 	                                  int32 HeightmapSize);
-	static void DestroyLastLandscape(const FLandscapeGenerationSettings& LandscapeSettings);
 #pragma endregion
 
 };

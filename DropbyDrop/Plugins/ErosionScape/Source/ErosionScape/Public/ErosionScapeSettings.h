@@ -22,7 +22,6 @@ struct FHeightMapGenerationSettings
 };
 
 USTRUCT(BlueprintType)
-
 struct FExternalHeightMapSettings
 {
 	GENERATED_BODY()
@@ -42,11 +41,7 @@ struct FLandscapeGenerationSettings
 
 	uint32 Kilometers = 1;
 	bool bKilometers = true;
-	bool bDestroyLastLandscape = false;
 	uint32 WorldPartitionCellSize = 4;
-	bool bIsSplittedIntoProxies = false;
-
-	TObjectPtr<ALandscape> TargetLandscape = nullptr;
 };
 
 USTRUCT(BlueprintType)
@@ -71,7 +66,7 @@ struct FErosionSettings
 class FDropByDropSettings
 {
 public:
-	float WindPreviewScale = 5.0f;
+	float WindPreviewScale = 10.0f;
 	UDataTable* ErosionTemplatesDataTable = nullptr;
 
 public:

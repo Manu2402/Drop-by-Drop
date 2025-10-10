@@ -15,6 +15,7 @@
 #include "Editor/UnrealEd/Public/Selection.h"
 #include "Landscape.h"
 #include "DropByDropLogger.h"
+#include "DropByDropLandscape.h"
 
 static const FName ErosionScapeTabName("ErosionScape");
 #define LOCTEXT_NAMESPACE "FErosionScapeModule"
@@ -47,25 +48,6 @@ void FErosionScapeModule::StartupModule()
 	UGeneratorHeightMapLibrary::SetErosionTemplates(
 		TEXT("/ErosionScape/DT_ErosionTemplates.DT_ErosionTemplates"));
 
-	//Commands
-	IConsoleManager::Get().RegisterConsoleCommand(
-		TEXT("WindPreview.Scale"),
-		TEXT("Set global scale for wind direction preview arrows"),
-		FConsoleCommandWithArgsDelegate::CreateLambda([](const TArray<FString>& Args)
-		{
-			if (Args.Num() == 0)
-			{
-				UE_LOG(LogDropByDrop, Warning, TEXT("Usage: WindPreview.Scale <float>"));
-				return;
-			}
-
-			const float NewScale = FCString::Atof(*Args[0]);
-			UGeneratorHeightMapLibrary::SetWindPreviewScale(NewScale);
-			UE_LOG(LogDropByDrop, Log, TEXT("WindPreview scale set to %f"), NewScale);
-		}),
-		ECVF_Default
-	);
-
 #if WITH_EDITOR
 	OnActorSelectedHandle = GEditor->GetSelectedActors()->SelectObjectEvent.AddRaw(this, &FErosionScapeModule::OnActorSelected);
 #endif
@@ -74,19 +56,19 @@ void FErosionScapeModule::StartupModule()
 
 void FErosionScapeModule::OnActorSelected(UObject* Object)
 {
-	if (!Landscape.IsValid())
+	if (!RootPanel.IsValid())
 	{
-		Landscape = RootPanel->GetLandscapeSettings();
+		return;
 	}
 
 #if WITH_EDITOR
 	if (ALandscape* L = Cast<ALandscape>(Object))
 	{
-		Landscape->TargetLandscape = L;
+		SelectedLandscape = L;
 	}
 	else
 	{
-		Landscape->TargetLandscape = nullptr;
+	    SelectedLandscape = nullptr;
 	}
 #endif
 }
@@ -102,8 +84,6 @@ void FErosionScapeModule::ShutdownModule()
 	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ErosionScapeTabName);
 
 	IConsoleManager::Get().UnregisterConsoleObject(TEXT("WindPreview.Scale"), false);
-
-
 }
 
 TSharedRef<SDockTab> FErosionScapeModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
@@ -112,6 +92,7 @@ TSharedRef<SDockTab> FErosionScapeModule::OnSpawnPluginTab(const FSpawnTabArgs& 
 	.TabRole(ETabRole::NomadTab)
 	[
 		SAssignNew(RootPanel, SRootPanel)
+		.SelectedLandscape(&SelectedLandscape)
 	];
 }
 
