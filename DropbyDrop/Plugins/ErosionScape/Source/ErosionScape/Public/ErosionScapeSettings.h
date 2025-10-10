@@ -66,15 +66,13 @@ struct FErosionSettings
 class FDropByDropSettings
 {
 public:
-	float WindPreviewScale = 10.0f;
-	UDataTable* ErosionTemplatesDataTable = nullptr;
+	static FDropByDropSettings& Get();
+		
+	float GetWindPreviewScale() const;
+	void SetWindPreviewScale(const float NewWindPreviewScale);
 
-public:
-	FORCEINLINE static FDropByDropSettings& Get()
-	{
-		static FDropByDropSettings Instance;
-		return Instance;
-	}
+	UDataTable* GetErosionTemplatesDT() const;
+	void SetErosionTemplatesDT(UDataTable* NewErosionTemplatesDT);
 
 private:
 	FDropByDropSettings() = default;
@@ -82,5 +80,8 @@ private:
 	FDropByDropSettings& operator=(const FDropByDropSettings& Other) = delete;
 	FDropByDropSettings(FDropByDropSettings&& Other) = delete;
 	FDropByDropSettings& operator=(FDropByDropSettings&& Other) = delete;
+
+	float WindPreviewScale = 10.0f;
+	UDataTable* ErosionTemplatesDT = nullptr;
 
 };

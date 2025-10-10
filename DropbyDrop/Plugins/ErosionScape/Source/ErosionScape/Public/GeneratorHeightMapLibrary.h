@@ -68,9 +68,6 @@ public:
 	static bool SaveErosionTemplates();
 
 	static void LoadRowIntoErosionFields(TSharedPtr<FErosionSettings>& OutErosionSettings, const FErosionTemplateRow* TemplateDatas);
-
-	static UDataTable* GetErosionTemplates();
-	static void SetErosionTemplates(const TCHAR* DataTablePath);
 #pragma endregion
 
 #pragma region Landscape
@@ -116,15 +113,11 @@ public:
 
 	static TArray<uint16> ConvertFloatArrayToUint16(const TArray<float>& FloatData);
 	static bool SaveToAsset(UTexture2D* Texture, const FString& AssetName);
-	static void OpenHeightmapFileDialog(
-		TSharedPtr<struct FExternalHeightMapSettings> ExternalSettings = nullptr,
-		TSharedPtr<struct FLandscapeGenerationSettings> LandscapeSettings = nullptr,
-		TSharedPtr<struct FHeightMapGenerationSettings> HeightMapSettings = nullptr
-	);
+	static void OpenHeightmapFileDialog(TSharedPtr<struct FExternalHeightMapSettings> ExternalSettings);
 
-	static void SetWindPreviewScale(float NewScale) { FDropByDropSettings::Get().WindPreviewScale = NewScale; }
+	static void SetWindPreviewScale(float NewScale) { FDropByDropSettings::Get().SetWindPreviewScale(NewScale); }
 
-	static float GetWindPreviewScale() { return FDropByDropSettings::Get().WindPreviewScale; }
+	static float GetWindPreviewScale() { return FDropByDropSettings::Get().GetWindPreviewScale(); }
 	
 	static void DrawWindDirectionPreview(
 		const FErosionSettings& ErosionSettings,

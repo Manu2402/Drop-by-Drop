@@ -1,16 +1,26 @@
+// Copyright Epic Games, Inc. All Rights Reserved.
+// © Manuel Solano
+// © Roberto Capparelli
+
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Modules/ModuleManager.h"
-#include "GeneratorHeightMapLibrary.h"
-#include "HAL/IConsoleManager.h"
 
-class FToolBarBuilder;
+#pragma region ForwardDeclarations
+
+class SDockTab;
+class FSpawnTabArgs;
+class FUICommandList;
 class FMenuBuilder;
+class SRootPanel;
+
+class ALandscape;
+
+#pragma endregion
 
 class FErosionScapeModule : public IModuleInterface
 {
-public:
+public: // Methods.
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
@@ -18,22 +28,25 @@ public:
 	/** Open the tab */
 	void PluginButtonClicked();
 
-private:
+private: // Methods.
 	/** Register menus/buttons */
 	void RegisterMenus();
 
 	/** Spawn the main tab with our three panels */
-	TSharedRef<class SDockTab> OnSpawnPluginTab(const class FSpawnTabArgs& SpawnTabArgs);
+	TSharedRef<SDockTab> OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs);
 
 	/** Small helper to show notifications */
 	void ShowEditorNotification(const FString& Message, bool bSuccess) const;
 
-private:
-	TSharedPtr<class FUICommandList> PluginCommands;
+	void OnActorSelected(UObject* SelectedActor);
 
-	TSharedPtr<class SRootPanel> RootPanel;
-	TObjectPtr<class ALandscape> SelectedLandscape;
+private: // Members.
+	TSharedPtr<FUICommandList> PluginCommands;
 
-	void OnActorSelected(UObject* NewSelection);
-	FDelegateHandle OnActorSelectedHandle;
+	TSharedPtr<SRootPanel> RootPanel;
+	TObjectPtr<ALandscape> ActiveLandscape;
+
+	const TCHAR* ErosionTemplatesDTPath = TEXT("/ErosionScape/DT_ErosionTemplates.DT_ErosionTemplates");
+	const FName DropByDropTabName = FName("DropByDrop");
+
 };

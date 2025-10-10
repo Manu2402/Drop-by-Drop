@@ -1,24 +1,20 @@
-#include "ErosionScape.h"
-#include "ErosionScapeCommands.h"
-#include "ErosionScapeStyle.h"
-#include "ErosionScapeSettings.h"
-#include "GeneratorHeightMapLibrary.h"
-#include "ToolMenus.h"
-#include "Widgets/Docking/SDockTab.h"
-#include "Widgets/Notifications/SNotificationList.h"
-#include "Framework/Notifications/NotificationManager.h"
-#include "Widget/HeightMapPanel.h"
-#include "Widget/LandscapePanel.h"
-#include "Widget/ErosionPanel.h"
-#include "Widget/RootPanel.h"
-#include "Editor.h"
-#include "Editor/UnrealEd/Public/Selection.h"
-#include "Landscape.h"
-#include "DropByDropLogger.h"
-#include "DropByDropLandscape.h"
+// Copyright Epic Games, Inc. All Rights Reserved.
+// © Manuel Solano
+// © Roberto Capparelli
 
-static const FName ErosionScapeTabName("ErosionScape");
+#include "ErosionScape.h"
+
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Editor/UnrealEd/Public/Selection.h"
+#include "ErosionScapeCommands.h"
+#include "DropByDropLandscape.h"
+#include "Widget/RootPanel.h"
+#include "Landscape.h"
+
 #define LOCTEXT_NAMESPACE "FErosionScapeModule"
+
+#pragma region Module
 
 void FErosionScapeModule::StartupModule()
 {
@@ -26,50 +22,17 @@ void FErosionScapeModule::StartupModule()
 	FErosionScapeStyle::ReloadTextures();
 
 	FErosionScapeCommands::Register();
-
 	PluginCommands = MakeShareable(new FUICommandList);
-	PluginCommands->MapAction(
-		FErosionScapeCommands::Get().OpenPluginWindow,
-		FExecuteAction::CreateRaw(this, &FErosionScapeModule::PluginButtonClicked),
-		FCanExecuteAction()
-	);
+	PluginCommands->MapAction(FErosionScapeCommands::Get().OpenPluginWindow, FExecuteAction::CreateRaw(this, &FErosionScapeModule::PluginButtonClicked), FCanExecuteAction());
 
-	UToolMenus::RegisterStartupCallback(
-		FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FErosionScapeModule::RegisterMenus)
-	);
+	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FErosionScapeModule::RegisterMenus));
 
-	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
-		                        ErosionScapeTabName,
-		                        FOnSpawnTab::CreateRaw(this, &FErosionScapeModule::OnSpawnPluginTab)
-	                        )
-	                        .SetDisplayName(LOCTEXT("FErosionScapeTabTitle", "ErosionScape"))
-	                        .SetMenuType(ETabSpawnerMenuType::Hidden);
+	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(DropByDropTabName, FOnSpawnTab::CreateRaw(this, &FErosionScapeModule::OnSpawnPluginTab)).SetDisplayName(LOCTEXT("FDropByDropTabTitle", "DropByDrop")).SetMenuType(ETabSpawnerMenuType::Hidden);
 
-	UGeneratorHeightMapLibrary::SetErosionTemplates(
-		TEXT("/ErosionScape/DT_ErosionTemplates.DT_ErosionTemplates"));
+	FDropByDropSettings::Get().SetErosionTemplatesDT(LoadObject<UDataTable>(nullptr, ErosionTemplatesDTPath));
 
 #if WITH_EDITOR
-	OnActorSelectedHandle = GEditor->GetSelectedActors()->SelectObjectEvent.AddRaw(this, &FErosionScapeModule::OnActorSelected);
-#endif
-
-}
-
-void FErosionScapeModule::OnActorSelected(UObject* Object)
-{
-	if (!RootPanel.IsValid())
-	{
-		return;
-	}
-
-#if WITH_EDITOR
-	if (ALandscape* L = Cast<ALandscape>(Object))
-	{
-		SelectedLandscape = L;
-	}
-	else
-	{
-	    SelectedLandscape = nullptr;
-	}
+	GEditor->GetSelectedActors()->SelectObjectEvent.AddRaw(this, &FErosionScapeModule::OnActorSelected);
 #endif
 }
 
@@ -81,47 +44,71 @@ void FErosionScapeModule::ShutdownModule()
 	FErosionScapeStyle::Shutdown();
 	FErosionScapeCommands::Unregister();
 
-	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ErosionScapeTabName);
+	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(DropByDropTabName);
 
-	IConsoleManager::Get().UnregisterConsoleObject(TEXT("WindPreview.Scale"), false);
+#if WITH_EDITOR
+	GEditor->GetSelectedActors()->SelectObjectEvent.RemoveAll(this);
+#endif
 }
+
+#pragma endregion
+
+void FErosionScapeModule::OnActorSelected(UObject* Object)
+{
+	if (!RootPanel.IsValid())
+	{
+		return;
+	}
+
+	TObjectPtr<ALandscape> Landscape = Cast<ALandscape>(Object);
+	if (!IsValid(Landscape))
+	{
+		ActiveLandscape = nullptr;
+		return;
+	}
+
+	ActiveLandscape = Landscape;
+}
+
+#pragma region NomadTab + Slate
 
 TSharedRef<SDockTab> FErosionScapeModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
 {
 	return SNew(SDockTab)
-	.TabRole(ETabRole::NomadTab)
-	[
-		SAssignNew(RootPanel, SRootPanel)
-		.SelectedLandscape(&SelectedLandscape)
-	];
+		.TabRole(ETabRole::NomadTab)
+		[
+			SAssignNew(RootPanel, SRootPanel)
+				.ActiveLandscape(&ActiveLandscape)
+		];
 }
 
 void FErosionScapeModule::PluginButtonClicked()
 {
-	FGlobalTabmanager::Get()->TryInvokeTab(ErosionScapeTabName);
+	FGlobalTabmanager::Get()->TryInvokeTab(DropByDropTabName);
 }
 
 void FErosionScapeModule::RegisterMenus()
 {
 	FToolMenuOwnerScoped OwnerScoped(this);
 
-	// Window
+	// Window.
 	{
 		UToolMenu* Menu = UToolMenus::Get()->ExtendMenu("LevelEditor.MainMenu.Window");
 		FToolMenuSection& Section = Menu->FindOrAddSection("WindowLayout");
 		Section.AddMenuEntryWithCommandList(FErosionScapeCommands::Get().OpenPluginWindow, PluginCommands);
 	}
 
-	// Toolbar
+	// Toolbar.
 	{
 		UToolMenu* ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar");
 		FToolMenuSection& Section = ToolbarMenu->FindOrAddSection("Settings");
-		FToolMenuEntry& Entry = Section.AddEntry(
-			FToolMenuEntry::InitToolBarButton(FErosionScapeCommands::Get().OpenPluginWindow)
-		);
+		FToolMenuEntry& Entry = Section.AddEntry(FToolMenuEntry::InitToolBarButton(FErosionScapeCommands::Get().OpenPluginWindow));
+		
 		Entry.SetCommandList(PluginCommands);
 	}
 }
+
+#pragma endregion
 
 void FErosionScapeModule::ShowEditorNotification(const FString& Message, const bool bSuccess) const
 {

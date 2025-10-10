@@ -8,12 +8,13 @@
 
 class FErosionScapeCommands : public TCommands<FErosionScapeCommands>
 {
-public:
+public: // Methods.
 	FErosionScapeCommands() : TCommands<FErosionScapeCommands>(TEXT("ErosionScape"), NSLOCTEXT("Contexts", "ErosionScape", "ErosionScape Plugin"), NAME_None, FErosionScapeStyle::GetStyleSetName()) { }
 
 	// TCommands<> interface
 	virtual void RegisterCommands() override;
 
-public:
+public: // Members.
 	TSharedPtr<FUICommandInfo> OpenPluginWindow;
+
 };

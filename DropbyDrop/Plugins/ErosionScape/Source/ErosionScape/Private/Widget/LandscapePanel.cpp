@@ -197,6 +197,6 @@ FReply SLandscapePanel::OnSplitInProxiesClicked()
 
 FReply SLandscapePanel::OnImportPNGClicked()
 {
-	UGeneratorHeightMapLibrary::OpenHeightmapFileDialog(External, Landscape, Heightmap);
+	UGeneratorHeightMapLibrary::OpenHeightmapFileDialog(External);
 	return FReply::Handled();
 }

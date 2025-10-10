@@ -1,66 +1,76 @@
-﻿#pragma once
+﻿// © Manuel Solano
+// © Roberto Capparelli
+
+#pragma once
 #include "CoreMinimal.h"
-#include "ErosionTemplateManager.h"
-#include "Widgets/SCompoundWidget.h"
+
+#pragma region ForwardDeclarations
 
 struct FHeightMapGenerationSettings;
 struct FExternalHeightMapSettings;
 struct FLandscapeGenerationSettings;
 struct FErosionSettings;
 
-class SWidgetSwitcher;
-class SImage;
+class UErosionTemplateManager;
 
 class SHeightMapPanel;
 class SLandscapePanel;
 class SErosionPanel;
 
+class SWidgetSwitcher;
+class UTexture2D;
+class SImage;
+
+class ALandscape;
+
+#pragma endregion
+
 class SRootPanel : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SRootPanel) {}
-		SLATE_ARGUMENT(TObjectPtr<class ALandscape>*, SelectedLandscape)
+		SLATE_ARGUMENT(TObjectPtr<ALandscape>*, ActiveLandscape)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs);
 
-	FORCEINLINE TSharedPtr<FLandscapeGenerationSettings> GetLandscapeSettings() const { return Landscape; }
-
 private:
-	// Settings 
-	TSharedPtr<FHeightMapGenerationSettings>  Heightmap;
-	TSharedPtr<FExternalHeightMapSettings>    External;
-	TSharedPtr<FLandscapeGenerationSettings>  Landscape;
-	TObjectPtr<class ALandscape>* SelectedLandscape;
-	TSharedPtr<FErosionSettings>              Erosion;
+	// Settings.
+	TSharedPtr<FHeightMapGenerationSettings> Heightmap;
+	TSharedPtr<FExternalHeightMapSettings> External;
+	TSharedPtr<FLandscapeGenerationSettings> Landscape;
+	TSharedPtr<FErosionSettings> Erosion;
 
-	//Template
+	// Active Landscape.
+	TObjectPtr<ALandscape>* ActiveLandscape;
+
+	// Template.
 	TObjectPtr<UErosionTemplateManager> ErosionTemplateManager;
 
-	// Switcher 
+	// Switcher.
 	TSharedPtr<SWidgetSwitcher> Switcher;
 
-	// Preview heightmap
-	TSharedPtr<FSlateBrush>               RightPreviewBrush;
-	TSharedPtr<SImage>                    RightPreviewImage;
-	TStrongObjectPtr<class UTexture2D>    RightPreviewTexture;
-	
-	// NavButtonTexts
+	// Preview Heightmap.
+	TSharedPtr<FSlateBrush> RightPreviewBrush;
+	TSharedPtr<SImage> RightPreviewImage;
+	TStrongObjectPtr<UTexture2D> RightPreviewTexture;
+
+	// NavButtonTexts.
 	TArray<TSharedPtr<STextBlock>> NavButtonTexts;
-	int32 ActiveIndex = 0; // 0 = HeightMap, 1 = Landscape, 2 = Erosion
+	int32 ActiveIndex = 0; // 0 = HeightMap, 1 = Landscape, 2 = Erosion.
 
 private:
-	// UI
+	// UI.
 	TSharedRef<SWidget> BuildSidebar();
 	TSharedRef<SWidget> BuildCenter();
 	TSharedRef<SWidget> BuildRightPanel();
 
-	// Actions
+	// Actions.
 	FReply OnNavClicked(const int32 Index);
 	FReply OnActionCreateHeightMap();
 	FReply OnActionCreateLandscapeInternal();
 	FReply OnActionImportPNG();
 
-	// Preview
+	// Preview.
 	void RefreshRightPreview();
 };

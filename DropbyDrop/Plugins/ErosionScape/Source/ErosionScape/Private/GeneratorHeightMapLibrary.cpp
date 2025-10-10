@@ -83,7 +83,7 @@ bool UGeneratorHeightMapLibrary::SaveErosionTemplate(const FString& TemplateName
 	ErosionTemplateRow.MaxPathField = MaxPathValue;
 	ErosionTemplateRow.ErosionRadiusField = ErosionRadiusValue;
 
-	FDropByDropSettings::Get().ErosionTemplatesDataTable->AddRow(FName(TemplateName), ErosionTemplateRow);
+	FDropByDropSettings::Get().GetErosionTemplatesDT()->AddRow(FName(TemplateName), ErosionTemplateRow);
 	return SaveErosionTemplates();
 }
 
@@ -91,7 +91,7 @@ FErosionTemplateRow* UGeneratorHeightMapLibrary::LoadErosionTemplate(const FStri
 {
 	FString ContextString = TEXT("DataTable Context");
 
-	FErosionTemplateRow* RowData = FDropByDropSettings::Get().ErosionTemplatesDataTable->FindRow<FErosionTemplateRow>(
+	FErosionTemplateRow* RowData = FDropByDropSettings::Get().GetErosionTemplatesDT()->FindRow<FErosionTemplateRow>(
 		FName(RowName), ContextString);
 
 	if (!RowData)
@@ -100,16 +100,6 @@ FErosionTemplateRow* UGeneratorHeightMapLibrary::LoadErosionTemplate(const FStri
 	}
 
 	return RowData;
-}
-
-UDataTable* UGeneratorHeightMapLibrary::GetErosionTemplates()
-{
-	return FDropByDropSettings::Get().ErosionTemplatesDataTable;
-}
-
-void UGeneratorHeightMapLibrary::SetErosionTemplates(const TCHAR* DataTablePath)
-{
-	FDropByDropSettings::Get().ErosionTemplatesDataTable = LoadObject<UDataTable>(nullptr, DataTablePath);
 }
 
 void UGeneratorHeightMapLibrary::LoadRowIntoErosionFields(TSharedPtr<FErosionSettings>& OutErosionSettings, const FErosionTemplateRow* TemplateDatas)
@@ -129,13 +119,13 @@ void UGeneratorHeightMapLibrary::LoadRowIntoErosionFields(TSharedPtr<FErosionSet
 
 bool UGeneratorHeightMapLibrary::DeleteErosionTemplate(const FString& TemplateName)
 {
-	FDropByDropSettings::Get().ErosionTemplatesDataTable->RemoveRow(FName(TemplateName));
+	FDropByDropSettings::Get().GetErosionTemplatesDT()->RemoveRow(FName(TemplateName));
 	return SaveErosionTemplates();
 }
 
 bool UGeneratorHeightMapLibrary::SaveErosionTemplates()
 {
-	UPackage* ErostionTemplatesPackage = FDropByDropSettings::Get().ErosionTemplatesDataTable->GetPackage();
+	UPackage* ErostionTemplatesPackage = FDropByDropSettings::Get().GetErosionTemplatesDT()->GetPackage();
 	if (!ErostionTemplatesPackage)
 	{
 		return false;
@@ -143,7 +133,7 @@ bool UGeneratorHeightMapLibrary::SaveErosionTemplates()
 
 	ErostionTemplatesPackage->MarkPackageDirty();
 
-	return GEditor->GetEditorSubsystem<UEditorAssetSubsystem>()->SaveLoadedAsset(FDropByDropSettings::Get().ErosionTemplatesDataTable);
+	return GEditor->GetEditorSubsystem<UEditorAssetSubsystem>()->SaveLoadedAsset(FDropByDropSettings::Get().GetErosionTemplatesDT());
 }
 #pragma endregion
 
@@ -151,7 +141,6 @@ bool UGeneratorHeightMapLibrary::SaveErosionTemplates()
 bool UGeneratorHeightMapLibrary::CreateAndSaveHeightMap(FHeightMapGenerationSettings& Settings)
 {
 	Settings.HeightMap = CreateHeightMapArray(Settings);
-
 
 	UTexture2D* Texture = CreateHeightMapTexture(Settings.HeightMap, Settings.Size, Settings.Size);
 
@@ -972,11 +961,7 @@ bool UGeneratorHeightMapLibrary::SaveToAsset(UTexture2D* Texture, const FString&
 	}
 }
 
-
-void UGeneratorHeightMapLibrary::OpenHeightmapFileDialog(
-	TSharedPtr<FExternalHeightMapSettings> ExternalSettings,
-	TSharedPtr<FLandscapeGenerationSettings> LandscapeSettings,
-	TSharedPtr<FHeightMapGenerationSettings> HeightMapSettings)
+void UGeneratorHeightMapLibrary::OpenHeightmapFileDialog(TSharedPtr<FExternalHeightMapSettings> ExternalSettings)
 {
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	if (!DesktopPlatform) return;
@@ -1056,7 +1041,7 @@ void UGeneratorHeightMapLibrary::DrawWindDirectionPreview(
 	const FVector LandscapeScale = SelectedLandscape->GetActorScale3D();
 	const float AverageLandscapeScale = ((LandscapeScale.X / 198.f) + (LandscapeScale.Y / 198.f)) * 0.5f;
 
-	const float Scale = FDropByDropSettings::Get().WindPreviewScale * AverageLandscapeScale;
+	const float Scale = FDropByDropSettings::Get().GetWindPreviewScale() * AverageLandscapeScale;
 
 	UWorld* World = nullptr;
 	if (GEditor)

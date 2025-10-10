@@ -1,11 +1,12 @@
 ﻿#include "ErosionTemplateManager.h"
 #include "GeneratorHeightMapLibrary.h"
+#include "ErosionScapeSettings.h"
 #include "ErosionLibrary.h"
 
 TArray<FString> UErosionTemplateManager::GetAllTemplateNames() const
 {
 	TArray<FString> Out;
-	if (UDataTable* DataTable = UGeneratorHeightMapLibrary::GetErosionTemplates())
+	if (UDataTable* DataTable = FDropByDropSettings::Get().GetErosionTemplatesDT())
 	{
 		for (const FName& Name : DataTable->GetRowNames())
 		{
