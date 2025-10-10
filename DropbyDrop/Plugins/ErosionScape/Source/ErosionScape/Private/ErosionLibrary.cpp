@@ -1,6 +1,7 @@
 #include "ErosionLibrary.h"
 #include "ErosionScapeSettings.h"
 #include "Math/UnrealMathUtility.h"
+#include "ErosionScapeSettings.h"
 #include "DropByDropLogger.h"
 
 void UErosionLibrary::SetHeights(FErosionContext& ErosionContext, const TArray<float>& InHeights)

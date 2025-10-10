@@ -4,6 +4,20 @@
 
 class ALandscape;
 
+UENUM(BlueprintType)
+enum EWindDirection : uint8
+{
+	Random,
+	Est,
+	Nord_Est,
+	Nord,
+	Nord_Ovest,
+	Ovest,
+	Sud_Ovest,
+	Sud,
+	Sud_Est
+};
+
 USTRUCT(BlueprintType)
 struct FHeightMapGenerationSettings
 {

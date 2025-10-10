@@ -1,28 +1,36 @@
-﻿#pragma once
+﻿// © Manuel Solano
+// © Roberto Capparelli
+
+#pragma once
 #include "CoreMinimal.h"
-#include "Widgets/SCompoundWidget.h"
+
+#pragma region ForwardDeclarations
 
 class UErosionTemplateManager;
+class SEditableTextBox;
+class SSearchBox;
+
+#pragma endregion
 
 class STemplateBrowser : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(STemplateBrowser) {}
-	SLATE_ARGUMENT(TObjectPtr<UErosionTemplateManager>, TemplateManager)
-SLATE_END_ARGS()
+		SLATE_ARGUMENT(TObjectPtr<UErosionTemplateManager>, TemplateManager)
+	SLATE_END_ARGS()
 
-void Construct(const FArguments& InArgs);
+	void Construct(const FArguments& InArgs);
 
-private:
+private: // Members.
 	TObjectPtr<UErosionTemplateManager> TemplateManager;
 
 	TArray<TSharedPtr<FString>> Items;
 	TSharedPtr<class SListView<TSharedPtr<FString>>> ListView;
-	TSharedPtr<class SEditableTextBox> NameTextBox;
-	TSharedPtr<class SSearchBox> SearchBox;
+	TSharedPtr<SEditableTextBox> NameTextBox;
+	TSharedPtr<SSearchBox> SearchBox;
 
-	void Reload();
-	void FilterAndRefresh(const FString& Query);
+private: // Methods.
+	void RefreshTemplates(const bool bFilter, const FString QueryFilter = TEXT("Default"));
 
 	FReply OnSaveClicked();
 	FReply OnLoadClicked();

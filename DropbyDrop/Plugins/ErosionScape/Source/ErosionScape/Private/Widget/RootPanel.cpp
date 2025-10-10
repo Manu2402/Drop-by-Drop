@@ -114,15 +114,13 @@ TSharedRef<SWidget> SRootPanel::BuildCenter()
 				.Heightmap(Heightmap)
 				.External(External)
 				.Landscape(Landscape)
-				.SelectedLandscape(ActiveLandscape)
+				.ActiveLandscape(ActiveLandscape)
 		]
 		+ SWidgetSwitcher::Slot() // Erosion.
 		[
 			SNew(SErosionPanel)
-				.Heightmap(Heightmap)
-				.External(External)
 				.Landscape(Landscape)
-				.SelectedLandscape(ActiveLandscape)
+				.ActiveLandscape(ActiveLandscape)
 				.Erosion(Erosion)
 				.TemplateManager(ErosionTemplateManager)
 		];

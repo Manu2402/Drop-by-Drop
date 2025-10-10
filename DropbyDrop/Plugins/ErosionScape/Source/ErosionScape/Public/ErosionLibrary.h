@@ -43,20 +43,6 @@ enum EOutOfBoundResult : uint8
 	Error_Right_Down
 };
 
-UENUM(BlueprintType)
-enum EWindDirection : uint8
-{
-	Random,
-	Est,
-	Nord_Est,
-	Nord,
-	Nord_Ovest,
-	Ovest,
-	Sud_Ovest,
-	Sud,
-	Sud_Est
-};
-
 #pragma endregion // DataStructures
 
 struct FErosionContext
