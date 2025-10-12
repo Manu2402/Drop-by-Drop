@@ -6,7 +6,7 @@
 #include "Widgets/Input/SNumericEntryBox.h"
 #include "GeneratorHeightMapLibrary.h"
 #include "Widget/TemplateBrowser.h"
-#include "DropByDropLandscape.h"
+#include "LandscapeInfoComponent.h"
 #include "Landscape.h"
 
 #define EMPTY_STRING ""
@@ -155,7 +155,7 @@ set_wind:
 					+ SHorizontalBox::Slot().AutoWidth().Padding(8, 0)
 					[
 						SNew(SCheckBox)
-							.OnCheckStateChanged_Lambda([E = Erosion](ECheckBoxState S){ E->bWindBias = (S == ECheckBoxState::Checked); })
+							.OnCheckStateChanged_Lambda([E = Erosion](ECheckBoxState State){ E->bWindBias = (State == ECheckBoxState::Checked); })
 					]
 				]
 			]
@@ -163,7 +163,16 @@ set_wind:
 			[
 
 				SNew(SButton)
-					.IsEnabled_Lambda([L = ActiveLandscape, E = Erosion]() { return L && IsValid(*L) && E->WindDirection != EWindDirection::Random; })
+					.IsEnabled_Lambda([L = ActiveLandscape, E = Erosion]() 
+					{ 
+						if (L && IsValid(*L))
+						{
+							ULandscapeInfoComponent* Info = (*L)->FindComponentByClass<ULandscapeInfoComponent>();
+							return IsValid(Info) && E->WindDirection != EWindDirection::Random && !Info->GetIsSplittedIntoProxies();
+						}
+
+						return false;
+					})
 					.Text(FText::FromString("Wind Preview"))
 					.OnClicked_Lambda([this]()
 					{
@@ -353,7 +362,7 @@ set_wind:
 						if (L && IsValid(*L))
 						{
 							ULandscapeInfoComponent* Info = (*L)->FindComponentByClass<ULandscapeInfoComponent>();
-							return IsValid(Info) && !Info->bIsEroded && !Info->bIsSplittedIntoProxies;
+							return IsValid(Info) && !Info->GetIsEroded() && !Info->GetIsSplittedIntoProxies();
 						}
 
 						return false; 

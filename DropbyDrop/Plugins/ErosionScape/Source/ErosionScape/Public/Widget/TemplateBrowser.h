@@ -2,6 +2,7 @@
 // © Roberto Capparelli
 
 #pragma once
+
 #include "CoreMinimal.h"
 
 #pragma region ForwardDeclarations

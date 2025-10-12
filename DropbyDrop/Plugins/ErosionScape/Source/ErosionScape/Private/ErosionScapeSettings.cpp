@@ -1,4 +1,7 @@
-﻿#include "ErosionScapeSettings.h"
+﻿// © Manuel Solano
+// © Roberto Capparelli
+
+#include "ErosionScapeSettings.h"
 
 FDropByDropSettings& FDropByDropSettings::Get()
 {
@@ -25,3 +28,5 @@ void FDropByDropSettings::SetErosionTemplatesDT(UDataTable* NewErosionTemplatesD
 {
 	ErosionTemplatesDT = NewErosionTemplatesDT;
 }
+
+FDropByDropSettings::FDropByDropSettings() : ErosionTemplatesDT(nullptr), WindPreviewScale(10.0f) { }

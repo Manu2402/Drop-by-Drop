@@ -1,4 +1,7 @@
-﻿#include "Widget/TemplateBrowser.h"
+﻿// © Manuel Solano
+// © Roberto Capparelli
+
+#include "Widget/TemplateBrowser.h"
 
 #include "Widgets/Input/SSearchBox.h"
 #include "ErosionTemplateManager.h"

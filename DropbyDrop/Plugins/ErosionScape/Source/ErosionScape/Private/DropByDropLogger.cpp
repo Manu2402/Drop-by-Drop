@@ -1,3 +1,5 @@
+// © Manuel Solano
+
 #include "DropByDropLogger.h"
 
 DEFINE_LOG_CATEGORY(LogDropByDrop);

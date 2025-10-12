@@ -1,4 +1,4 @@
-// • Manuel Solano
+// © Manuel Solano
 
 #pragma once
 
@@ -6,9 +6,13 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "ErosionLibrary.generated.h"
 
-#pragma region DataStructures
+#pragma region ForwardDeclarations
 
 struct FErosionSettings;
+
+#pragma endregion
+
+#pragma region DataStructures
 
 struct FDrop
 {
@@ -43,8 +47,6 @@ enum EOutOfBoundResult : uint8
 	Error_Right_Down
 };
 
-#pragma endregion // DataStructures
-
 struct FErosionContext
 {
 	// Landscape's heights for each cell.
@@ -56,6 +58,8 @@ struct FErosionContext
 	// Weights (squared) of involved cells, based on their distance from the drop's position.
 	TArray<float> SquaredWeights; // wI
 };
+
+#pragma endregion
 
 UCLASS()
 class UErosionLibrary : public UBlueprintFunctionLibrary
@@ -69,7 +73,7 @@ public:
 	static void Erosion(FErosionContext& ErosionContext, const FErosionSettings& ErosionSettings, const int32 GridSize);
 	
 	static bool TryGetWindMeanAngleDegrees(const FErosionSettings& ErosionSettings, float& NormalizedAngle);
-	static FVector2D GetWindUnitVectorFromAngle(float Degrees);
+	static FVector2D GetWindUnitVectorFromAngle(const float Degrees);
 	
 private:
 	static void ApplyErosion(FErosionContext& ErosionContext, const FErosionSettings& ErosionSettings, FDrop& Drop, const int32 GridSize);

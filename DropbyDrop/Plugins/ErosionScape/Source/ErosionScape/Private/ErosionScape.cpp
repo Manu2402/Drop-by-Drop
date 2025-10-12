@@ -8,7 +8,7 @@
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Editor/UnrealEd/Public/Selection.h"
 #include "ErosionScapeCommands.h"
-#include "DropByDropLandscape.h"
+#include "LandscapeInfoComponent.h"
 #include "Widget/RootPanel.h"
 #include "Landscape.h"
 
@@ -109,28 +109,6 @@ void FErosionScapeModule::RegisterMenus()
 }
 
 #pragma endregion
-
-void FErosionScapeModule::ShowEditorNotification(const FString& Message, const bool bSuccess) const
-{
-	FNotificationInfo Info(FText::FromString(Message));
-	Info.bFireAndForget = true;
-	Info.bUseLargeFont = true;
-
-	if (bSuccess)
-	{
-		Info.ExpireDuration = 2.0f;
-		Info.Image = FCoreStyle::Get().GetBrush(TEXT("NotificationList.Success"));
-	}
-	else
-	{
-		Info.ExpireDuration = 5.0f;
-		Info.Image = FCoreStyle::Get().GetBrush(TEXT("NotificationList.Fail"));
-		Info.bUseThrobber = false;
-		Info.FadeOutDuration = 1.5f;
-	}
-
-	FSlateNotificationManager::Get().AddNotification(Info);
-}
 
 #undef LOCTEXT_NAMESPACE
 IMPLEMENT_MODULE(FErosionScapeModule, ErosionScape)

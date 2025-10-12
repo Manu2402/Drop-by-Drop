@@ -5,7 +5,7 @@
 
 #include "Widgets/Input/SNumericEntryBox.h"
 #include "GeneratorHeightMapLibrary.h"
-#include "DropByDropLandscape.h"
+#include "LandscapeInfoComponent.h"
 #include "Landscape.h"
 
 void SLandscapePanel::Construct(const FArguments& Args)
@@ -146,7 +146,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 						if (L && IsValid(*L))
 						{
 							ULandscapeInfoComponent* Info = (*L)->FindComponentByClass<ULandscapeInfoComponent>();
-							return IsValid(Info) && !Info->bIsSplittedIntoProxies;
+							return IsValid(Info) && !Info->GetIsSplittedIntoProxies();
 						}
 
 						return false;

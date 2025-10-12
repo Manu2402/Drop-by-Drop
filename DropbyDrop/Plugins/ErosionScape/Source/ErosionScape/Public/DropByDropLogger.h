@@ -1,3 +1,5 @@
+// © Manuel Solano
+
 #pragma once
 
 #include "CoreMinimal.h"

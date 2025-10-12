@@ -1,62 +1,73 @@
-﻿#include "ErosionTemplateManager.h"
+﻿// © Roberto Capparelli
+
+#include "ErosionTemplateManager.h"
+
 #include "GeneratorHeightMapLibrary.h"
 #include "ErosionScapeSettings.h"
-#include "ErosionLibrary.h"
 
 TArray<FString> UErosionTemplateManager::GetAllTemplateNames() const
 {
-	TArray<FString> Out;
+	TArray<FString> OutNames;
+
 	if (UDataTable* DataTable = FDropByDropSettings::Get().GetErosionTemplatesDT())
 	{
 		for (const FName& Name : DataTable->GetRowNames())
 		{
 			if (!Name.ToString().Equals(TEXT("None")))
-				Out.Add(Name.ToString());
+			{
+				OutNames.Add(Name.ToString());
+			}
 		}
 	}
-	return Out;
+
+	return OutNames;
 }
 
-TArray<FString> UErosionTemplateManager::FindTemplateNames(const FString& Query) const
+TArray<FString> UErosionTemplateManager::FindTemplateNames(const FString& QueryFilter) const
 {
-	if (Query.IsEmpty()) return GetAllTemplateNames();
-	TArray<FString> All = GetAllTemplateNames();
-	All.RemoveAll([&](const FString& N){ return !N.StartsWith(Query); });
-	return All;
+	if (QueryFilter.IsEmpty())
+	{
+		return GetAllTemplateNames();
+	}
+
+	TArray<FString> AllNames = GetAllTemplateNames();
+	AllNames.RemoveAll([&QueryFilter](const FString& Name){ return !Name.StartsWith(QueryFilter); });
+
+	return AllNames;
 }
 
 void UErosionTemplateManager::SaveCurrentAsTemplate(const FString& Name)
 {
-	if (!ErosionSettingsReference.IsValid())
+	if (!ErosionSettings.IsValid())
 	{
 		return;
 	}
 
 	UGeneratorHeightMapLibrary::SaveErosionTemplate(
 		Name,
-		ErosionSettingsReference->ErosionCycles,
-		ErosionSettingsReference->Inertia,
-		ErosionSettingsReference->Capacity,
-		ErosionSettingsReference->MinimalSlope,
-		ErosionSettingsReference->DepositionSpeed,
-		ErosionSettingsReference->ErosionSpeed,
-		ErosionSettingsReference->Gravity,
-		ErosionSettingsReference->Evaporation,
-		ErosionSettingsReference->MaxPath,
-		ErosionSettingsReference->ErosionRadius
+		ErosionSettings->ErosionCycles,
+		ErosionSettings->Inertia,
+		ErosionSettings->Capacity,
+		ErosionSettings->MinimalSlope,
+		ErosionSettings->DepositionSpeed,
+		ErosionSettings->ErosionSpeed,
+		ErosionSettings->Gravity,
+		ErosionSettings->Evaporation,
+		ErosionSettings->MaxPath,
+		ErosionSettings->ErosionRadius
 	);
 }
 
 void UErosionTemplateManager::LoadTemplate(const FString& Name)
 {
-	if (!ErosionSettingsReference.IsValid())
+	if (!ErosionSettings.IsValid())
 	{
 		return;
 	}
 
 	if (auto* Row = UGeneratorHeightMapLibrary::LoadErosionTemplate(Name))
 	{
-		UGeneratorHeightMapLibrary::LoadRowIntoErosionFields(ErosionSettingsReference, Row);
+		UGeneratorHeightMapLibrary::LoadRowIntoErosionFields(ErosionSettings, Row);
 	}
 }
 
@@ -65,7 +76,7 @@ void UErosionTemplateManager::DeleteTemplate(const FString& Name)
 	UGeneratorHeightMapLibrary::DeleteErosionTemplate(Name);
 }
 
-void UErosionTemplateManager::SetErosionSettingsReference(const TSharedPtr<FErosionSettings>& ErosionSettings)
+void UErosionTemplateManager::SetErosionSettings(const TSharedPtr<FErosionSettings>& ErosionSettingsValue)
 {
-	this->ErosionSettingsReference = ErosionSettings;
+	ErosionSettings = ErosionSettingsValue;
 }

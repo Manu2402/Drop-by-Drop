@@ -1,6 +1,7 @@
+// © Manuel Solano
+
 #include "ErosionLibrary.h"
-#include "ErosionScapeSettings.h"
-#include "Math/UnrealMathUtility.h"
+
 #include "ErosionScapeSettings.h"
 #include "DropByDropLogger.h"
 
@@ -210,24 +211,24 @@ FVector2D UErosionLibrary::GetWindDirection(const FErosionSettings& ErosionSetti
 {
 	const float MinAngle = 0.f;
 	const float MaxAngle = 360.f;
+	const float Sigma = 35.f;
 	float Mu = 0.f;
-	const float Sigma = 15.f;
 
 	// Top-Left Pivot.
 	switch (ErosionSettings.WindDirection)
 	{
-	case EWindDirection::Est:        Mu = 0.f;   break;
-	case EWindDirection::Sud_Est:    Mu = 45.f;  break;
-	case EWindDirection::Sud:        Mu = 90.f;  break;
-	case EWindDirection::Sud_Ovest:  Mu = 135.f; break;
-	case EWindDirection::Ovest:      Mu = 180.f; break;
-	case EWindDirection::Nord_Ovest: Mu = 225.f; break;
-	case EWindDirection::Nord:       Mu = 270.f; break;
-	case EWindDirection::Nord_Est:   Mu = 315.f; break;
-	case EWindDirection::Random:
-	default:
-		Mu = FMath::RandRange(MinAngle, MaxAngle);
-		break;
+		case EWindDirection::Est:        Mu = 0.f;   break;
+		case EWindDirection::Sud_Est:    Mu = 45.f;  break;
+		case EWindDirection::Sud:        Mu = 90.f;  break;
+		case EWindDirection::Sud_Ovest:  Mu = 135.f; break;
+		case EWindDirection::Ovest:      Mu = 180.f; break;
+		case EWindDirection::Nord_Ovest: Mu = 225.f; break;
+		case EWindDirection::Nord:       Mu = 270.f; break;
+		case EWindDirection::Nord_Est:   Mu = 315.f; break;
+		case EWindDirection::Random:
+		default:
+			Mu = FMath::RandRange(MinAngle, MaxAngle);
+			break;
 	}
 
 	float FinalAngle = Mu;
@@ -242,8 +243,15 @@ FVector2D UErosionLibrary::GetWindDirection(const FErosionSettings& ErosionSetti
 		// Gaussian distribution.
 		FinalAngle = Mu + (Sigma * Z);
 
-		while (FinalAngle < 0.f) FinalAngle += 360.f;
-		while (FinalAngle >= 360.f) FinalAngle -= 360.f;
+		while (FinalAngle < MinAngle)
+		{
+			FinalAngle += MaxAngle;
+		}
+
+		while (FinalAngle >= MaxAngle)
+		{
+			FinalAngle -= MaxAngle;
+		}
 	}
 
 	const float Rad = FMath::DegreesToRadians(FinalAngle);
@@ -258,24 +266,25 @@ bool UErosionLibrary::TryGetWindMeanAngleDegrees(const FErosionSettings& Erosion
 
 	switch (ErosionSettings.WindDirection)
 	{
-	case EWindDirection::Est:        Mu = 0.f;   break;
-	case EWindDirection::Sud_Est:    Mu = 45.f;  break;
-	case EWindDirection::Sud:        Mu = 90.f;  break;
-	case EWindDirection::Sud_Ovest:  Mu = 135.f; break;
-	case EWindDirection::Ovest:      Mu = 180.f; break;
-	case EWindDirection::Nord_Ovest: Mu = 225.f; break;
-	case EWindDirection::Nord:       Mu = 270.f; break;
-	case EWindDirection::Nord_Est:   Mu = 315.f; break;
-	case EWindDirection::Random:
-	default: return false;
+		case EWindDirection::Est:        Mu = 0.f;   break;
+		case EWindDirection::Sud_Est:    Mu = 45.f;  break;
+		case EWindDirection::Sud:        Mu = 90.f;  break;
+		case EWindDirection::Sud_Ovest:  Mu = 135.f; break;
+		case EWindDirection::Ovest:      Mu = 180.f; break;
+		case EWindDirection::Nord_Ovest: Mu = 225.f; break;
+		case EWindDirection::Nord:       Mu = 270.f; break;
+		case EWindDirection::Nord_Est:   Mu = 315.f; break;
+		case EWindDirection::Random:
+		default: return false;
 	}
 
-	float R = FMath::Fmod(Mu, 360.f);
-	MeanAngle = (R < 0.f) ? (R + 360.f) : R;
+	float Angle = FMath::Fmod(Mu, 360.f);
+	MeanAngle = (Angle < 0.f) ? (Angle + 360.f) : Angle;
+
 	return true;
 }
 
-FVector2D UErosionLibrary::GetWindUnitVectorFromAngle(float Degrees)
+FVector2D UErosionLibrary::GetWindUnitVectorFromAngle(const float Degrees)
 {
 	const float Rad = FMath::DegreesToRadians(Degrees);
 
@@ -289,7 +298,7 @@ void UErosionLibrary::ApplyErosion(FErosionContext& ErosionContext, const FErosi
 {
 	float Sediment = 0;
 
-	for (uint64 Cycle = 0; Cycle < ErosionSettings.MaxPath; Cycle++)
+	for (int64 Cycle = 0; Cycle < ErosionSettings.MaxPath; Cycle++)
 	{
 		// 0) Drop's position computation on grid.
 		if (IsOutOfBound(Drop.Position, GridSize))
@@ -313,7 +322,7 @@ void UErosionLibrary::ApplyErosion(FErosionContext& ErosionContext, const FErosi
 			PosOldHeights.X1_Y1 - PosOldHeights.X1_Y
 		);
 		
-		// Phase three: inertia blends.
+		// 3): Inertia blends.
 		Drop.Direction = Drop.Direction * ErosionSettings.Inertia - DropGradient * (1 - ErosionSettings.Inertia);
 
 		if (Drop.Direction.SquaredLength() <= 0)
@@ -323,7 +332,7 @@ void UErosionLibrary::ApplyErosion(FErosionContext& ErosionContext, const FErosi
 
 		Drop.Direction.Normalize();
 
-		// Phase four: new position calculus.
+		// 4) New position calculus.
 		Drop.Position = Drop.Position + Drop.Direction;
 
 		if (IsOutOfBound(Drop.Position, GridSize))
@@ -333,7 +342,7 @@ void UErosionLibrary::ApplyErosion(FErosionContext& ErosionContext, const FErosi
 
 		InitWeights(ErosionContext, ErosionSettings, Drop.Position, GridSize);
 
-		// Phase five: heights differences.
+		// 5) heights differences.
 		const float HeightPosOld = GetBilinearInterpolation(OffsetPosOld, PosOldHeights);
 
 		const FVector2D TruncatedPosNew = FVector2D(FMath::Floor(Drop.Position.X), FMath::Floor(Drop.Position.Y));
@@ -345,7 +354,7 @@ void UErosionLibrary::ApplyErosion(FErosionContext& ErosionContext, const FErosi
 		const float HeightPosNew = GetBilinearInterpolation(OffsetPosNew, PosNewHeights);
 		const float HeightsDifference = HeightPosNew - HeightPosOld;
 
-		// Phase six: deposit and erosion calculus.
+		// 6) Deposit and erosion calculus.
 
 		// Capacity calculus.
 		const float C = FMath::Max(-HeightsDifference, ErosionSettings.MinimalSlope) * Drop.Velocity * Drop.Water * ErosionSettings.Capacity;
@@ -375,7 +384,7 @@ void UErosionLibrary::ApplyErosion(FErosionContext& ErosionContext, const FErosi
 			}
 		}
 
-		// Phase seven: drop's mutation.
+		// 7) Drop's mutation.
 		const float Velocity = ((Drop.Velocity * Drop.Velocity) + (-HeightsDifference) * ErosionSettings.Gravity);
 		Drop.Velocity = Velocity > 0 ? FMath::Sqrt(Velocity) : 0;
 
@@ -412,7 +421,7 @@ void UErosionLibrary::Erosion(FErosionContext& ErosionContext, const FErosionSet
 	ErosionContext.SquaredWeights.Reserve(SampledPointsInRadius);
 	ErosionContext.Points.Reserve(SampledPointsInRadius);
 	
-	for (uint64 Index = 0; Index < ErosionSettings.ErosionCycles; Index++)
+	for (int64 Index = 0; Index < ErosionSettings.ErosionCycles; Index++)
 	{
 		FDrop Drop;
 		InitDrop(ErosionSettings, Drop, GridSize);

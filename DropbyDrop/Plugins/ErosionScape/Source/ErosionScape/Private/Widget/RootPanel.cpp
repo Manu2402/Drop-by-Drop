@@ -22,7 +22,7 @@ void SRootPanel::Construct(const FArguments& InArgs)
 	Erosion = MakeShared<FErosionSettings>();
 
 	ErosionTemplateManager = NewObject<UErosionTemplateManager>();
-	ErosionTemplateManager->SetErosionSettingsReference(Erosion);
+	ErosionTemplateManager->SetErosionSettings(Erosion);
 
 	ActiveLandscape = InArgs._ActiveLandscape;
 
@@ -219,8 +219,7 @@ FReply SRootPanel::OnActionCreateHeightMap()
 
 FReply SRootPanel::OnActionCreateLandscapeInternal()
 {
-	static const FString DummyPath;
-	UGeneratorHeightMapLibrary::GenerateLandscapeFromPNG(DummyPath, *Heightmap, *External, *Landscape);
+	UGeneratorHeightMapLibrary::CreateLandscapeFromInternalHeightMap(*Heightmap, *External, *Landscape);
 	RefreshRightPreview();
 
 	return FReply::Handled();
@@ -229,7 +228,7 @@ FReply SRootPanel::OnActionCreateLandscapeInternal()
 FReply SRootPanel::OnActionImportPNG()
 {
 	UGeneratorHeightMapLibrary::OpenHeightmapFileDialog(External);
-	UGeneratorHeightMapLibrary::CreateLandscapeFromOtherHeightMap(External->LastPNGPath, *External, *Landscape, *Heightmap);
+	UGeneratorHeightMapLibrary::CreateLandscapeFromExternalHeightMap(External->LastPNGPath, *External, *Landscape, *Heightmap);
 	RefreshRightPreview();
 
 	return FReply::Handled();

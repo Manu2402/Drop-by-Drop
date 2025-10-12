@@ -35,9 +35,6 @@ private: // Methods.
 	/** Spawn the main tab with our three panels */
 	TSharedRef<SDockTab> OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs);
 
-	/** Small helper to show notifications */
-	void ShowEditorNotification(const FString& Message, bool bSuccess) const;
-
 	void OnActorSelected(UObject* SelectedActor);
 
 private: // Members.
