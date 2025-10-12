@@ -74,4 +74,5 @@ private:
 
 	// Preview.
 	void RefreshRightPreview();
+
 };

@@ -396,6 +396,7 @@ void SErosionPanel::BuildWindDirections()
 
 FReply SErosionPanel::OnErodeClicked()
 {
+	// No pointer safety needed, this button is disabled if no landscape selected.
 	UGeneratorHeightMapLibrary::GenerateErosion(*ActiveLandscape, *Erosion);
 
 	return FReply::Handled();

@@ -3,6 +3,8 @@
 
 #include "ErosionScapeSettings.h"
 
+FDropByDropSettings::FDropByDropSettings() : ErosionTemplatesDT(nullptr), WindPreviewScale(10.0f) {}
+
 FDropByDropSettings& FDropByDropSettings::Get()
 {
 	static FDropByDropSettings Instance;
@@ -28,5 +30,3 @@ void FDropByDropSettings::SetErosionTemplatesDT(UDataTable* NewErosionTemplatesD
 {
 	ErosionTemplatesDT = NewErosionTemplatesDT;
 }
-
-FDropByDropSettings::FDropByDropSettings() : ErosionTemplatesDT(nullptr), WindPreviewScale(10.0f) { }

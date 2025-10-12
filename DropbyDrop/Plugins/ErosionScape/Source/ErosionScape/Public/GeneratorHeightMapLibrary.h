@@ -65,7 +65,8 @@ enum class ERawFormat
 	Unknown,
 
 	BGRA8,
-	RGBA8, G8,
+	RGBA8, 
+	G8,
 	G16,
 	R32F,
 	RGBA16F

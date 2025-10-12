@@ -9,10 +9,13 @@
 #include "Editor/UnrealEd/Public/Selection.h"
 #include "ErosionScapeCommands.h"
 #include "LandscapeInfoComponent.h"
+#include "DropByDropLogger.h"
 #include "Widget/RootPanel.h"
+#include "LevelEditor.h"
 #include "Landscape.h"
 
 #define LOCTEXT_NAMESPACE "FErosionScapeModule"
+#define EROSION_TEMPLATES_DT_PATH "/ErosionScape/DT_ErosionTemplates.DT_ErosionTemplates"
 
 #pragma region Module
 
@@ -29,10 +32,17 @@ void FErosionScapeModule::StartupModule()
 
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(DropByDropTabName, FOnSpawnTab::CreateRaw(this, &FErosionScapeModule::OnSpawnPluginTab)).SetDisplayName(LOCTEXT("FDropByDropTabTitle", "DropByDrop")).SetMenuType(ETabSpawnerMenuType::Hidden);
 
-	FDropByDropSettings::Get().SetErosionTemplatesDT(LoadObject<UDataTable>(nullptr, ErosionTemplatesDTPath));
+	FDropByDropSettings::Get().SetErosionTemplatesDT(LoadObject<UDataTable>(nullptr, TEXT(EROSION_TEMPLATES_DT_PATH)));
 
 #if WITH_EDITOR
-	GEditor->GetSelectedActors()->SelectObjectEvent.AddRaw(this, &FErosionScapeModule::OnActorSelected);
+	if (!FModuleManager::Get().IsModuleLoaded("LevelEditor"))
+	{
+		UE_LOG(LogDropByDrop, Error, TEXT("\"LevelEditor\" module isn't loaded!"));
+		return;
+	}
+
+	FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+	LevelEditorModule.OnActorSelectionChanged().AddRaw(this, &FErosionScapeModule::OnActorSelectionChangedInvoke);
 #endif
 }
 
@@ -47,18 +57,33 @@ void FErosionScapeModule::ShutdownModule()
 	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(DropByDropTabName);
 
 #if WITH_EDITOR
-	GEditor->GetSelectedActors()->SelectObjectEvent.RemoveAll(this);
+	if (!FModuleManager::Get().IsModuleLoaded("LevelEditor"))
+	{
+		UE_LOG(LogDropByDrop, Error, TEXT("\"LevelEditor\" module isn't loaded!"));
+		return;
+	}
+
+	FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+	LevelEditorModule.OnActorSelectionChanged().RemoveAll(this);
 #endif
 }
 
 #pragma endregion
 
-void FErosionScapeModule::OnActorSelected(UObject* Object)
+void FErosionScapeModule::OnActorSelectionChangedInvoke(const TArray<UObject*>& SelectedActors, bool bForce)
 {
 	if (!RootPanel.IsValid())
 	{
 		return;
 	}
+
+	if (SelectedActors.Num() <= 0)
+	{
+		return;
+	}
+
+	const int32 LastSelectedActorIndex = SelectedActors.Num() - 1;
+	UObject* Object = SelectedActors[LastSelectedActorIndex];
 
 	TObjectPtr<ALandscape> Landscape = Cast<ALandscape>(Object);
 	if (!IsValid(Landscape))

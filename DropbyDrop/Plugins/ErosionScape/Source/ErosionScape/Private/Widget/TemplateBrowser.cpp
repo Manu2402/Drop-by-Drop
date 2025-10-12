@@ -5,6 +5,7 @@
 
 #include "Widgets/Input/SSearchBox.h"
 #include "ErosionTemplateManager.h"
+#include "DropByDropLogger.h"
 
 #define EMPTY_STRING ""
 
@@ -64,6 +65,7 @@ void STemplateBrowser::RefreshTemplates(const bool bFilter, const FString Query)
 {
 	if (!IsValid(TemplateManager))
 	{
+		UE_LOG(LogDropByDropTemplate, Error, TEXT("The \"TemplateManager\" widget is invalid!"));
 		return;
 	}
 
@@ -87,6 +89,7 @@ void STemplateBrowser::RefreshTemplates(const bool bFilter, const FString Query)
 
 	if (!ListView.IsValid())
 	{
+		UE_LOG(LogDropByDropTemplate, Warning, TEXT("The \"ListView\" widget is invalid!"));
 		return;
 	}
 	

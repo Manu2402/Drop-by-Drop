@@ -43,4 +43,5 @@ private:
 
 	FReply OnCreateHeightmapClicked();
 	FReply OnCreateFromExternalHeightmapClicked();
+
 };

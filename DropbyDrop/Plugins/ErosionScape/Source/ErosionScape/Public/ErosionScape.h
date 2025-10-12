@@ -35,7 +35,7 @@ private: // Methods.
 	/** Spawn the main tab with our three panels */
 	TSharedRef<SDockTab> OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs);
 
-	void OnActorSelected(UObject* SelectedActor);
+	void OnActorSelectionChangedInvoke(const TArray<UObject*>& NewSelection, bool bForce);
 
 private: // Members.
 	TSharedPtr<FUICommandList> PluginCommands;
@@ -43,7 +43,6 @@ private: // Members.
 	TSharedPtr<SRootPanel> RootPanel;
 	TObjectPtr<ALandscape> ActiveLandscape;
 
-	const TCHAR* ErosionTemplatesDTPath = TEXT("/ErosionScape/DT_ErosionTemplates.DT_ErosionTemplates");
 	const FName DropByDropTabName = FName("DropByDrop");
 
 };

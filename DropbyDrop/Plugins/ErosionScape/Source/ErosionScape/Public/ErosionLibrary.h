@@ -79,7 +79,6 @@ private:
 	static void ApplyErosion(FErosionContext& ErosionContext, const FErosionSettings& ErosionSettings, FDrop& Drop, const int32 GridSize);
 	
 	static FDrop& InitDrop(const FErosionSettings& ErosionSettings, FDrop& Drop, const int32 GridSize);
-	static FDrop& SetDrop(const FErosionSettings& ErosionSettings, FDrop& Drop, const int32 GridSize, const FVector2D& Position, const FVector2D& Direction, const float Velocity, const float Water);
 	
 	static void InitWeights(FErosionContext& ErosionContext, const FErosionSettings& ErosionSettings, const FVector2D& DropPosition, const int32 GridSize);
 
@@ -98,4 +97,5 @@ private:
 	static EOutOfBoundResult GetOutOfBoundAsResult(const FVector2D& IntegerPosition, const int32 GridSize);
 
 	static FVector2D GetWindDirection(const FErosionSettings& ErosionSettings);
+
 };

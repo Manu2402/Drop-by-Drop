@@ -4,6 +4,7 @@
 
 #include "GeneratorHeightMapLibrary.h"
 #include "ErosionScapeSettings.h"
+#include "DropByDropLogger.h"
 
 TArray<FString> UErosionTemplateManager::GetAllTemplateNames() const
 {
@@ -40,6 +41,7 @@ void UErosionTemplateManager::SaveCurrentAsTemplate(const FString& Name)
 {
 	if (!ErosionSettings.IsValid())
 	{
+		UE_LOG(LogDropByDropTemplate, Error, TEXT("The \"ErosionSettings\" resource is invalid!"));
 		return;
 	}
 
@@ -62,6 +64,7 @@ void UErosionTemplateManager::LoadTemplate(const FString& Name)
 {
 	if (!ErosionSettings.IsValid())
 	{
+		UE_LOG(LogDropByDropTemplate, Error, TEXT("The \"ErosionSettings\" resource is invalid!"));
 		return;
 	}
 

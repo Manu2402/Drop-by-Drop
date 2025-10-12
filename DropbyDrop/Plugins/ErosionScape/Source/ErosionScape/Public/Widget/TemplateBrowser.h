@@ -38,4 +38,5 @@ private: // Methods.
 	FReply OnDeleteClicked();
 
 	TSharedRef<ITableRow> OnGenerateRow(TSharedPtr<FString> Item, const TSharedRef<STableViewBase>& OwnerTable);
+
 };

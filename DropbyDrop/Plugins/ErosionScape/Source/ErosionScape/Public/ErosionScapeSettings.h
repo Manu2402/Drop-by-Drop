@@ -83,6 +83,7 @@ UENUM(BlueprintType)
 enum EWindDirection : uint8
 {
 	Random,
+
 	Est,
 	Nord_Est,
 	Nord,

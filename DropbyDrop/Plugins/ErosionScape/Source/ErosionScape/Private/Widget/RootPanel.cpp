@@ -10,8 +10,10 @@
 #include "Widget/LandscapePanel.h"
 #include "Widget/ErosionPanel.h"
 #include "Widgets/Layout/SWidgetSwitcher.h"
+#include "DropByDropLogger.h"
 
 #define LOCTEXT_NAMESPACE "RootPanel"
+#define HEIGHTMAP_TEXTURE_PATH "/ErosionScape/SavedAssets/TextureHeightMap.TextureHeightMap"
 
 void SRootPanel::Construct(const FArguments& InArgs)
 {
@@ -201,16 +203,25 @@ FReply SRootPanel::OnNavClicked(const int32 Index)
 		NavButtonTexts[Index]->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 10));
 	}
 
-	if (Switcher.IsValid())
+	if (!Switcher.IsValid())
 	{
-		Switcher->SetActiveWidgetIndex(Index);
+		UE_LOG(LogDropByDrop, Error, TEXT("The \"Switcher\" widget is invalid!"));
+		return FReply::Handled();
 	}
+		
+	Switcher->SetActiveWidgetIndex(Index);
 
 	return FReply::Handled();
 }
 
 FReply SRootPanel::OnActionCreateHeightMap()
 {
+	if (!Heightmap.IsValid())
+	{
+		UE_LOG(LogDropByDrop, Error, TEXT("The \"Heightmap\" resource is invalid!"));
+		return FReply::Handled();
+	}
+
 	UGeneratorHeightMapLibrary::CreateAndSaveHeightMap(*Heightmap);
 	RefreshRightPreview();
 
@@ -219,6 +230,12 @@ FReply SRootPanel::OnActionCreateHeightMap()
 
 FReply SRootPanel::OnActionCreateLandscapeInternal()
 {
+	if (!Heightmap.IsValid() || !External.IsValid() || !Landscape.IsValid())
+	{
+		UE_LOG(LogDropByDrop, Error, TEXT("One of \"Heightmap\", \"External\" or \"Landscape\" resources is invalid!"));
+		return FReply::Handled();
+	}
+
 	UGeneratorHeightMapLibrary::CreateLandscapeFromInternalHeightMap(*Heightmap, *External, *Landscape);
 	RefreshRightPreview();
 
@@ -228,6 +245,13 @@ FReply SRootPanel::OnActionCreateLandscapeInternal()
 FReply SRootPanel::OnActionImportPNG()
 {
 	UGeneratorHeightMapLibrary::OpenHeightmapFileDialog(External);
+
+	if (!Heightmap.IsValid() || !External.IsValid() || !Landscape.IsValid())
+	{
+		UE_LOG(LogDropByDrop, Error, TEXT("One of \"Heightmap\", \"External\" or \"Landscape\" resources is invalid!"));
+		return FReply::Handled();
+	}
+
 	UGeneratorHeightMapLibrary::CreateLandscapeFromExternalHeightMap(External->LastPNGPath, *External, *Landscape, *Heightmap);
 	RefreshRightPreview();
 
@@ -236,7 +260,7 @@ FReply SRootPanel::OnActionImportPNG()
 
 void SRootPanel::RefreshRightPreview()
 {
-	UTexture2D* LoadedTexture = Cast<UTexture2D>(StaticLoadObject(UTexture2D::StaticClass(), nullptr, TEXT("/ErosionScape/SavedAssets/TextureHeightMap.TextureHeightMap")));
+	UTexture2D* LoadedTexture = Cast<UTexture2D>(StaticLoadObject(UTexture2D::StaticClass(), nullptr, TEXT(HEIGHTMAP_TEXTURE_PATH)));
 	RightPreviewTexture.Reset(LoadedTexture);
 
 	if (RightPreviewBrush.IsValid())

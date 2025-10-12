@@ -35,4 +35,5 @@ private:
 
 	FReply OnCreateLandscapeClicked();
 	FReply OnSplitInProxiesClicked();
+
 };

@@ -7,15 +7,15 @@
 #include "Widgets/Input/SNumericEntryBox.h"
 #include "DropByDropLogger.h"
 
-#define DEFAULT_PRESET_INDEX 1 // "Medium".
 #define EMPTY_STRING ""
+#define DEFAULT_PRESET_INDEX 1 // "Medium".
 
 #pragma region Presets
 void SHeightMapPanel::InitPresets()
 {
 	if (!Heightmap.IsValid())
 	{
-		UE_LOG(LogDropByDropHeightmap, Error, TEXT("The \"Heightmap\" pointer is null!"));
+		UE_LOG(LogDropByDropHeightmap, Error, TEXT("The \"Heightmap\" resource is invalid!"));
 		return;
 	}
 
@@ -48,7 +48,7 @@ void SHeightMapPanel::ApplyPreset(const FHeightMapGenerationSettings& Preset)
 {
 	if (!Heightmap.IsValid()) 
 	{
-		UE_LOG(LogDropByDropHeightmap, Error, TEXT("The \"Heightmap\" pointer is null!"));
+		UE_LOG(LogDropByDropHeightmap, Error, TEXT("The \"Heightmap\" resource is invalid!"));
 		return;
 	}
 
@@ -92,7 +92,7 @@ void SHeightMapPanel::OnPresetChanged(TSharedPtr<FString> NewSelection, ESelectI
 {
 	if (!NewSelection.IsValid())
 	{
-		UE_LOG(LogDropByDropHeightmap, Error, TEXT("The selected heightmap's preset is null!"));
+		UE_LOG(LogDropByDropHeightmap, Error, TEXT("The selected heightmap's preset is invalid!"));
 		return;
 	}
 
@@ -368,6 +368,12 @@ FReply SHeightMapPanel::OnCreateHeightmapClicked()
 	{
 		External->bIsExternalHeightMap = false;
 		External->LastPNGPath.Empty();
+	}
+
+	if (!Heightmap.IsValid())
+	{
+		UE_LOG(LogDropByDropHeightmap, Error, TEXT("The \"Heightmap\" resource is invalid!"));
+		return FReply::Handled();
 	}
 
 	UGeneratorHeightMapLibrary::CreateAndSaveHeightMap(*Heightmap);

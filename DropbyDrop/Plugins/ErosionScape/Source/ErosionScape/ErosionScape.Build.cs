@@ -45,7 +45,7 @@ public class ErosionScape : ModuleRules
 				"SlateCore", 
 				"LandscapeEditor",
 				"Landscape",
-				
+				"LevelEditor"
 				
 				// ... add private dependencies that you statically link with here ...	
 			}

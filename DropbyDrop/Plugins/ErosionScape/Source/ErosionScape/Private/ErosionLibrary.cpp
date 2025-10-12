@@ -29,30 +29,6 @@ FDrop& UErosionLibrary::InitDrop(const FErosionSettings& ErosionSettings, FDrop&
 	return OutDrop;
 }
 
-FDrop& UErosionLibrary::SetDrop(const FErosionSettings& ErosionSettings, FDrop& Drop, const int32 GridSize, const FVector2D& Position, const FVector2D& Direction, const float Velocity, const float Water)
-{
-	if (IsOutOfBound(Drop.Position, GridSize))
-	{
-		UE_LOG(LogDropByDropErosion, Error, TEXT("You inserted an invalid position value! The drop's params will be generated automatically!"));
-		return InitDrop(ErosionSettings, Drop, GridSize);
-	}
-
-	Drop.Position = Position;
-
-	if (Direction.X < -1 || Direction.X > 1 || Direction.Y < -1 || Direction.Y > 1)
-	{
-		UE_LOG(LogDropByDropErosion, Error, TEXT("You inserted an invalid direction value! The drop's params will be generated automatically!"));
-		return InitDrop(ErosionSettings, Drop, GridSize);
-	}
-
-	Drop.Direction = Direction;
-
-	Drop.Velocity = Velocity;
-	Drop.Water = Water;
-
-	return Drop;
-}
-
 FVector2D UErosionLibrary::ComputeGradient(const float P1, const float P2, const float P3, const float P4)
 {
 	// Normalization with safe check.
@@ -74,31 +50,31 @@ FCornersHeights& UErosionLibrary::SetCornersHeights(const FErosionContext& Erosi
 	
 	switch (OutOfBoundResult)
 	{
-	case Error_Right_Down:
-		InCornersHeights.X_Y   = ErosionContext.GridHeights[GridSize * GridSize - 1];
-		InCornersHeights.X1_Y  = ErosionContext.GridHeights[GridSize * GridSize - 1];
-		InCornersHeights.X_Y1  = ErosionContext.GridHeights[GridSize * GridSize - 1];
-		InCornersHeights.X1_Y1 = ErosionContext.GridHeights[GridSize * GridSize - 1];
-		break;
-	case Error_Right:
-		InCornersHeights.X_Y   = ErosionContext.GridHeights[TruncatedPosition.X + TruncatedPosition.Y * GridSize];
-		InCornersHeights.X1_Y  = ErosionContext.GridHeights[TruncatedPosition.X + TruncatedPosition.Y * GridSize];
-		InCornersHeights.X_Y1  = ErosionContext.GridHeights[(TruncatedPosition.X + GridSize) + TruncatedPosition.Y * GridSize];
-		InCornersHeights.X1_Y1 = ErosionContext.GridHeights[(TruncatedPosition.X + GridSize) + TruncatedPosition.Y * GridSize];
-		break;
-	case Error_Down:
-		InCornersHeights.X_Y   = ErosionContext.GridHeights[TruncatedPosition.X + TruncatedPosition.Y * GridSize];
-		InCornersHeights.X1_Y  = ErosionContext.GridHeights[TruncatedPosition.X + TruncatedPosition.Y * GridSize];
-		InCornersHeights.X_Y1  = ErosionContext.GridHeights[(TruncatedPosition.X + 1) + TruncatedPosition.Y * GridSize];
-		InCornersHeights.X1_Y1 = ErosionContext.GridHeights[(TruncatedPosition.X + 1) + TruncatedPosition.Y * GridSize];
-		break;
-	case No_Error:
-		InCornersHeights.X_Y   = ErosionContext.GridHeights[TruncatedPosition.X + TruncatedPosition.Y * GridSize];					  // P(x, y)
-		InCornersHeights.X1_Y  = ErosionContext.GridHeights[(TruncatedPosition.X + 1) + TruncatedPosition.Y * GridSize];			  // P(x + 1, y)
-		InCornersHeights.X_Y1  = ErosionContext.GridHeights[(TruncatedPosition.X + GridSize) + TruncatedPosition.Y * GridSize];		  // P(x, y + 1)
-		InCornersHeights.X1_Y1 = ErosionContext.GridHeights[(TruncatedPosition.X + GridSize + 1) + TruncatedPosition.Y * GridSize];   // P(x + 1, y + 1)
-		break;
-	}
+		case Error_Right_Down:
+			InCornersHeights.X_Y   = ErosionContext.GridHeights[GridSize * GridSize - 1];
+			InCornersHeights.X1_Y  = ErosionContext.GridHeights[GridSize * GridSize - 1];
+			InCornersHeights.X_Y1  = ErosionContext.GridHeights[GridSize * GridSize - 1];
+			InCornersHeights.X1_Y1 = ErosionContext.GridHeights[GridSize * GridSize - 1];
+			break;
+		case Error_Right:
+			InCornersHeights.X_Y   = ErosionContext.GridHeights[TruncatedPosition.X + TruncatedPosition.Y * GridSize];
+			InCornersHeights.X1_Y  = ErosionContext.GridHeights[TruncatedPosition.X + TruncatedPosition.Y * GridSize];
+			InCornersHeights.X_Y1  = ErosionContext.GridHeights[(TruncatedPosition.X + GridSize) + TruncatedPosition.Y * GridSize];
+			InCornersHeights.X1_Y1 = ErosionContext.GridHeights[(TruncatedPosition.X + GridSize) + TruncatedPosition.Y * GridSize];
+			break;
+		case Error_Down:
+			InCornersHeights.X_Y   = ErosionContext.GridHeights[TruncatedPosition.X + TruncatedPosition.Y * GridSize];
+			InCornersHeights.X1_Y  = ErosionContext.GridHeights[TruncatedPosition.X + TruncatedPosition.Y * GridSize];
+			InCornersHeights.X_Y1  = ErosionContext.GridHeights[(TruncatedPosition.X + 1) + TruncatedPosition.Y * GridSize];
+			InCornersHeights.X1_Y1 = ErosionContext.GridHeights[(TruncatedPosition.X + 1) + TruncatedPosition.Y * GridSize];
+			break;
+		case No_Error:
+			InCornersHeights.X_Y   = ErosionContext.GridHeights[TruncatedPosition.X + TruncatedPosition.Y * GridSize];					  // P(x, y)
+			InCornersHeights.X1_Y  = ErosionContext.GridHeights[(TruncatedPosition.X + 1) + TruncatedPosition.Y * GridSize];			  // P(x + 1, y)
+			InCornersHeights.X_Y1  = ErosionContext.GridHeights[(TruncatedPosition.X + GridSize) + TruncatedPosition.Y * GridSize];		  // P(x, y + 1)
+			InCornersHeights.X1_Y1 = ErosionContext.GridHeights[(TruncatedPosition.X + GridSize + 1) + TruncatedPosition.Y * GridSize];   // P(x + 1, y + 1)
+			break;
+		}
 
 	return InCornersHeights;
 }
@@ -159,24 +135,24 @@ void UErosionLibrary::ComputeDepositOnPoints(FErosionContext& ErosionContext, co
 {
 	switch (GetOutOfBoundAsResult(IntegerPosition, GridSize))
 	{
-	case Error_Right_Down:
-		ErosionContext.GridHeights[GridSize * GridSize - 1] += Deposit * (1 - OffsetPosition.X) * (1 - OffsetPosition.Y);
-		break;
-	case Error_Right:
-		ErosionContext.GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize] += Deposit * (1 - OffsetPosition.X) * (1 - OffsetPosition.Y);
-		ErosionContext.GridHeights[(IntegerPosition.X + GridSize) + IntegerPosition.Y * GridSize] += Deposit * (1 - OffsetPosition.X) * OffsetPosition.Y;
-		break;
-	case Error_Down:
-		ErosionContext.GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize] += Deposit * (1 - OffsetPosition.X) * (1 - OffsetPosition.Y);
-		ErosionContext.GridHeights[(IntegerPosition.X + 1) + IntegerPosition.Y * GridSize] += Deposit * OffsetPosition.X * (1 - OffsetPosition.Y);
-		break;
-	case No_Error:
-		ErosionContext.GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize] += Deposit * (1 - OffsetPosition.X) * (1 - OffsetPosition.Y);        // P(x, y)
-		ErosionContext.GridHeights[(IntegerPosition.X + 1) + IntegerPosition.Y * GridSize] += Deposit * OffsetPosition.X * (1 - OffsetPosition.Y);        // P(x + 1, y)
-		ErosionContext.GridHeights[(IntegerPosition.X + GridSize) + IntegerPosition.Y * GridSize] += Deposit * (1 - OffsetPosition.X) * OffsetPosition.Y; // P(x, y + 1)
-		ErosionContext.GridHeights[(IntegerPosition.X + GridSize + 1) + IntegerPosition.Y * GridSize] += Deposit * OffsetPosition.X * OffsetPosition.Y;   // P(x + 1, y + 1)
-		break;
-	}
+		case Error_Right_Down:
+			ErosionContext.GridHeights[GridSize * GridSize - 1] += Deposit * (1 - OffsetPosition.X) * (1 - OffsetPosition.Y);
+			break;
+		case Error_Right:
+			ErosionContext.GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize] += Deposit * (1 - OffsetPosition.X) * (1 - OffsetPosition.Y);
+			ErosionContext.GridHeights[(IntegerPosition.X + GridSize) + IntegerPosition.Y * GridSize] += Deposit * (1 - OffsetPosition.X) * OffsetPosition.Y;
+			break;
+		case Error_Down:
+			ErosionContext.GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize] += Deposit * (1 - OffsetPosition.X) * (1 - OffsetPosition.Y);
+			ErosionContext.GridHeights[(IntegerPosition.X + 1) + IntegerPosition.Y * GridSize] += Deposit * OffsetPosition.X * (1 - OffsetPosition.Y);
+			break;
+		case No_Error:
+			ErosionContext.GridHeights[IntegerPosition.X + IntegerPosition.Y * GridSize] += Deposit * (1 - OffsetPosition.X) * (1 - OffsetPosition.Y);        // P(x, y)
+			ErosionContext.GridHeights[(IntegerPosition.X + 1) + IntegerPosition.Y * GridSize] += Deposit * OffsetPosition.X * (1 - OffsetPosition.Y);        // P(x + 1, y)
+			ErosionContext.GridHeights[(IntegerPosition.X + GridSize) + IntegerPosition.Y * GridSize] += Deposit * (1 - OffsetPosition.X) * OffsetPosition.Y; // P(x, y + 1)
+			ErosionContext.GridHeights[(IntegerPosition.X + GridSize + 1) + IntegerPosition.Y * GridSize] += Deposit * OffsetPosition.X * OffsetPosition.Y;   // P(x + 1, y + 1)
+			break;
+		}
 }
 
 bool UErosionLibrary::IsOutOfBound(const FVector2D& DropPosition, const int32 GridSize)
