@@ -2,7 +2,6 @@
 
 using UnrealBuildTool;
 
-
 public class ErosionScape : ModuleRules
 {
 	public ErosionScape(ReadOnlyTargetRules Target) : base(Target)
@@ -27,13 +26,7 @@ public class ErosionScape : ModuleRules
 			new string[]
 			{
 				"Core",
-				"CoreUObject", 
-				"Engine", 
-				"InputCore", 
 				"RenderCore",
-				"RHI",
-				"UnrealEd",
-				"EditorScriptingUtilities",
 			}
 			);
 			
@@ -52,19 +45,11 @@ public class ErosionScape : ModuleRules
 				"SlateCore", 
 				"LandscapeEditor",
 				"Landscape",
-				"DesktopPlatform",
 				
 				
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
-		
-		// Add FBX only if the target is the editor
-		if (Target.bBuildEditor == true)
-		{
-			PrivateDependencyModuleNames.Add("FBX");
-		}
-		
 		
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
