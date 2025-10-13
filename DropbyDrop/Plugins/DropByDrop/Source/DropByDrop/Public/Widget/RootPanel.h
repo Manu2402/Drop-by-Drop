@@ -70,7 +70,7 @@ private:
 	FReply OnNavClicked(const int32 Index);
 	FReply OnActionCreateHeightMap();
 	FReply OnActionCreateLandscapeInternal();
-	FReply OnActionImportPNG();
+	FReply OnActionImportAndCreateLandscapeExternal();
 
 	// Preview.
 	void RefreshRightPreview();

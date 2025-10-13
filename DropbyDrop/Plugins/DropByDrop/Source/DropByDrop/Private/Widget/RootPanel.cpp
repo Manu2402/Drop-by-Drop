@@ -158,7 +158,7 @@ TSharedRef<SWidget> SRootPanel::BuildRightPanel()
 			[
 				SNew(SButton)
 					.Text(LOCTEXT("ExternalHeightmap", "Create Landscape from External HeightMap"))
-					.OnClicked(this, &SRootPanel::OnActionImportPNG)
+					.OnClicked(this, &SRootPanel::OnActionImportAndCreateLandscapeExternal)
 					.HAlign(HAlign_Center)
 			]
 			+ SVerticalBox::Slot().AutoHeight().Padding(8)
@@ -242,13 +242,16 @@ FReply SRootPanel::OnActionCreateLandscapeInternal()
 	return FReply::Handled();
 }
 
-FReply SRootPanel::OnActionImportPNG()
+FReply SRootPanel::OnActionImportAndCreateLandscapeExternal()
 {
-	UPipelineLibrary::OpenHeightmapFileDialog(External);
-
 	if (!Heightmap.IsValid() || !External.IsValid() || !Landscape.IsValid())
 	{
 		UE_LOG(LogDropByDrop, Error, TEXT("One of \"Heightmap\", \"External\" or \"Landscape\" resources is invalid!"));
+		return FReply::Handled();
+	}
+
+	if (!UPipelineLibrary::OpenHeightmapFileDialog(External))
+	{
 		return FReply::Handled();
 	}
 

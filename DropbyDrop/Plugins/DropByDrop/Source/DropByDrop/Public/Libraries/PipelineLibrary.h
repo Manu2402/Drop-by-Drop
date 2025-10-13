@@ -98,7 +98,7 @@ public:
 	static TArray<float> CreateHeightMapArray(const FHeightMapGenerationSettings& Settings);
 	static UTexture2D* CreateHeightMapTexture(const TArray<float>& HeightMapData, const int32 Width, const int32 Height);
 
-	static void OpenHeightmapFileDialog(TSharedPtr<FExternalHeightMapSettings> ExternalSettings);
+	static bool OpenHeightmapFileDialog(TSharedPtr<FExternalHeightMapSettings> ExternalSettings);
 	static void LoadHeightmapFromFileSystem(const FString& FilePath, TArray<uint16>& OutHeightmap, TArray<float>& OutNormalizedHeightmap, FExternalHeightMapSettings& Settings);
 
 	static void CompareHeightmaps(const FString& RawFilePath, const TArray<uint16>& GeneratedHeightmap, int32 Width, int32 Height);

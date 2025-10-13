@@ -364,11 +364,14 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 
 FReply SHeightMapPanel::OnCreateHeightmapClicked()
 {
-	if (External.IsValid())
+	if (!External.IsValid())
 	{
-		External->bIsExternalHeightMap = false;
-		External->LastPNGPath.Empty();
+		UE_LOG(LogDropByDropHeightmap, Error, TEXT("The \"External\" resource is invalid!"));
+		return FReply::Handled();
 	}
+
+	External->bIsExternalHeightMap = false;
+	External->LastPNGPath.Empty();
 
 	if (!Heightmap.IsValid())
 	{
@@ -383,6 +386,12 @@ FReply SHeightMapPanel::OnCreateHeightmapClicked()
 
 FReply SHeightMapPanel::OnCreateFromExternalHeightmapClicked()
 {
+	if (!External.IsValid())
+	{
+		UE_LOG(LogDropByDropHeightmap, Error, TEXT("The \"External\" resource is invalid!"));
+		return FReply::Handled();
+	}
+
 	UPipelineLibrary::OpenHeightmapFileDialog(External);
 
 	return FReply::Handled();

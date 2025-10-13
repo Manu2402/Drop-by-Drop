@@ -304,13 +304,13 @@ UTexture2D* UPipelineLibrary::CreateHeightMapTexture(const TArray<float>& Height
 	return Texture;
 }
 
-void UPipelineLibrary::OpenHeightmapFileDialog(TSharedPtr<FExternalHeightMapSettings> ExternalSettings)
+bool UPipelineLibrary::OpenHeightmapFileDialog(TSharedPtr<FExternalHeightMapSettings> ExternalSettings)
 {
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	if (!DesktopPlatform)
 	{
 		UE_LOG(LogDropByDropHeightmap, Warning, TEXT("Failed to open file dialog!"));
-		return;
+		return false;
 	}
 
 	TArray<FString> OutFiles;
@@ -320,34 +320,35 @@ void UPipelineLibrary::OpenHeightmapFileDialog(TSharedPtr<FExternalHeightMapSett
 
 	if (!bOpened || OutFiles.Num() <= 0)
 	{
-		return;
+		return false;
 	}
 
 	// First result.
 	const FString& SelectedFile = OutFiles[0];
-
-	if (ExternalSettings.IsValid())
-	{
-		ExternalSettings->bIsExternalHeightMap = true;
-		ExternalSettings->LastPNGPath = SelectedFile;
-	}
 
 	if (UTexture2D* Imported = FImageUtils::ImportFileAsTexture2D(SelectedFile))
 	{
 		if (!Imported)
 		{
 			UE_LOG(LogDropByDropHeightmap, Warning, TEXT("Failed to overwrite preview from PNG: %s"), *SelectedFile);
-			return;
+			return false;
 		}
 
 		if (!SaveToAsset(Imported, TEXT("TextureHeightMap")))
 		{
 			UE_LOG(LogDropByDropHeightmap, Warning, TEXT("Failed to overwrite preview from PNG: %s"), *SelectedFile);
-			return;
+			return false;
 		}
 
 		UE_LOG(LogDropByDropHeightmap, Log, TEXT("Preview overwritten from external PNG: %s"), *SelectedFile);
+
+		ExternalSettings->bIsExternalHeightMap = true;
+		ExternalSettings->LastPNGPath = SelectedFile;
+
+		return true;
 	}
+
+	return false;
 }
 
 void UPipelineLibrary::LoadHeightmapFromFileSystem(const FString& FilePath, TArray<uint16>& OutHeightMap, TArray<float>& OutNormalizedHeightmap, FExternalHeightMapSettings& Settings)
@@ -553,7 +554,7 @@ void UPipelineLibrary::CreateLandscapeFromExternalHeightMap(const FString& FileP
 
 	if (HeightMapInt16.Num() <= 0)
 	{
-		UE_LOG(LogDropByDropLandscape, Error, TEXT("Failed to load heightmap from PNG file: %s"), *FilePath);
+		UE_LOG(LogDropByDropLandscape, Error, TEXT("Failed to load heightmap from PNG file!"));
 		return;
 	}
 

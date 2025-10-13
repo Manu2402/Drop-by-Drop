@@ -33,7 +33,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 			[
 				SNew(STextBlock)
 					.Text(FText::FromString("Kilometers"))
-					.ToolTipText(FText::FromString("Controls the overall size of the landscape in terms of real-world scale. The value entered represents the width and length of the landscape in kilometers."))
+					.ToolTipText(FText::FromString("Controls the overall size of the landscape in terms of real-world scale. The value entered represents the width and length of the landscape in kilometers. This unit of measurement is only valid for landscapes generated using heightmaps generated internally in Drop by Drop."))
 			]
 			+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 			[
@@ -65,7 +65,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 							[
 								SNew(STextBlock)
 									.Text(FText::FromString("Scale X"))
-									.ToolTipText(FText::FromString("Dimension on the X-axis of the landscape generated after selecting a heightmap from the file system."))
+									.ToolTipText(FText::FromString("Dimension on the X-axis of the landscape. This unit of measurement is only valid for landscapes generated using external heightmaps, i.e., imported from the file system."))
 							]
 							+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 							[
@@ -81,7 +81,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 							[
 								SNew(STextBlock)
 									.Text(FText::FromString("Scale Y"))
-									.ToolTipText(FText::FromString("Dimension on the Y-axis of the landscape generated after selecting a heightmap from the file system."))
+									.ToolTipText(FText::FromString("Dimension on the Y-axis of the landscape. This unit of measurement is only valid for landscapes generated using external heightmaps, i.e., imported from the file system."))
 							]
 							+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 							[
@@ -97,7 +97,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 							[
 								SNew(STextBlock)
 									.Text(FText::FromString("Scale Z"))
-									.ToolTipText(FText::FromString("Dimension on the Z-axis of the landscape generated after selecting a heightmap from the file system."))
+									.ToolTipText(FText::FromString("Dimension on the Z-axis of the landscape. This unit of measurement is only valid for landscapes generated using external heightmaps, i.e., imported from the file system."))
 							]
 							+ SHorizontalBox::Slot().AutoWidth().Padding(5, 0)
 							[
