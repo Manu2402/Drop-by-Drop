@@ -85,51 +85,51 @@ void SErosionPanel::Construct(const FArguments& Args)
 							const FString& Name = *Option;
 							EWindDirection Dir = DEFAULT_WIND_DIRECTION;
 
-							if (Name.Equals(TEXT("Nord")))
+							if (Name.Equals(TEXT("North")))
 							{
-								Dir = EWindDirection::Nord;
+								Dir = EWindDirection::North;
 								goto set_wind;
 							}
 
-							if (Name.Equals(TEXT("Sud")))
+							if (Name.Equals(TEXT("South")))
 							{
-								Dir = EWindDirection::Sud;
+								Dir = EWindDirection::South;
 								goto set_wind;
 							}
 
-							if (Name.Equals(TEXT("Est")))
+							if (Name.Equals(TEXT("East")))
 							{
-								Dir = EWindDirection::Est;
+								Dir = EWindDirection::East;
 								goto set_wind;
 							}
 
-							if (Name.Equals(TEXT("Ovest")))
+							if (Name.Equals(TEXT("West")))
 							{
-								Dir = EWindDirection::Ovest;
+								Dir = EWindDirection::West;
 								goto set_wind;
 							}
 
-							if (Name.Equals(TEXT("Nord_Ovest")))
+							if (Name.Equals(TEXT("North_West")))
 							{
-								Dir = EWindDirection::Nord_Ovest;
+								Dir = EWindDirection::North_West;
 								goto set_wind;
 							}
 
-							if (Name.Equals(TEXT("Nord_Est")))
+							if (Name.Equals(TEXT("North_East")))
 							{
-								Dir = EWindDirection::Nord_Est;
+								Dir = EWindDirection::North_East;
 								goto set_wind;
 							}
 
-							if (Name.Equals(TEXT("Sud_Ovest")))
+							if (Name.Equals(TEXT("South_West")))
 							{
-								Dir = EWindDirection::Sud_Ovest;
+								Dir = EWindDirection::South_West;
 								goto set_wind;
 							}
 
-							if (Name.Equals(TEXT("Sud_Est")))
+							if (Name.Equals(TEXT("South_East")))
 							{
-								Dir = EWindDirection::Sud_Est;
+								Dir = EWindDirection::South_East;
 								goto set_wind;
 							}
 

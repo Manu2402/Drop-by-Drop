@@ -84,14 +84,14 @@ enum EWindDirection : uint8
 {
 	Random,
 
-	Est,
-	Nord_Est,
-	Nord,
-	Nord_Ovest,
-	Ovest,
-	Sud_Ovest,
-	Sud,
-	Sud_Est
+	East,
+	North_East,
+	North,
+	North_West,
+	West,
+	South_West,
+	South,
+	South_East
 };
 
 #pragma endregion

@@ -48,14 +48,14 @@ private: // Members.
 	{
 		TEXT("Random"), 
 
-		TEXT("Nord"), 
-		TEXT("Sud"), 
-		TEXT("Est"), 
-		TEXT("Ovest"),
-		TEXT("Nord_Ovest"), 
-		TEXT("Nord_Est"), 
-		TEXT("Sud_Ovest"), 
-		TEXT("Sud_Est")
+		TEXT("North"), 
+		TEXT("South"), 
+		TEXT("East"), 
+		TEXT("West"),
+		TEXT("North_West"), 
+		TEXT("North_East"), 
+		TEXT("South_West"), 
+		TEXT("South_East")
 	};
 
 private: // Methods.
