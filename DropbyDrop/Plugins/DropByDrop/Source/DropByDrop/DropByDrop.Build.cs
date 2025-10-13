@@ -27,7 +27,6 @@ public class DropByDrop : ModuleRules
 			{
 				"Core",
 				"RenderCore",
-				"EditorScriptingUtilities"
 			}
 			);
 			
