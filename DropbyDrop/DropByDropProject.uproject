@@ -1,26 +1,13 @@
 {
-	"FileVersion": 3,
-	"EngineAssociation": "5.3",
-	"Category": "",
-	"Description": "",
-	"Modules": [
-		{
-			"Name": "DropByDropProject",
-			"Type": "Runtime",
-			"LoadingPhase": "Default"
-		}
-	],
-	"Plugins": [
-		{
-			"Name": "ModelingToolsEditorMode",
-			"Enabled": true,
-			"TargetAllowList": [
-				"Editor"
-			]
-		},
-		{
-			"Name": "DropByDrop",
-			"Enabled": true
-		}
-	]
+  "FileVersion": 3,
+  "EngineAssociation": "5.3",
+  "Category": "",
+  "Description": "",
+  "Modules": [
+    {
+      "Name": "DropByDropProject",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ]
 }

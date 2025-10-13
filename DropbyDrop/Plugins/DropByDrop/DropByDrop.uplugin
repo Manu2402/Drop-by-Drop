@@ -3,8 +3,8 @@
 	"Version": 1,
 	"VersionName": "1.0",
 	"FriendlyName": "Drop by Drop",
-	"Description": "",
-	"Category": "Other",
+	"Description": "An Unreal Engine 5 plugin for heightmap creation/import, landscape generation, and hydraulic erosion simulation",
+	"Category": "Procedural Generation",
 	"CreatedBy": "Manuel Solano, Roberto Capparelli",
 	"CreatedByURL": "",
 	"DocsURL": "",
@@ -20,11 +20,5 @@
 			"Type": "Editor",
 			"LoadingPhase": "Default"
 		}
-	],
-	"Plugins": [
-        {
-            "Name": "EditorScriptingUtilities",
-            "Enabled": true
-        }
-    ]
+	]
 }
