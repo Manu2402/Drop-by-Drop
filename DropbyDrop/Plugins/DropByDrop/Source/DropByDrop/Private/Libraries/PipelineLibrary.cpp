@@ -618,7 +618,8 @@ TObjectPtr<ALandscape> UPipelineLibrary::GenerateLandscape(const FTransform& Lan
 
 	UE_LOG(LogDropByDropLandscape, Error, TEXT("NumSubSections: %d; SubSectionSizeQuads: %d; MaxY: %d"), NumSubsections, SubSectionSizeQuads, MaxY);
 
-	Landscape->Import(FGuid::NewGuid(), 0, 0, MaxX - 1, MaxY - 1, NumSubsections, SubSectionSizeQuads, HeightDataPerLayer, nullptr, MaterialLayerDataPerLayer, ELandscapeImportAlphamapType::Additive);
+	TArray<FLandscapeLayer> LandscapeLayers;
+	Landscape->Import(FGuid::NewGuid(), 0, 0, MaxX - 1, MaxY - 1, NumSubsections, SubSectionSizeQuads, HeightDataPerLayer, nullptr, MaterialLayerDataPerLayer, ELandscapeImportAlphamapType::Additive, MakeArrayView(LandscapeLayers));
 
 	Landscape->PostEditChange();
 
@@ -657,14 +658,17 @@ void UPipelineLibrary::SplitLandscapeIntoProxies(ALandscape& ActiveLandscape)
 
 	ActiveLandscape.PostEditChange();
 
-	// After fixing the "WorldPartition" that part of code can be delated, for now leave that part for a future fix.
 	if (World)
 	{
 		if (UWorldPartitionSubsystem* WorldPartitionSubsystem = World->GetSubsystem<UWorldPartitionSubsystem>())
 		{
-			WorldPartitionSubsystem->UpdateStreamingState();
-			GEditor->RedrawAllViewports();
+			if (IStreamingWorldSubsystemInterface* StreamingWorldPartitionSubsystemInterface = Cast<IStreamingWorldSubsystemInterface>(WorldPartitionSubsystem))
+			{
+				StreamingWorldPartitionSubsystemInterface->OnUpdateStreamingState();
+				GEditor->RedrawAllViewports();
+			}
 		}
+		
 	}
 
 	if (!LandscapeInfoComponent)
@@ -789,9 +793,6 @@ bool UPipelineLibrary::SaveToAsset(UTexture2D* Texture, const FString& AssetName
 			{
 				case TSF_BGRA8: 
 					InFormat = ERawFormat::BGRA8;
-					break;
-				case TSF_RGBA8: 
-					InFormat = ERawFormat::RGBA8;
 					break;
 				case TSF_G8: 
 					InFormat = ERawFormat::G8;
