@@ -9,7 +9,6 @@
 
 #pragma region ForwardDeclarations
 
-// Forward declarations to avoid circular dependencies and reduce compile time.
 struct FHeightMapGenerationSettings;
 struct FExternalHeightMapSettings;
 struct FLandscapeGenerationSettings;
@@ -187,26 +186,26 @@ public:
 
 	/**
 	 * Opens a file dialog for the user to select an external heightmap file.
-	 * @param ExternalSettings - Settings object to populate with file information
-	 * @return True if a file was successfully selected
+	 * @param ExternalSettings - Settings object to populate with file information.
+	 * @return True if a file was successfully selected, false if the dialog was canceled.
 	 */
 	static bool OpenHeightmapFileDialog(TSharedPtr<FExternalHeightMapSettings> ExternalSettings);
 
 	/**
 	 * Loads heightmap data from an external file (RAW, PNG, etc.).
-	 * @param FilePath - Full path to the heightmap file
-	 * @param OutHeightmap - Output array of 16-bit height values
-	 * @param OutNormalizedHeightmap - Output array of normalized (0-1) height values
-	 * @param Settings - Settings to populate with file metadata
+	 * @param FilePath - Full path to the heightmap file.
+	 * @param OutHeightmap - Output array of 16-bit height values.
+	 * @param OutNormalizedHeightmap - Output array of normalized height values.
+	 * @param Settings - Settings to populate with file metadata.
 	 */
 	static void LoadHeightmapFromFileSystem(const FString& FilePath, TArray<uint16>& OutHeightmap, TArray<float>& OutNormalizedHeightmap, FExternalHeightMapSettings& Settings);
 
 	/**
 	 * Debugging utility to compare a generated heightmap with a RAW file on disk.
-	 * @param RawFilePath - Path to the reference RAW file
-	 * @param GeneratedHeightmap - Generated heightmap to compare
-	 * @param Width - Heightmap width
-	 * @param Height - Heightmap height
+	 * @param RawFilePath - Path to the reference RAW file.
+	 * @param GeneratedHeightmap - Generated heightmap to compare.
+	 * @param Width - Heightmap width.
+	 * @param Height - Heightmap height.
 	 */
 	static void CompareHeightmaps(const FString& RawFilePath, const TArray<uint16>& GeneratedHeightmap, int32 Width, int32 Height);
 #pragma endregion
@@ -215,52 +214,52 @@ public:
 
 	/**
 	 * Creates a landscape actor using internally generated heightmap data.
-	 * @param HeightmapSettings - Settings for heightmap generation
-	 * @param ExternalSettings - Additional external file settings (if applicable)
-	 * @param LandscapeSettings - Landscape creation parameters (size, scale, etc.)
+	 * @param HeightmapSettings - Settings for heightmap generation.
+	 * @param ExternalSettings - Imported from file system heightmap settings.
+	 * @param LandscapeSettings - Landscape creation parameters (size, scale, etc.).
 	 */
 	static void CreateLandscapeFromInternalHeightMap(FHeightMapGenerationSettings& HeightmapSettings, FExternalHeightMapSettings& ExternalSettings, FLandscapeGenerationSettings& LandscapeSettings);
 
 	/**
 	 * Creates a landscape actor from an external heightmap file.
-	 * @param FilePath - Path to the external heightmap file
-	 * @param ExternalSettings - External file settings
-	 * @param LandscapeSettings - Landscape creation parameters
-	 * @param HeightmapSettings - Heightmap settings for processing
+	 * @param FilePath - Path to the external heightmap file.
+	 * @param ExternalSettings - Imported from file system heightmap settings.
+	 * @param LandscapeSettings - Landscape creation parameters.
+	 * @param HeightmapSettings - Heightmap settings for processing.
 	 */
 	static void CreateLandscapeFromExternalHeightMap(const FString& FilePath, FExternalHeightMapSettings& ExternalSettings, FLandscapeGenerationSettings& LandscapeSettings, FHeightMapGenerationSettings& HeightmapSettings);
 
 	/**
 	 * Automated landscape generation pipeline combining generation and creation.
-	 * @param HeightmapSettings - Heightmap generation settings
-	 * @param ExternalSettings - External file settings
-	 * @param LandscapeSettings - Landscape creation settings
+	 * @param HeightmapSettings - Heightmap generation settings.
+	 * @param ExternalSettings - Imported from file system heightmap settings.
+	 * @param LandscapeSettings - Landscape creation settings.
 	 */
 	static void GenerateLandscapeAuto(FHeightMapGenerationSettings& HeightmapSettings, FExternalHeightMapSettings& ExternalSettings, FLandscapeGenerationSettings& LandscapeSettings);
 
 	/**
 	 * Core function to spawn a landscape actor with given heightmap data.
-	 * @param LandscapeTransform - World transform (location, rotation, scale) for the landscape
-	 * @param Heightmap - 16-bit heightmap data
-	 * @return Pointer to the created landscape actor
+	 * @param LandscapeTransform - World transform (location, rotation, scale) for the landscape.
+	 * @param Heightmap - 16-bit heightmap data.
+	 * @return Pointer to the created landscape.
 	 */
 	static TObjectPtr<ALandscape> GenerateLandscape(const FTransform& LandscapeTransform, TArray<uint16>& Heightmap);
 
 	/**
 	 * Divides a large landscape into multiple streaming proxies for performance optimization.
-	 * @param LandscapeSettings - The landscape to split
+	 * @param LandscapeSettings - The landscape to split.
 	 */
 	static void SplitLandscapeIntoProxies(ALandscape& LandscapeSettings);
 
 	/**
 	 * Calculates and validates landscape size parameters based on desired dimensions.
 	 * Unreal landscapes have specific size requirements (power-of-2 based).
-	 * @param SubSectionSizeQuads - Output: quads per subsection
-	 * @param NumSubsections - Output: number of subsections
-	 * @param MaxX - Output: maximum X dimension
-	 * @param MaxY - Output: maximum Y dimension
-	 * @param Size - Desired size (default 505)
-	 * @return True if parameters are valid
+	 * @param SubSectionSizeQuads - Output: quads per subsection.
+	 * @param NumSubsections - Output: number of subsections.
+	 * @param MaxX - Output: maximum X dimension.
+	 * @param MaxY - Output: maximum Y dimension.
+	 * @param Size - Desired size (default 505).
+	 * @return True if parameters are valid.
 	 */
 	static bool SetLandscapeSizeParam(int32& SubSectionSizeQuads, int32& NumSubsections, int32& MaxX, int32& MaxY, const int32 Size = 505);
 #pragma endregion
@@ -268,24 +267,24 @@ public:
 #pragma region Utilities
 
 	/**
-	 * Converts normalized float heightmap data (0.0-1.0) to 16-bit unsigned integer format.
+	 * Converts normalized float heightmap data to 16-bit unsigned integer format.
 	 * This is necessary for Unreal's landscape system which uses uint16 for heightmaps.
-	 * @param FloatData - Input array of normalized float values
-	 * @return Array of 16-bit unsigned integers (0-65535 range)
+	 * @param FloatData - Input array of normalized float values.
+	 * @return Array of 16-bit unsigned integers (0-65535 range).
 	 */
 	static TArray<uint16> ConvertArrayFromFloatToUInt16(const TArray<float>& FloatData);
 
 	/**
 	 * Saves a texture as a persistent asset in the Unreal content browser.
-	 * @param Texture - Texture to save
-	 * @param AssetName - Name for the asset
-	 * @return True if save was successful
+	 * @param Texture - Texture to save.
+	 * @param AssetName - Name for the asset.
+	 * @return True if save was successful, false otherwise.
 	 */
 	static bool SaveToAsset(UTexture2D* Texture, const FString& AssetName);
 
 	/**
 	 * Gets the current scale factor for wind direction preview visualization.
-	 * @return Current scale value
+	 * @return Current scale value.
 	 */
 	static float GetWindPreviewScale();
 
