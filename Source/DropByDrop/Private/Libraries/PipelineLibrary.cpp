@@ -455,7 +455,7 @@ bool UPipelineLibrary::OpenHeightmapFileDialog(TSharedPtr<FExternalHeightMapSett
 
 /**
  * Loads heightmap data from an external PNG file on the file system.
- * Supports multiple pixel formats: RGBA8, G16, R32F.
+ * Supports multiple pixel formats: RGBA8, BGRA8 G16, R32F and other common formats.
  * Outputs both raw uint16 data and normalized float data [0, 1].
  */
 void UPipelineLibrary::LoadHeightmapFromFileSystem(const FString& FilePath, TArray<uint16>& OutHeightMap, TArray<float>& OutNormalizedHeightmap, FExternalHeightMapSettings& Settings)
@@ -486,67 +486,92 @@ void UPipelineLibrary::LoadHeightmapFromFileSystem(const FString& FilePath, TArr
 	OutHeightMap.SetNum(Width * Height);
 	OutNormalizedHeightmap.SetNum(Width * Height);
 
+	// Determine which channel to use based on format
+	// Per heightmap, usiamo il canale RED (indipendentemente dall'ordine dei byte)
+	const EPixelFormat PixelFormat = Texture->GetPixelFormat();
+
 	// Process pixel data based on the texture's pixel format.
-	switch (Texture->GetPixelFormat())
+	switch (PixelFormat)
 	{
-	case PF_R8G8B8A8:
-	{
-		// 8-bit per channel RGBA format.
-		const uint8* PixelData = static_cast<const uint8*>(MipData);
-		for (int32 Index = 0; Index < Width * Height; Index++)
+		case PF_R8G8B8A8:  // RGBA 8-bit
 		{
-			// Use only red channel, scale from 8-bit to 16-bit.
-			uint8 RedValue = PixelData[Index * 4];
-			uint16 HeightValue = static_cast<uint16>(RedValue << 8); // Shift to use upper 8 bits.
+			const uint8* PixelData = static_cast<const uint8*>(MipData);
+			for (int32 Index = 0; Index < Width * Height; Index++)
+			{
+				// RGBA order: R = 0, G = 1, B = 2, A = 3
+				uint8 RedValue = PixelData[Index * 4 + 0];
+				uint16 HeightValue = static_cast<uint16>(RedValue << 8);
 
-			OutHeightMap[Index] = HeightValue;
+				OutHeightMap[Index] = HeightValue;
+				MinPixel = FMath::Min<uint32>(MinPixel, HeightValue);
+				MaxPixel = FMath::Max<uint32>(MaxPixel, HeightValue);
+			}
 
-			MinPixel = FMath::Min<uint32>(MinPixel, HeightValue);
-			MaxPixel = FMath::Max<uint32>(MaxPixel, HeightValue);
+			break;
 		}
-
-		break;
-	}
-	case PF_G16:
-	{
-		// 16-bit grayscale format (native heightmap format).
-		const uint16* PixelData = static_cast<const uint16*>(MipData);
-
-		for (int32 Index = 0; Index < Width * Height; Index++)
+		case PF_B8G8R8A8:  // BGRA 8-bit
 		{
-			OutHeightMap[Index] = PixelData[Index];
+			const uint8* PixelData = static_cast<const uint8*>(MipData);
+			for (int32 Index = 0; Index < Width * Height; Index++)
+			{
+				// BGRA order: B = 0, G = 1, R = 2, A = 3
+				uint8 RedValue = PixelData[Index * 4 + 2];
+				uint16 HeightValue = static_cast<uint16>(RedValue << 8);
 
-			MinPixel = FMath::Min<uint32>(MinPixel, OutHeightMap[Index]);
-			MaxPixel = FMath::Max<uint32>(MaxPixel, OutHeightMap[Index]);
+				OutHeightMap[Index] = HeightValue;
+				MinPixel = FMath::Min<uint32>(MinPixel, HeightValue);
+				MaxPixel = FMath::Max<uint32>(MaxPixel, HeightValue);
+			}
+
+			break;
 		}
-
-		break;
-	}
-	case PF_R32_FLOAT:
-	{
-		// 32-bit floating point format (HDR heightmaps).
-		const float* PixelData = static_cast<const float*>(MipData);
-
-		for (int32 Index = 0; Index < Width * Height; Index++)
+		case PF_G16:  // 16-bit grayscale (native heightmap format)
 		{
-			// Convert float [0, 1] to 16-bit integer [0, 65535].
-			uint16 HeightValue = static_cast<uint16>(PixelData[Index] * 65535.0f);
+			const uint16* PixelData = static_cast<const uint16*>(MipData);
+			for (int32 Index = 0; Index < Width * Height; Index++)
+			{
+				OutHeightMap[Index] = PixelData[Index];
+				MinPixel = FMath::Min<uint32>(MinPixel, OutHeightMap[Index]);
+				MaxPixel = FMath::Max<uint32>(MaxPixel, OutHeightMap[Index]);
+			}
 
-			OutHeightMap[Index] = HeightValue;
-
-			MinPixel = FMath::Min<uint32>(MinPixel, HeightValue);
-			MaxPixel = FMath::Max<uint32>(MaxPixel, HeightValue);
+			break;
 		}
+		case PF_R32_FLOAT:  // 32-bit floating point format (HDR heightmaps)
+		{
+			const float* PixelData = static_cast<const float*>(MipData);
+			for (int32 Index = 0; Index < Width * Height; Index++)
+			{
+				uint16 HeightValue = static_cast<uint16>(FMath::Clamp(PixelData[Index], 0.f, 1.f) * 65535.0f);
+				OutHeightMap[Index] = HeightValue;
+				MinPixel = FMath::Min<uint32>(MinPixel, HeightValue);
+				MaxPixel = FMath::Max<uint32>(MaxPixel, HeightValue);
+			}
 
-		break;
-	}
-	default:
-	{
-		UE_LOG(LogDropByDropHeightmap, Error, TEXT("Unsupported pixel format in PNG!"));
-		MipMap.BulkData.Unlock();
+			break;
+		}
+		case PF_G8:  // 8-bit grayscale
+		{
+			const uint8* PixelData = static_cast<const uint8*>(MipData);
+			for (int32 Index = 0; Index < Width * Height; Index++)
+			{
+				uint8 GrayValue = PixelData[Index];
+				uint16 HeightValue = static_cast<uint16>(GrayValue << 8);
 
-		return;
-	}
+				OutHeightMap[Index] = HeightValue;
+				MinPixel = FMath::Min<uint32>(MinPixel, HeightValue);
+				MaxPixel = FMath::Max<uint32>(MaxPixel, HeightValue);
+			}
+
+			break;
+		}
+		default:
+		{
+			MipMap.BulkData.Unlock();
+			UE_LOG(LogDropByDropHeightmap, Error, TEXT("Unsupported pixel format in PNG! Format: %d"), static_cast<int32>(PixelFormat));
+			UE_LOG(LogDropByDropHeightmap, Warning, TEXT("Supported formats: RGBA8, BGRA8, G16, G8, R32F"));
+			return;
+		}
 	}
 
 	MipMap.BulkData.Unlock();
@@ -559,7 +584,7 @@ void UPipelineLibrary::LoadHeightmapFromFileSystem(const FString& FilePath, TArr
 
 	Settings.bIsExternalHeightMap = true;
 
-	UE_LOG(LogDropByDropHeightmap, Log, TEXT("Heightmap Min: %u, Max: %u"), MinPixel, MaxPixel);
+	UE_LOG(LogDropByDropHeightmap, Log, TEXT("Heightmap loaded successfully. Min: %u, Max: %u"), MinPixel, MaxPixel);
 }
 
 /**
@@ -688,14 +713,21 @@ void UPipelineLibrary::CreateLandscapeFromExternalHeightMap(const FString& FileP
 	TArray<uint16> HeightMapInt16;
 	LoadHeightmapFromFileSystem(FilePath, HeightMapInt16, HeightmapSettings.HeightMap, ExternalSettings);
 
-	// Debug: Compare loaded heightmap with a reference RAW file if it exists.
+	// Debug: Optional comparison with reference RAW file (non-blocking).
 	FString HeightMapPath = FPaths::ProjectDir() + TEXT(HEIGHTMAP_PATH_SUFFIX);
-	CompareHeightmaps(HeightMapPath, HeightMapInt16, 505, 505);
+	if (FPaths::FileExists(HeightMapPath))
+	{
+		CompareHeightmaps(HeightMapPath, HeightMapInt16, 505, 505);
+	}
+	else
+	{
+		UE_LOG(LogDropByDropHeightmap, Warning, TEXT("Reference RAW file not found for validation: %s"), *HeightMapPath);
+	}
 
 	// Validate that heightmap was loaded successfully.
 	if (HeightMapInt16.Num() <= 0)
 	{
-		UE_LOG(LogDropByDropLandscape, Error, TEXT("Failed to load heightmap from PNG file!"));
+		UE_LOG(LogDropByDropHeightmap, Error, TEXT("Failed to load heightmap from PNG file!"));
 		return;
 	}
 
@@ -710,10 +742,16 @@ void UPipelineLibrary::CreateLandscapeFromExternalHeightMap(const FString& FileP
 void UPipelineLibrary::GenerateLandscapeAuto(FHeightMapGenerationSettings& HeightmapSettings, FExternalHeightMapSettings& ExternalSettings, FLandscapeGenerationSettings& LandscapeSettings)
 {
 	// If external heightmap is specified and valid, use it.
-	if (ExternalSettings.bIsExternalHeightMap && !ExternalSettings.LastPNGPath.IsEmpty())
+	if (ExternalSettings.bIsExternalHeightMap && !ExternalSettings.LastPNGPath.IsEmpty() && FPaths::FileExists(ExternalSettings.LastPNGPath))
 	{
 		CreateLandscapeFromExternalHeightMap(ExternalSettings.LastPNGPath, ExternalSettings, LandscapeSettings, HeightmapSettings);
 		return;
+	}
+
+	if (ExternalSettings.bIsExternalHeightMap && !ExternalSettings.LastPNGPath.IsEmpty())
+	{
+		UE_LOG(LogDropByDropHeightmap, Error, TEXT("External heightmap file not found: %s"), *ExternalSettings.LastPNGPath);
+		ExternalSettings.bIsExternalHeightMap = false;
 	}
 
 	// Otherwise, generate procedurally.
@@ -1223,7 +1261,8 @@ bool UPipelineLibrary::SaveToAsset(UTexture2D* Texture, const FString& AssetName
 	}
 
 	// Step 4: Create or update the asset package.
-	const FString PackageName = FString::Printf(TEXT("/DropByDrop/SavedAssets/%s"), *AssetName);
+	const FString PackagePath = TEXT("/DropByDrop/SavedAssets");
+	const FString PackageName = FString::Printf(TEXT("%s/%s"), *PackagePath, *AssetName);
 
 	// Check if asset already exists.
 	UPackage* ExistingPackage = FindPackage(nullptr, *PackageName);
