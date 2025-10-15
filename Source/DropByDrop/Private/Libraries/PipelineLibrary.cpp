@@ -1346,15 +1346,15 @@ FVector UPipelineLibrary::GetWindPreviewStart(const ALandscape* ActiveLandscape,
 	// Use bounds center if valid.
 	if (Bounds.IsValid)
 	{
-		FVector Center = Bounds.GetCenter();
-		Center.Z += 200.f; // Elevate above terrain for visibility.
+		FVector Top = Bounds.GetCenter();
+		Top.Z += Bounds.Max.Z - 1000.f; // Elevate above terrain for visibility.
 
-		return Center;
+		return Top;
 	}
 
 	// Fallback: use landscape location.
 	FVector Location = ActiveLandscape->GetActorLocation();
-	Location.Z += 200.f; // Elevate above terrain for visibility.
+	Location.Z += Bounds.Max.Z - 1000.f; // Elevate above terrain for visibility.
 
 	return Location;
 }

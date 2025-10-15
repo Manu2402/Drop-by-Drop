@@ -3,7 +3,12 @@
 
 #include "DropByDropSettings.h"
 
-FDropByDropSettings::FDropByDropSettings() : ErosionTemplatesDT(nullptr), WindPreviewScale(10.0f) {}
+/**
+ * Initializes the singleton settings manager with default values.
+ * Sets "ErosionTemplatesDT" to nullptr (no templates loaded initially)
+ * and "WindPreviewScale" to 10.0 for reasonable visualization size.
+ */
+FDropByDropSettings::FDropByDropSettings() : ErosionTemplatesDT(nullptr), WindPreviewScale(10.0f) { }
 
 FDropByDropSettings& FDropByDropSettings::Get()
 {
