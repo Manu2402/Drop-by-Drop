@@ -6,6 +6,7 @@
 #include "Components/LandscapeInfoComponent.h"
 #include "Widgets/Input/SNumericEntryBox.h"
 #include "Libraries/PipelineLibrary.h"
+#include "DropByDropNotifications.h"
 #include "Landscape.h"
 
 /**
@@ -253,7 +254,13 @@ FReply SLandscapePanel::OnCreateLandscapeClicked()
 {
 	// Call the pipeline library function to generate the landscape.
 	// Dereferences the shared pointers to pass the actual settings structs.
-	UPipelineLibrary::GenerateLandscapeAuto(*Heightmap, *External, *Landscape);
+	if (!UPipelineLibrary::GenerateLandscapeAuto(*Heightmap, *External, *Landscape))
+	{
+		UDropByDropNotifications::ShowErrorNotification(TEXT("Failed to create the landscape!"));
+		return FReply::Handled();
+	}
+
+	UDropByDropNotifications::ShowSuccessNotification(TEXT("Landscape created successfully!"));
 
 	// Return Handled to indicate the UI event was processed.
 	return FReply::Handled();
@@ -276,7 +283,13 @@ FReply SLandscapePanel::OnSplitInProxiesClicked()
 	// Call the pipeline library function to split the landscape into proxies.
 	// Double dereference: first to get ALandscape* from TObjectPtr<ALandscape>*,
 	// then to get ALandscape& for the function parameter.
-	UPipelineLibrary::SplitLandscapeIntoProxies(**ActiveLandscape);
+	if (!UPipelineLibrary::SplitLandscapeIntoProxies(**ActiveLandscape))
+	{
+		UDropByDropNotifications::ShowErrorNotification(TEXT("Failed to split the landscape into proxies!"));
+		return FReply::Handled();
+	}
+
+	UDropByDropNotifications::ShowSuccessNotification(TEXT("Landscape successfully split into proxies!"));
 
 	// Return Handled to indicate the UI event was processed.
 	return FReply::Handled();

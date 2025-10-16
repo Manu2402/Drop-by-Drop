@@ -2,6 +2,7 @@
 
 #include "ErosionTemplateManager.h"
 #include "Libraries/PipelineLibrary.h"
+#include "DropByDropNotifications.h"
 #include "DropByDropSettings.h"
 #include "DropByDropLogger.h"
 
@@ -67,13 +68,14 @@ void UErosionTemplateManager::SaveCurrentAsTemplate(const FString& Name)
 
 	if (Name.IsEmpty())
 	{
+		UDropByDropNotifications::ShowWarningNotification(TEXT("Cannot save an erosion template with an empty name!"));
 		UE_LOG(LogDropByDropTemplate, Warning, TEXT("Cannot save an erosion template with an empty name!"));
 		return;
 	}
 
 	// Delegate to PipelineLibrary to handle data table row creation/update.
 	// Passes all individual erosion parameter values.
-	UPipelineLibrary::SaveErosionTemplate(
+	if (!UPipelineLibrary::SaveErosionTemplate(
 		Name,
 		ErosionSettings->ErosionCycles,
 		ErosionSettings->Inertia,
@@ -85,7 +87,13 @@ void UErosionTemplateManager::SaveCurrentAsTemplate(const FString& Name)
 		ErosionSettings->Evaporation,
 		ErosionSettings->MaxPath,
 		ErosionSettings->ErosionRadius
-	);
+	))
+	{
+		UDropByDropNotifications::ShowErrorNotification(FString::Printf(TEXT("Failed to save the \"%s\" erosion template!"), *Name));
+		return;
+	}
+
+	UDropByDropNotifications::ShowSuccessNotification(FString::Printf(TEXT("Erosion template \"%s\" saved successfully!"), *Name));
 }
 
 /**
@@ -105,15 +113,26 @@ void UErosionTemplateManager::LoadTemplate(const FString& Name)
 		return;
 	}
 
+	if (Name.IsEmpty())
+	{
+		UDropByDropNotifications::ShowWarningNotification(TEXT("Cannot load an erosion template with an empty name!"));
+		UE_LOG(LogDropByDropTemplate, Warning, TEXT("Cannot load an erosion template with an empty name!"));
+		return;
+	}
+
 	// Attempt to load the template row from the data table.
 	if (auto* Row = UPipelineLibrary::LoadErosionTemplate(Name))
 	{
 		// Populate the erosion settings with values from the loaded row.
-		UPipelineLibrary::LoadRowIntoErosionFields(ErosionSettings, Row);
-		return;
+		if (UPipelineLibrary::LoadRowIntoErosionFields(ErosionSettings, Row))
+		{
+			UDropByDropNotifications::ShowSuccessNotification(FString::Printf(TEXT("Erosion template \"%s\" loaded successfully!"), *Name));
+			return;
+		}
 	}
 
-	UE_LOG(LogDropByDropTemplate, Warning, TEXT("The \"%s\" erosion template doesn't exist!"), *Name);
+	UDropByDropNotifications::ShowErrorNotification(FString::Printf(TEXT("Failed to load the \"%s\" erosion template!"), *Name));
+	UE_LOG(LogDropByDropTemplate, Warning, TEXT("Failed to load the \"%s\" erosion template!"), *Name);
 }
 
 /**
@@ -123,8 +142,21 @@ void UErosionTemplateManager::LoadTemplate(const FString& Name)
  */
 void UErosionTemplateManager::DeleteTemplate(const FString& Name)
 {
+	if (Name.IsEmpty())
+	{
+		UDropByDropNotifications::ShowWarningNotification(TEXT("Cannot delete an erosion template with an empty name!"));
+		UE_LOG(LogDropByDropTemplate, Warning, TEXT("Cannot delete an erosion template with an empty name!"));
+		return;
+	}
+
 	// Delegate deletion to the PipelineLibrary.
-	UPipelineLibrary::DeleteErosionTemplate(Name);
+	if (!UPipelineLibrary::DeleteErosionTemplate(Name)) 
+	{
+		UDropByDropNotifications::ShowErrorNotification(FString::Printf(TEXT("Failed to delete the \"%s\" erosion template!"), *Name));
+		return;
+	}
+
+	UDropByDropNotifications::ShowSuccessNotification(FString::Printf(TEXT("Erosion template \"%s\" deleted successfully!"), *Name));
 }
 
 /**

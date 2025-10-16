@@ -7,6 +7,7 @@
 #include "Widgets/Input/SNumericEntryBox.h"
 #include "Libraries/PipelineLibrary.h"
 #include "Widget/TemplateBrowser.h"
+#include "DropByDropNotifications.h"
 #include "Landscape.h"
 
 #define EMPTY_STRING ""
@@ -66,12 +67,10 @@ void SErosionPanel::Construct(const FArguments& Args)
 								.OnValueChanged_Lambda([E = Erosion](int64 Value) { Value = Value >= 0 ? Value : 0; E->ErosionCycles = Value; })
 						]
 				]
-
-			+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)
+				+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)
 				[
 					SNew(SSeparator)
 				]
-
 				// --- Wind Direction Section ---
 				+ SVerticalBox::Slot().AutoHeight().Padding(5)
 				[
@@ -173,9 +172,8 @@ void SErosionPanel::Construct(const FArguments& Args)
 												})
 										]
 								]
-
-							// Wind Bias Checkbox.
-							+ SHorizontalBox::Slot().AutoWidth().Padding(8, 0).VAlign(VAlign_Center)
+								// Wind Bias Checkbox.
+								+ SHorizontalBox::Slot().AutoWidth().Padding(8, 0).VAlign(VAlign_Center)
 								[
 									SNew(SHorizontalBox)
 										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
@@ -222,12 +220,10 @@ void SErosionPanel::Construct(const FArguments& Args)
 									})
 						]
 				]
-
-			+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)
+				+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)
 				[
 					SNew(SSeparator)
 				]
-
 				// --- Advanced Parameters Section (Collapsible) ---
 				+ SVerticalBox::Slot().AutoHeight().Padding(5)
 				[
@@ -255,9 +251,8 @@ void SErosionPanel::Construct(const FArguments& Args)
 												.OnValueChanged_Lambda([E = Erosion](float Value) { Value = FMath::Clamp(Value, 0.f, 1.f); E->Inertia = Value; })
 										]
 								]
-
-							// Capacity Parameter (sediment transport capacity).
-							+ SVerticalBox::Slot().AutoHeight().Padding(2)
+								// Capacity Parameter (sediment transport capacity).
+								+ SVerticalBox::Slot().AutoHeight().Padding(2)
 								[
 									SNew(SHorizontalBox)
 										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
@@ -273,9 +268,8 @@ void SErosionPanel::Construct(const FArguments& Args)
 												.OnValueChanged_Lambda([E = Erosion](int32 Value) { Value = Value >= 0 ? Value : 0; E->Capacity = Value; })
 										]
 								]
-
-							// Minimal Slope Parameter.
-							+ SVerticalBox::Slot().AutoHeight().Padding(2)
+								// Minimal Slope Parameter.
+								+ SVerticalBox::Slot().AutoHeight().Padding(2)
 								[
 									SNew(SHorizontalBox)
 										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
@@ -291,9 +285,8 @@ void SErosionPanel::Construct(const FArguments& Args)
 												.OnValueChanged_Lambda([E = Erosion](float Value) { Value = Value >= 0.f ? Value : 0.f; E->MinimalSlope = Value; })
 										]
 								]
-
-							// Deposition Speed Parameter (0.0 - 1.0).
-							+ SVerticalBox::Slot().AutoHeight().Padding(2)
+								// Deposition Speed Parameter (0.0 - 1.0).
+								+ SVerticalBox::Slot().AutoHeight().Padding(2)
 								[
 									SNew(SHorizontalBox)
 										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
@@ -309,9 +302,8 @@ void SErosionPanel::Construct(const FArguments& Args)
 												.OnValueChanged_Lambda([E = Erosion](float Value) { Value = FMath::Clamp(Value, 0.f, 1.f); E->DepositionSpeed = Value; })
 										]
 								]
-
-							// Erosion Speed Parameter (0.0 - 1.0).
-							+ SVerticalBox::Slot().AutoHeight().Padding(2)
+								// Erosion Speed Parameter (0.0 - 1.0).
+								+ SVerticalBox::Slot().AutoHeight().Padding(2)
 								[
 									SNew(SHorizontalBox)
 										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
@@ -327,9 +319,8 @@ void SErosionPanel::Construct(const FArguments& Args)
 												.OnValueChanged_Lambda([E = Erosion](float Value) { Value = FMath::Clamp(Value, 0.f, 1.f); E->ErosionSpeed = Value; })
 										]
 								]
-
-							// Gravity Parameter.
-							+ SVerticalBox::Slot().AutoHeight().Padding(2)
+								// Gravity Parameter.
+								+ SVerticalBox::Slot().AutoHeight().Padding(2)
 								[
 									SNew(SHorizontalBox)
 										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
@@ -345,9 +336,8 @@ void SErosionPanel::Construct(const FArguments& Args)
 												.OnValueChanged_Lambda([E = Erosion](int32 Value) { Value = Value >= 0 ? Value : 0; E->Gravity = Value; })
 										]
 								]
-
-							// Evaporation Parameter (0.0 - 1.0).
-							+ SVerticalBox::Slot().AutoHeight().Padding(2)
+								// Evaporation Parameter (0.0 - 1.0).
+								+ SVerticalBox::Slot().AutoHeight().Padding(2)
 								[
 									SNew(SHorizontalBox)
 										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
@@ -363,9 +353,8 @@ void SErosionPanel::Construct(const FArguments& Args)
 												.OnValueChanged_Lambda([E = Erosion](float Value) { Value = FMath::Clamp(Value, 0.f, 1.f); E->Evaporation = Value; })
 										]
 								]
-
-							// Max Path Parameter (droplet lifetime in steps).
-							+ SVerticalBox::Slot().AutoHeight().Padding(2)
+								// Max Path Parameter (droplet lifetime in steps).
+								+ SVerticalBox::Slot().AutoHeight().Padding(2)
 								[
 									SNew(SHorizontalBox)
 										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
@@ -381,9 +370,8 @@ void SErosionPanel::Construct(const FArguments& Args)
 												.OnValueChanged_Lambda([E = Erosion](int32 Value) { Value = Value >= 0 ? Value : 0; E->MaxPath = Value; })
 										]
 								]
-
-							// Erosion Radius Parameter (affects smoothing of erosion effects).
-							+ SVerticalBox::Slot().AutoHeight().Padding(2)
+								// Erosion Radius Parameter (affects smoothing of erosion effects).
+								+ SVerticalBox::Slot().AutoHeight().Padding(2)
 								[
 									SNew(SHorizontalBox)
 										+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
@@ -401,12 +389,10 @@ void SErosionPanel::Construct(const FArguments& Args)
 								]
 						]
 				]
-
-			+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)
+				+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)
 				[
 					SNew(SSeparator)
 				]
-
 				// --- Main Erode Button ---
 				+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
 				[
@@ -429,8 +415,7 @@ void SErosionPanel::Construct(const FArguments& Args)
 								.OnClicked(this, &SErosionPanel::OnErodeClicked)
 						]
 				]
-
-			+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)
+				+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)
 				[
 					SNew(SSeparator)
 				]
@@ -475,7 +460,13 @@ void SErosionPanel::BuildWindDirections()
 FReply SErosionPanel::OnErodeClicked()
 {
 	// No pointer safety needed, this button is disabled if no landscape is selected.
-	UPipelineLibrary::GenerateErosion(*ActiveLandscape, *Erosion);
+	if (!UPipelineLibrary::GenerateErosion(*ActiveLandscape, *Erosion))
+	{
+		UDropByDropNotifications::ShowErrorNotification("Erosion generation failed!");
+		return FReply::Handled();
+	}
+
+	UDropByDropNotifications::ShowSuccessNotification("Erosion generation completed successfully!");
 
 	return FReply::Handled();
 }

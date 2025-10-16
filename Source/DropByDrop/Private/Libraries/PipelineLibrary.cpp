@@ -101,14 +101,14 @@ TArray<uint16> UPipelineLibrary::StandardizeHeightmapResolution(const TArray<uin
  * 3. Creates a new landscape with the eroded heightmap.
  * 4. Preserves all settings from the original landscape.
  */
-void UPipelineLibrary::GenerateErosion(TObjectPtr<ALandscape> ActiveLandscape, FErosionSettings& ErosionSettings)
+bool UPipelineLibrary::GenerateErosion(TObjectPtr<ALandscape> ActiveLandscape, FErosionSettings& ErosionSettings)
 {
 	// Retrieve the landscape info component which stores heightmap and generation settings.
 	ULandscapeInfoComponent* ActiveLandscapeInfoComponent = ActiveLandscape->FindComponentByClass<ULandscapeInfoComponent>();
 	if (!ActiveLandscapeInfoComponent)
 	{
 		UE_LOG(LogDropByDropLandscape, Error, TEXT("The \"Active Landscape\" resource is invalid!"));
-		return;
+		return false;
 	}
 
 	// Take the heightmap.
@@ -139,7 +139,7 @@ void UPipelineLibrary::GenerateErosion(TObjectPtr<ALandscape> ActiveLandscape, F
 	if (!IsValid(NewLandscape))
 	{
 		UE_LOG(LogDropByDropLandscape, Error, TEXT("Failed to generate the landscape!"));
-		return;
+		return false;
 	}
 
 	// Get the info component from the newly created landscape.
@@ -147,7 +147,7 @@ void UPipelineLibrary::GenerateErosion(TObjectPtr<ALandscape> ActiveLandscape, F
 	if (!ErodedLandscapeInfoComponent)
 	{
 		UE_LOG(LogDropByDropLandscape, Error, TEXT("Failed to generate the landscape!"));
-		return;
+		return false;
 	}
 
 	// Mark this landscape as having been eroded and copy all settings from the original.
@@ -161,7 +161,9 @@ void UPipelineLibrary::GenerateErosion(TObjectPtr<ALandscape> ActiveLandscape, F
 	ErodedLandscapeInfoComponent->SetHeightMapSettings(ErodedSettings);
 	ErodedLandscapeInfoComponent->SetLandscapeSettings(ActiveLandscapeInfoComponent->GetLandscapeSettings());
 
-	UE_LOG(LogDropByDropLandscape, Log, TEXT("Landscape generated successfully after erosion!"));
+	// UE_LOG(LogDropByDropLandscape, Log, TEXT("Landscape generated successfully after erosion!"));
+
+	return true;
 }
 
 /**
@@ -251,12 +253,12 @@ FErosionTemplateRow* UPipelineLibrary::LoadErosionTemplate(const FString& RowNam
  * Populates erosion settings from a loaded template.
  * Copies all erosion parameters from the template to the active settings.
  */
-void UPipelineLibrary::LoadRowIntoErosionFields(TSharedPtr<FErosionSettings>& OutErosionSettings, const FErosionTemplateRow* TemplateDatas)
+bool UPipelineLibrary::LoadRowIntoErosionFields(TSharedPtr<FErosionSettings>& OutErosionSettings, const FErosionTemplateRow* TemplateDatas)
 {
 	if (!TemplateDatas)
 	{
 		UE_LOG(LogDropByDropTemplate, Error, TEXT("The \"Erosion Template Datas\" resource is invalid!"));
-		return;
+		return false;
 	}
 
 	// Copy all erosion parameters from template to settings structure.
@@ -270,6 +272,8 @@ void UPipelineLibrary::LoadRowIntoErosionFields(TSharedPtr<FErosionSettings>& Ou
 	OutErosionSettings->Evaporation = TemplateDatas->EvaporationField;
 	OutErosionSettings->MaxPath = TemplateDatas->MaxPathField;
 	OutErosionSettings->ErosionRadius = TemplateDatas->ErosionRadiusField;
+
+	return true;
 }
 
 /**
@@ -286,17 +290,9 @@ bool UPipelineLibrary::DeleteErosionTemplate(const FString& TemplateName)
 		return false;
 	}
 
-	// Check if the row exists before attempting to remove it.
-	FName RowName(TemplateName);
-	if (!ErosionTemplatesDT->GetRowNames().Contains(RowName))
-	{
-		UE_LOG(LogDropByDropTemplate, Warning, TEXT("Template \"%s\" not found in the Erosion Templates DataTable"), *TemplateName);
-		return false;
-	}
-
 	// Remove the row from the data table.
 	ErosionTemplatesDT->Modify();
-	FDataTableEditorUtils::RemoveRow(ErosionTemplatesDT, RowName);
+	FDataTableEditorUtils::RemoveRow(ErosionTemplatesDT, FName(TemplateName));
 
 	// Persist the change to disk.
 	return SaveErosionTemplates(ErosionTemplatesDT);
@@ -325,15 +321,13 @@ bool UPipelineLibrary::CreateAndSaveHeightMap(FHeightMapGenerationSettings& Sett
 	}
 
 	// Save the texture as a persistent asset.
-	if (SaveToAsset(Texture, "TextureHeightMap"))
+	if (!SaveToAsset(Texture, "TextureHeightMap"))
 	{
-		UE_LOG(LogDropByDropHeightmap, Log, TEXT("Heightmap texture saved successfully!"));
-		return true;
+		UE_LOG(LogDropByDropHeightmap, Error, TEXT("Failed to save the heightmap texture!"));
+		return false;
 	}
 
-	UE_LOG(LogDropByDropHeightmap, Error, TEXT("Failed to save the heightmap texture!"));
-
-	return false;
+	return true;
 }
 
 /**
@@ -489,7 +483,7 @@ bool UPipelineLibrary::OpenHeightmapFileDialog(TSharedPtr<FExternalHeightMapSett
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	if (!DesktopPlatform)
 	{
-		UE_LOG(LogDropByDropHeightmap, Warning, TEXT("Failed to open file dialog!"));
+		UE_LOG(LogDropByDropHeightmap, Error, TEXT("Failed to open file dialog!"));
 		return false;
 	}
 
@@ -501,6 +495,7 @@ bool UPipelineLibrary::OpenHeightmapFileDialog(TSharedPtr<FExternalHeightMapSett
 
 	if (!bOpened || OutFiles.Num() <= 0)
 	{
+		UE_LOG(LogDropByDropHeightmap, Warning, TEXT("Failed to open file dialog!"));
 		return false;
 	}
 
@@ -518,7 +513,7 @@ bool UPipelineLibrary::OpenHeightmapFileDialog(TSharedPtr<FExternalHeightMapSett
 
 		if (Imported->GetSurfaceWidth() != Imported->GetSurfaceHeight())
 		{
-			UE_LOG(LogDropByDropHeightmap, Warning, TEXT("Imported texture isn't squared!"));
+			UE_LOG(LogDropByDropHeightmap, Error, TEXT("Imported texture isn't squared!"));
 			return false;
 		}
 
@@ -757,7 +752,7 @@ bool UPipelineLibrary::InitLandscape(TArray<uint16>& HeightData, FHeightMapGener
  * Creates a landscape from internally generated (procedural) heightmap data.
  * Uses Perlin noise generation if heightmap hasn't been generated yet.
  */
-void UPipelineLibrary::CreateLandscapeFromInternalHeightMap(FHeightMapGenerationSettings& HeightmapSettings, FExternalHeightMapSettings& ExternalSettings, FLandscapeGenerationSettings& LandscapeSettings)
+bool UPipelineLibrary::CreateLandscapeFromInternalHeightMap(FHeightMapGenerationSettings& HeightmapSettings, FExternalHeightMapSettings& ExternalSettings, FLandscapeGenerationSettings& LandscapeSettings)
 {
 	// Mark that we're not using an external heightmap.
 	ExternalSettings.bIsExternalHeightMap = false;
@@ -787,17 +782,17 @@ void UPipelineLibrary::CreateLandscapeFromInternalHeightMap(FHeightMapGeneration
 	if (!World)
 	{
 		UE_LOG(LogDropByDropLandscape, Error, TEXT("Failed to generate the landscape! \"World\" resource is invalid!"));
-		return;
+		return false;
 	}
 
-	InitLandscape(StandardizedHeightmap, HeightmapSettings, ExternalSettings, LandscapeSettings);
+	return InitLandscape(StandardizedHeightmap, HeightmapSettings, ExternalSettings, LandscapeSettings);
 }
 
 /**
  * Creates a landscape from an external heightmap file (PNG).
  * Loads the file, validates it, and creates the landscape.
  */
-void UPipelineLibrary::CreateLandscapeFromExternalHeightMap(const FString& FilePath, FExternalHeightMapSettings& ExternalSettings, FLandscapeGenerationSettings& LandscapeSettings, FHeightMapGenerationSettings& HeightmapSettings)
+bool UPipelineLibrary::CreateLandscapeFromExternalHeightMap(const FString& FilePath, FExternalHeightMapSettings& ExternalSettings, FLandscapeGenerationSettings& LandscapeSettings, FHeightMapGenerationSettings& HeightmapSettings)
 {
 	// Mark that we're using an external heightmap source.
 	ExternalSettings.bIsExternalHeightMap = true;
@@ -811,7 +806,7 @@ void UPipelineLibrary::CreateLandscapeFromExternalHeightMap(const FString& FileP
 	if (HeightMapInt16.Num() <= 0)
 	{
 		UE_LOG(LogDropByDropHeightmap, Error, TEXT("Failed to load heightmap from PNG file!"));
-		return;
+		return false;
 	}
 
 	TArray<uint16> StandardizedHeightmap = StandardizeHeightmapResolution(HeightMapInt16);
@@ -824,30 +819,29 @@ void UPipelineLibrary::CreateLandscapeFromExternalHeightMap(const FString& FileP
 	}
 
 	// Create the landscape with the standardized heightmap.
-	InitLandscape(StandardizedHeightmap, HeightmapSettings, ExternalSettings, LandscapeSettings);
+	return InitLandscape(StandardizedHeightmap, HeightmapSettings, ExternalSettings, LandscapeSettings);
 }
 
 /**
  * Automatic landscape generation router.
  * Decides whether to use external or internal heightmap based on settings.
  */
-void UPipelineLibrary::GenerateLandscapeAuto(FHeightMapGenerationSettings& HeightmapSettings, FExternalHeightMapSettings& ExternalSettings, FLandscapeGenerationSettings& LandscapeSettings)
+bool UPipelineLibrary::GenerateLandscapeAuto(FHeightMapGenerationSettings& HeightmapSettings, FExternalHeightMapSettings& ExternalSettings, FLandscapeGenerationSettings& LandscapeSettings)
 {
 	// If external heightmap is specified and valid, use it.
 	if (ExternalSettings.bIsExternalHeightMap && !ExternalSettings.LastPNGPath.IsEmpty() && FPaths::FileExists(ExternalSettings.LastPNGPath))
 	{
-		CreateLandscapeFromExternalHeightMap(ExternalSettings.LastPNGPath, ExternalSettings, LandscapeSettings, HeightmapSettings);
-		return;
+		return CreateLandscapeFromExternalHeightMap(ExternalSettings.LastPNGPath, ExternalSettings, LandscapeSettings, HeightmapSettings);
 	}
 
 	if (ExternalSettings.bIsExternalHeightMap && !ExternalSettings.LastPNGPath.IsEmpty())
 	{
-		UE_LOG(LogDropByDropHeightmap, Error, TEXT("External heightmap file not found: %s"), *ExternalSettings.LastPNGPath);
+		UE_LOG(LogDropByDropHeightmap, Warning, TEXT("External heightmap file not found: %s"), *ExternalSettings.LastPNGPath);
 		ExternalSettings.bIsExternalHeightMap = false;
 	}
 
 	// Otherwise, generate procedurally.
-	CreateLandscapeFromInternalHeightMap(HeightmapSettings, ExternalSettings, LandscapeSettings);
+	return CreateLandscapeFromInternalHeightMap(HeightmapSettings, ExternalSettings, LandscapeSettings);
 }
 
 /**
@@ -936,7 +930,7 @@ TObjectPtr<ALandscape> UPipelineLibrary::GenerateLandscape(const FTransform& Lan
  * This enables efficient streaming and editing of large terrains.
  * Uses the "LandscapeSubsystem" to partition the landscape into grid cells.
  */
-void UPipelineLibrary::SplitLandscapeIntoProxies(ALandscape& ActiveLandscape)
+bool UPipelineLibrary::SplitLandscapeIntoProxies(ALandscape& ActiveLandscape)
 {
 	// Get the landscape info which contains component and layer data.
 	ULandscapeInfo* LandscapeInfo = ActiveLandscape.GetLandscapeInfo();
@@ -944,7 +938,7 @@ void UPipelineLibrary::SplitLandscapeIntoProxies(ALandscape& ActiveLandscape)
 	if (!LandscapeInfo)
 	{
 		UE_LOG(LogDropByDropLandscape, Error, TEXT("Failed to split the landscape! \"LandscapeInfo\" resource is invalid!"));
-		return;
+		return false;
 	}
 
 	// Update layer info and register all components before splitting.
@@ -968,6 +962,16 @@ void UPipelineLibrary::SplitLandscapeIntoProxies(ALandscape& ActiveLandscape)
 			// Change grid size triggers proxy creation based on world partition cell size.
 			LandscapeSubsystem->ChangeGridSize(LandscapeInfo, LandscapeInfoComponent->GetLandscapeSettings().WorldPartitionCellSize);
 		}
+		else
+		{
+			UE_LOG(LogDropByDropLandscape, Error, TEXT("The \"LandscapeSubsystem\" resource is invalid!"));
+			return false;
+		}
+	}
+	else
+	{
+		UE_LOG(LogDropByDropLandscape, Error, TEXT("The \"World\" resource is invalid!"));
+		return false;
 	}
 
 	SlowTask.EnterProgressFrame(100);
@@ -986,19 +990,35 @@ void UPipelineLibrary::SplitLandscapeIntoProxies(ALandscape& ActiveLandscape)
 				StreamingWorldPartitionSubsystemInterface->OnUpdateStreamingState();
 				GEditor->RedrawAllViewports(); // Refresh editor viewports to show changes.
 			}
+			else
+			{
+				UE_LOG(LogDropByDropLandscape, Error, TEXT("The \"IStreamingWorldSubsystemInterface\" resource is invalid!"));
+				return false;
+			}
 		}
-
+		else
+		{
+			UE_LOG(LogDropByDropLandscape, Error, TEXT("The \"WorldPartitionSubsystem\" resource is invalid!"));
+			return false;
+		}
+	}
+	else
+	{
+		UE_LOG(LogDropByDropLandscape, Error, TEXT("The \"World\" resource is invalid!"));
+		return false;
 	}
 
 	// Verify info component was created successfully.
 	if (!LandscapeInfoComponent)
 	{
 		UE_LOG(LogDropByDropLandscape, Error, TEXT("Failed to split the landscape!"));
-		return;
+		return false;
 	}
 
 	// Mark the landscape as having been split into proxies.
 	LandscapeInfoComponent->SetIsSplittedIntoProxies(true);
+
+	return true;
 }
 
 /**

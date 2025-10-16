@@ -105,8 +105,9 @@ public:
 	 * Applies erosion simulation to an existing landscape.
 	 * @param ActiveLandscape - The landscape to apply erosion to.
 	 * @param ErosionSettings - Configuration settings for the erosion algorithm.
+	 * @return True if erosion was successfully applied and a new landscape created, false otherwise.
 	 */
-	static void GenerateErosion(TObjectPtr<ALandscape> ActiveLandscape, FErosionSettings& ErosionSettings);
+	static bool GenerateErosion(TObjectPtr<ALandscape> ActiveLandscape, FErosionSettings& ErosionSettings);
 
 	/**
 	 * Saves a new erosion template with specified parameters to persistent storage.
@@ -143,8 +144,9 @@ public:
 	 * Populates erosion settings from a template row.
 	 * @param OutErosionSettings - Settings structure to populate.
 	 * @param TemplateDatas - Source template data to copy from.
+	 * @return True if loading was successful, false otherwise.
 	 */
-	static void LoadRowIntoErosionFields(TSharedPtr<FErosionSettings>& OutErosionSettings, const FErosionTemplateRow* TemplateDatas);
+	static bool LoadRowIntoErosionFields(TSharedPtr<FErosionSettings>& OutErosionSettings, const FErosionTemplateRow* TemplateDatas);
 
 	/**
 	 * Deletes a saved erosion template.
@@ -176,8 +178,9 @@ public:
 	 * @param HeightmapSettings - Settings for heightmap generation.
 	 * @param ExternalSettings - Imported from file system heightmap settings.
 	 * @param LandscapeSettings - Landscape creation parameters (size, scale, etc.).
+	 * @return True if landscape creation was successful, false otherwise.
 	 */
-	static void CreateLandscapeFromInternalHeightMap(FHeightMapGenerationSettings& HeightmapSettings, FExternalHeightMapSettings& ExternalSettings, FLandscapeGenerationSettings& LandscapeSettings);
+	static bool CreateLandscapeFromInternalHeightMap(FHeightMapGenerationSettings& HeightmapSettings, FExternalHeightMapSettings& ExternalSettings, FLandscapeGenerationSettings& LandscapeSettings);
 
 	/**
 	 * Creates a landscape actor from an external heightmap file.
@@ -185,22 +188,25 @@ public:
 	 * @param ExternalSettings - Imported from file system heightmap settings.
 	 * @param LandscapeSettings - Landscape creation parameters.
 	 * @param HeightmapSettings - Heightmap settings for processing.
+	 * @return True if landscape creation was successful, false otherwise.
 	 */
-	static void CreateLandscapeFromExternalHeightMap(const FString& FilePath, FExternalHeightMapSettings& ExternalSettings, FLandscapeGenerationSettings& LandscapeSettings, FHeightMapGenerationSettings& HeightmapSettings);
+	static bool CreateLandscapeFromExternalHeightMap(const FString& FilePath, FExternalHeightMapSettings& ExternalSettings, FLandscapeGenerationSettings& LandscapeSettings, FHeightMapGenerationSettings& HeightmapSettings);
 
 	/**
 	 * Automated landscape generation pipeline combining generation and creation.
 	 * @param HeightmapSettings - Heightmap generation settings.
 	 * @param ExternalSettings - Imported from file system heightmap settings.
-	 * @param LandscapeSettings - Landscape creation settings.
+	 * @param LandscapeSettings - Landscape creation settings.ù
+	 * @return True if landscape was successfully generated and created, false otherwise.
 	 */
-	static void GenerateLandscapeAuto(FHeightMapGenerationSettings& HeightmapSettings, FExternalHeightMapSettings& ExternalSettings, FLandscapeGenerationSettings& LandscapeSettings);
+	static bool GenerateLandscapeAuto(FHeightMapGenerationSettings& HeightmapSettings, FExternalHeightMapSettings& ExternalSettings, FLandscapeGenerationSettings& LandscapeSettings);
 
 	/**
 	 * Divides a large landscape into multiple streaming proxies for performance optimization.
 	 * @param LandscapeSettings - The landscape to split.
+	 * @return True if the landscape was successfully split, false otherwise.
 	 */
-	static void SplitLandscapeIntoProxies(ALandscape& LandscapeSettings);
+	static bool SplitLandscapeIntoProxies(ALandscape& LandscapeSettings);
 #pragma endregion
 
 #pragma region Utilities

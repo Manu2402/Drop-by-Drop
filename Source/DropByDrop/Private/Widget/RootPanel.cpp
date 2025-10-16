@@ -10,6 +10,7 @@
 #include "Widget/LandscapePanel.h"
 #include "Widget/ErosionPanel.h"
 #include "Widgets/Layout/SWidgetSwitcher.h"
+#include "DropByDropNotifications.h"
 #include "DropByDropLogger.h"
 
 #define LOCTEXT_NAMESPACE "RootPanel"
@@ -136,8 +137,8 @@ TSharedRef<SWidget> SRootPanel::BuildCenter()
 				.Landscape(Landscape)
 				.ActiveLandscape(ActiveLandscape)
 		]
-	// Slot 2: Erosion simulation panel.
-	+ SWidgetSwitcher::Slot()
+		// Slot 2: Erosion simulation panel.
+		+ SWidgetSwitcher::Slot()
 		[
 			SNew(SErosionPanel)
 				.Landscape(Landscape)
@@ -247,12 +248,19 @@ FReply SRootPanel::OnActionCreateHeightMap()
 	// Validate heightmap settings exist.
 	if (!Heightmap.IsValid())
 	{
+		UDropByDropNotifications::ShowErrorNotification(TEXT("Unable to create the heightmap!"));
 		UE_LOG(LogDropByDrop, Error, TEXT("The \"Heightmap\" resource is invalid!"));
 		return FReply::Handled();
 	}
 
 	// Create heightmap using pipeline library.
-	UPipelineLibrary::CreateAndSaveHeightMap(*Heightmap);
+	if (!UPipelineLibrary::CreateAndSaveHeightMap(*Heightmap))
+	{
+		UDropByDropNotifications::ShowErrorNotification(TEXT("Unable to create the heightmap!"));
+		return FReply::Handled();
+	}
+
+	UDropByDropNotifications::ShowSuccessNotification(TEXT("Heightmap created successfully!"));
 
 	// Update preview to show newly created heightmap.
 	RefreshRightPreview();
@@ -265,12 +273,20 @@ FReply SRootPanel::OnActionCreateLandscapeInternal()
 	// Validate all required settings exist.
 	if (!Heightmap.IsValid() || !External.IsValid() || !Landscape.IsValid())
 	{
+		UDropByDropNotifications::ShowErrorNotification(TEXT("Unable to create the landscape!"));
 		UE_LOG(LogDropByDrop, Error, TEXT("One of \"Heightmap\", \"External\" or \"Landscape\" resources is invalid!"));
 		return FReply::Handled();
 	}
 
 	// Create landscape from internal generated heightmap.
-	UPipelineLibrary::CreateLandscapeFromInternalHeightMap(*Heightmap, *External, *Landscape);
+	if (!UPipelineLibrary::CreateLandscapeFromInternalHeightMap(*Heightmap, *External, *Landscape))
+	{
+		UDropByDropNotifications::ShowErrorNotification(TEXT("Unable to create the landscape!"));
+		UE_LOG(LogDropByDrop, Error, TEXT("Unable to create the landscape!"));
+		return FReply::Handled();
+	}
+
+	UDropByDropNotifications::ShowSuccessNotification(TEXT("Landscape was created successfully!"));
 
 	// Refresh preview (in case heightmap was regenerated).
 	RefreshRightPreview();
@@ -283,6 +299,7 @@ FReply SRootPanel::OnActionImportAndCreateLandscapeExternal()
 	// Validate all required settings exist.
 	if (!Heightmap.IsValid() || !External.IsValid() || !Landscape.IsValid())
 	{
+		UDropByDropNotifications::ShowErrorNotification(TEXT("Unable to import the landscape!"));
 		UE_LOG(LogDropByDrop, Error, TEXT("One of \"Heightmap\", \"External\" or \"Landscape\" resources is invalid!"));
 		return FReply::Handled();
 	}
@@ -290,11 +307,18 @@ FReply SRootPanel::OnActionImportAndCreateLandscapeExternal()
 	// Open file dialog for heightmap selection (returns false if user cancels).
 	if (!UPipelineLibrary::OpenHeightmapFileDialog(External))
 	{
+		UDropByDropNotifications::ShowErrorNotification(TEXT("Unable to import the landscape!"));
 		return FReply::Handled();
 	}
 
 	// Import heightmap and create landscape.
-	UPipelineLibrary::CreateLandscapeFromExternalHeightMap(External->LastPNGPath, *External, *Landscape, *Heightmap);
+	if (!UPipelineLibrary::CreateLandscapeFromExternalHeightMap(External->LastPNGPath, *External, *Landscape, *Heightmap))
+	{
+		UDropByDropNotifications::ShowErrorNotification(TEXT("Unable to create the landscape!"));
+		return FReply::Handled();
+	}
+
+	UDropByDropNotifications::ShowSuccessNotification(TEXT("Heightmap successfully imported and landscape successfully created!"));
 
 	// Update preview to show imported heightmap.
 	RefreshRightPreview();

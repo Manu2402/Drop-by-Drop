@@ -5,6 +5,7 @@
 
 #include "Widgets/Input/SNumericEntryBox.h"
 #include "Libraries/PipelineLibrary.h"
+#include "DropByDropNotifications.h"
 #include "DropByDropLogger.h"
 
 #define EMPTY_STRING ""
@@ -65,6 +66,7 @@ void SHeightMapPanel::ApplyPreset(const FHeightMapGenerationSettings& Preset)
 {
 	if (!Heightmap.IsValid())
 	{
+		UDropByDropNotifications::ShowErrorNotification("Unable to apply the heightmap preset!");
 		UE_LOG(LogDropByDropHeightmap, Error, TEXT("The \"Heightmap\" resource is invalid!"));
 		return;
 	}
@@ -470,6 +472,7 @@ FReply SHeightMapPanel::OnCreateHeightmapClicked()
 {
 	if (!External.IsValid())
 	{
+		UDropByDropNotifications::ShowErrorNotification("Unable to create the heightmap!");
 		UE_LOG(LogDropByDropHeightmap, Error, TEXT("The \"External\" resource is invalid!"));
 		return FReply::Handled();
 	}
@@ -480,12 +483,19 @@ FReply SHeightMapPanel::OnCreateHeightmapClicked()
 
 	if (!Heightmap.IsValid())
 	{
+		UDropByDropNotifications::ShowErrorNotification("Unable to create the heightmap!");
 		UE_LOG(LogDropByDropHeightmap, Error, TEXT("The \"Heightmap\" resource is invalid!"));
 		return FReply::Handled();
 	}
 
 	// Generate and save the heightmap using current Perlin noise settings.
-	UPipelineLibrary::CreateAndSaveHeightMap(*Heightmap);
+	if (!UPipelineLibrary::CreateAndSaveHeightMap(*Heightmap))
+	{
+		UDropByDropNotifications::ShowErrorNotification("Failed to create the heightmap!");
+		return FReply::Handled();
+	}
+
+	UDropByDropNotifications::ShowSuccessNotification("Heightmap created successfully!");
 
 	return FReply::Handled();
 }
@@ -501,12 +511,18 @@ FReply SHeightMapPanel::OnCreateFromExternalHeightmapClicked()
 {
 	if (!External.IsValid())
 	{
+		UDropByDropNotifications::ShowErrorNotification("Unable to import the external heightmap!");
 		UE_LOG(LogDropByDropHeightmap, Error, TEXT("The \"External\" resource is invalid!"));
 		return FReply::Handled();
 	}
 
 	// Open native file dialog for heightmap selection.
-	UPipelineLibrary::OpenHeightmapFileDialog(External);
+	if (!UPipelineLibrary::OpenHeightmapFileDialog(External))
+	{
+		return FReply::Handled();
+	}
+
+	UDropByDropNotifications::ShowSuccessNotification("External heightmap imported successfully!");
 
 	return FReply::Handled();
 }
