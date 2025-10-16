@@ -63,7 +63,7 @@ void SLandscapePanel::Construct(const FArguments& Args)
 								// Lambda to retrieve current kilometers value from settings.
 								.Value_Lambda([L = Landscape]() -> TOptional<uint32> { return L->Kilometers; })
 								// Lambda to update kilometers value when user changes it.
-								.OnValueChanged_Lambda([L = Landscape](uint32 Value) { L->Kilometers = Value; })
+								.OnValueChanged_Lambda([L = Landscape](uint32 Value) { Value = (Value < 1) ? 1 : Value;  L->Kilometers = Value; })
 						]
 				]
 			+ SVerticalBox::Slot().AutoHeight().Padding(8, 5)

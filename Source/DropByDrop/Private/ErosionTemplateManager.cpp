@@ -20,11 +20,7 @@ TArray<FString> UErosionTemplateManager::GetAllTemplateNames() const
 		// Iterate through all row names in the data table.
 		for (const FName& Name : DataTable->GetRowNames())
 		{
-			// Exclude the "None" placeholder entry.
-			if (!Name.ToString().Equals(TEXT("None")))
-			{
-				OutNames.Add(Name.ToString());
-			}
+			OutNames.Add(Name.ToString());
 		}
 	}
 
@@ -66,6 +62,12 @@ void UErosionTemplateManager::SaveCurrentAsTemplate(const FString& Name)
 	if (!ErosionSettings.IsValid())
 	{
 		UE_LOG(LogDropByDropTemplate, Error, TEXT("The \"ErosionSettings\" resource is invalid!"));
+		return;
+	}
+
+	if (Name.IsEmpty())
+	{
+		UE_LOG(LogDropByDropTemplate, Warning, TEXT("Cannot save an erosion template with an empty name!"));
 		return;
 	}
 

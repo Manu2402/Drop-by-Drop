@@ -44,7 +44,7 @@ struct FHeightMapGenerationSettings
 	/** Starting scale of the noise pattern. */
 	float InitialScale = 1.8f;
 
-	/** Size of the heightmap grid (constant at 505x505). */
+	/** Size of the heightmap grid. */
 	uint32 Size = 505;
 
 	/** Maximum allowed height difference for terrain normalization. */
@@ -98,7 +98,7 @@ struct FLandscapeGenerationSettings
 	uint32 Kilometers = 1;
 
 	/** Size of each world partition cell for streaming (in grid units). */
-	uint32 WorldPartitionCellSize = 4;
+	uint32 WorldPartitionCellSize = 1;
 };
 
 #pragma region Erosion

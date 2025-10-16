@@ -11,6 +11,7 @@
 #include "Libraries/ErosionLibrary.h"
 #include "DesktopPlatformModule.h"
 #include "LandscapeImportHelper.h"
+#include "DataTableEditorUtils.h"
 #include "Misc/ScopedSlowTask.h"
 #include "UObject/SavePackage.h"
 #include "LandscapeSubsystem.h"
@@ -18,10 +19,77 @@
 #include "ImageUtils.h"
 #include "Landscape.h"
 
-// Constants for file paths and asset management.
 #define EMPTY_STRING ""
 #define HEIGHTMAP_PATH_SUFFIX "Saved/HeightMap/raw.r16" 
-#define HEIGHTMAP_ASSET_PREFIX "/DropByDrop/SavedAssets/"
+#define HEIGHTMAP_ASSET_PREFIX "/DropByDrop/SavedAssets"
+
+#define STANDARD_HEIGHTMAP_SIZE 505
+
+TArray<uint16> UPipelineLibrary::StandardizeHeightmapResolution(const TArray<uint16>& SourceHeightmap)
+{
+	// Validate input is not empty.
+	if (SourceHeightmap.Num() <= 0)
+	{
+		UE_LOG(LogDropByDropHeightmap, Error, TEXT("Cannot standardize empty heightmap!"));
+		return TArray<uint16>();
+	}
+
+	// Calculate original heightmap dimensions (assumes square layout).
+	const int32 SourceSize = static_cast<int32>(FMath::Sqrt(static_cast<float>(SourceHeightmap.Num())));
+
+	// If already at standard resolution, return copy.
+	if (SourceSize == STANDARD_HEIGHTMAP_SIZE)
+	{
+		return SourceHeightmap;
+	}
+
+	// Pre-allocate output heightmap at standard resolution.
+	TArray<uint16> StandardizedHeightmap;
+	StandardizedHeightmap.SetNum(STANDARD_HEIGHTMAP_SIZE * STANDARD_HEIGHTMAP_SIZE);
+
+	// Bilinear interpolation resampling loop.
+	// Maps each output pixel to its corresponding location in source space.
+	for (int32 Height = 0; Height < STANDARD_HEIGHTMAP_SIZE; Height++)
+	{
+		for (int32 Width = 0; Width < STANDARD_HEIGHTMAP_SIZE; Width++)
+		{
+			// Map output coordinates (0 - 505) to source coordinates (0 - SourceSize).
+			// Normalized to [0, 1] then scaled to source dimensions.
+			float SourceX = (Width / static_cast<float>(STANDARD_HEIGHTMAP_SIZE - 1)) * (SourceSize - 1);
+			float SourceY = (Height / static_cast<float>(STANDARD_HEIGHTMAP_SIZE - 1)) * (SourceSize - 1);
+
+			// Extract integer and fractional parts for interpolation.
+			int32 X0 = static_cast<int32>(SourceX);
+			int32 Y0 = static_cast<int32>(SourceY);
+			int32 X1 = FMath::Min(X0 + 1, SourceSize - 1);
+			int32 Y1 = FMath::Min(Y0 + 1, SourceSize - 1);
+
+			// Fractional components used for interpolation weights.
+			float FracX = SourceX - X0;
+			float FracY = SourceY - Y0;
+
+			// Sample the 4 surrounding pixels from source heightmap.
+			// Layout: Y0/Y1 rows, X0/X1 columns.
+			uint16 V00 = SourceHeightmap[Y0 * SourceSize + X0];
+			uint16 V10 = SourceHeightmap[Y0 * SourceSize + X1];
+			uint16 V01 = SourceHeightmap[Y1 * SourceSize + X0];
+			uint16 V11 = SourceHeightmap[Y1 * SourceSize + X1];
+
+			// Bilinear interpolation: first interpolate horizontally on both rows.
+			float V0 = FMath::Lerp(static_cast<float>(V00), static_cast<float>(V10), FracX);
+			float V1 = FMath::Lerp(static_cast<float>(V01), static_cast<float>(V11), FracX);
+
+			// Then interpolate vertically between the two rows.
+			float FinalValue = FMath::Lerp(V0, V1, FracY);
+
+			// Write to output heightmap with bounds checking.
+			const int32 DestIndex = Height * STANDARD_HEIGHTMAP_SIZE + Width;
+			StandardizedHeightmap[DestIndex] = static_cast<uint16>(FMath::Clamp(FinalValue, 0.f, 65535.f));
+		}
+	}
+
+	return StandardizedHeightmap;
+}
 
 #pragma region Erosion(Templates)
 
@@ -43,28 +111,29 @@ void UPipelineLibrary::GenerateErosion(TObjectPtr<ALandscape> ActiveLandscape, F
 		return;
 	}
 
+	// Take the heightmap.
+	TArray<float> HeightmapFloat = ActiveLandscapeInfoComponent->GetHeightMapSettings().HeightMap;
+	TArray<uint16> HeightmapToErode = ConvertArrayFromFloatToUInt16(HeightmapFloat);
+
 	// Create a progress dialog for long-running erosion operation.
 	FScopedSlowTask SlowTask(100, FText::FromString("Erosion in progress..."));
 	SlowTask.MakeDialog(true);
 
-	// Initialize erosion context with current heightmap data.
+	// Initialize erosion context with current heightmap data and starts the erosion.
 	FErosionContext ErosionContext;
-	UErosionLibrary::SetHeights(ErosionContext, ActiveLandscapeInfoComponent->GetHeightMapSettings().HeightMap);
-
-	// Run the erosion simulation algorithm.
-	UErosionLibrary::Erosion(ErosionContext, ErosionSettings, ActiveLandscapeInfoComponent->GetHeightMapSettings().Size);
+	UErosionLibrary::SetHeights(ErosionContext, ConvertArrayFromUInt16ToFloat(HeightmapToErode));
+	UErosionLibrary::Erosion(ErosionContext, ErosionSettings, STANDARD_HEIGHTMAP_SIZE);
 
 	SlowTask.EnterProgressFrame(50, FText::FromString("Applying on the landscape..."));
 
 	// Convert eroded heightmap from normalized float to 16-bit unsigned integer format required by Unreal.
 	TArray<uint16> ErodedHeightmapU16 = ConvertArrayFromFloatToUInt16(UErosionLibrary::GetHeights(ErosionContext));
 
-	// Calculate the transform (position, rotation, scale) for the new landscape.
-	const FTransform LandscapeTransform = GetNewTransform(ActiveLandscapeInfoComponent->GetExternalSettings(), ActiveLandscapeInfoComponent->GetLandscapeSettings(), ActiveLandscapeInfoComponent->GetHeightMapSettings().Size);
+	const FTransform LandscapeTransform = GetNewTransform(ActiveLandscapeInfoComponent->GetExternalSettings(), ActiveLandscapeInfoComponent->GetLandscapeSettings(), STANDARD_HEIGHTMAP_SIZE);
 
 	SlowTask.EnterProgressFrame(50);
 
-	// Spawn the new landscape actor with the eroded heightmap.
+	// Spawn the new landscape with the eroded heightmap.
 	TObjectPtr<ALandscape> NewLandscape = GenerateLandscape(LandscapeTransform, ErodedHeightmapU16);
 
 	if (!IsValid(NewLandscape))
@@ -84,10 +153,15 @@ void UPipelineLibrary::GenerateErosion(TObjectPtr<ALandscape> ActiveLandscape, F
 	// Mark this landscape as having been eroded and copy all settings from the original.
 	ErodedLandscapeInfoComponent->SetIsEroded(true);
 	ErodedLandscapeInfoComponent->SetExternalSettings(ActiveLandscapeInfoComponent->GetExternalSettings());
-	ErodedLandscapeInfoComponent->SetHeightMapSettings(ActiveLandscapeInfoComponent->GetHeightMapSettings());
+
+	FHeightMapGenerationSettings ErodedSettings = ActiveLandscapeInfoComponent->GetHeightMapSettings();
+	ErodedSettings.Size = STANDARD_HEIGHTMAP_SIZE;
+	ErodedSettings.HeightMap = ConvertArrayFromUInt16ToFloat(ErodedHeightmapU16);
+
+	ErodedLandscapeInfoComponent->SetHeightMapSettings(ErodedSettings);
 	ErodedLandscapeInfoComponent->SetLandscapeSettings(ActiveLandscapeInfoComponent->GetLandscapeSettings());
 
-	UE_LOG(LogDropByDropLandscape, Log, TEXT("Landscape generated successfully!"));
+	UE_LOG(LogDropByDropLandscape, Log, TEXT("Landscape generated successfully after erosion!"));
 }
 
 /**
@@ -187,7 +261,6 @@ void UPipelineLibrary::LoadRowIntoErosionFields(TSharedPtr<FErosionSettings>& Ou
 
 	// Copy all erosion parameters from template to settings structure.
 	OutErosionSettings->ErosionCycles = TemplateDatas->ErosionCyclesField;
-	OutErosionSettings->WindDirection = TemplateDatas->WindDirection;
 	OutErosionSettings->Inertia = TemplateDatas->InertiaField;
 	OutErosionSettings->Capacity = TemplateDatas->CapacityField;
 	OutErosionSettings->MinimalSlope = TemplateDatas->MinimalSlopeField;
@@ -213,8 +286,17 @@ bool UPipelineLibrary::DeleteErosionTemplate(const FString& TemplateName)
 		return false;
 	}
 
+	// Check if the row exists before attempting to remove it.
+	FName RowName(TemplateName);
+	if (!ErosionTemplatesDT->GetRowNames().Contains(RowName))
+	{
+		UE_LOG(LogDropByDropTemplate, Warning, TEXT("Template \"%s\" not found in the Erosion Templates DataTable"), *TemplateName);
+		return false;
+	}
+
 	// Remove the row from the data table.
-	ErosionTemplatesDT->RemoveRow(FName(TemplateName));
+	ErosionTemplatesDT->Modify();
+	FDataTableEditorUtils::RemoveRow(ErosionTemplatesDT, RowName);
 
 	// Persist the change to disk.
 	return SaveErosionTemplates(ErosionTemplatesDT);
@@ -434,6 +516,12 @@ bool UPipelineLibrary::OpenHeightmapFileDialog(TSharedPtr<FExternalHeightMapSett
 			return false;
 		}
 
+		if (Imported->GetSurfaceWidth() != Imported->GetSurfaceHeight())
+		{
+			UE_LOG(LogDropByDropHeightmap, Warning, TEXT("Imported texture isn't squared!"));
+			return false;
+		}
+
 		// Save the imported texture as a persistent asset.
 		if (!SaveToAsset(Imported, TEXT("TextureHeightMap")))
 		{
@@ -487,7 +575,7 @@ void UPipelineLibrary::LoadHeightmapFromFileSystem(const FString& FilePath, TArr
 	OutNormalizedHeightmap.SetNum(Width * Height);
 
 	// Determine which channel to use based on format
-	// Per heightmap, usiamo il canale RED (indipendentemente dall'ordine dei byte)
+	// For heightmaps, we use the RED channel (regardless of byte order).
 	const EPixelFormat PixelFormat = Texture->GetPixelFormat();
 
 	// Process pixel data based on the texture's pixel format.
@@ -570,6 +658,7 @@ void UPipelineLibrary::LoadHeightmapFromFileSystem(const FString& FilePath, TArr
 			MipMap.BulkData.Unlock();
 			UE_LOG(LogDropByDropHeightmap, Error, TEXT("Unsupported pixel format in PNG! Format: %d"), static_cast<int32>(PixelFormat));
 			UE_LOG(LogDropByDropHeightmap, Warning, TEXT("Supported formats: RGBA8, BGRA8, G16, G8, R32F"));
+			
 			return;
 		}
 	}
@@ -631,8 +720,8 @@ void UPipelineLibrary::CompareHeightmaps(const FString& RawFilePath, const TArra
  */
 bool UPipelineLibrary::InitLandscape(TArray<uint16>& HeightData, FHeightMapGenerationSettings& HeightmapSettings, FExternalHeightMapSettings& ExternalSettings, FLandscapeGenerationSettings& LandscapeSettings)
 {
-	// Calculate world transform for the new landscape.
-	const FTransform LandscapeTransform = GetNewTransform(ExternalSettings, LandscapeSettings, HeightmapSettings.Size);
+	// Calculate world transform for the new landscape usando 505
+	const FTransform LandscapeTransform = GetNewTransform(ExternalSettings, LandscapeSettings, 505);
 
 	// Spawn the landscape with heightmap data.
 	TObjectPtr<ALandscape> NewLandscape = GenerateLandscape(LandscapeTransform, HeightData);
@@ -650,12 +739,16 @@ bool UPipelineLibrary::InitLandscape(TArray<uint16>& HeightData, FHeightMapGener
 		return false;
 	}
 
+	FHeightMapGenerationSettings UpdatedHeightmapSettings = HeightmapSettings;
+	UpdatedHeightmapSettings.Size = STANDARD_HEIGHTMAP_SIZE;
+	UpdatedHeightmapSettings.HeightMap = ConvertArrayFromUInt16ToFloat(HeightData);
+
 	// Store all generation settings in the info component for later reference.
-	NewLandscapeInfo->SetHeightMapSettings(HeightmapSettings);
+	NewLandscapeInfo->SetHeightMapSettings(UpdatedHeightmapSettings);
 	NewLandscapeInfo->SetExternalSettings(ExternalSettings);
 	NewLandscapeInfo->SetLandscapeSettings(LandscapeSettings);
 
-	UE_LOG(LogDropByDropLandscape, Log, TEXT("Landscape created successfully!"));
+	UE_LOG(LogDropByDropLandscape, Log, TEXT("Landscape created successfully at standard size 505x505!"));
 
 	return true;
 }
@@ -669,7 +762,7 @@ void UPipelineLibrary::CreateLandscapeFromInternalHeightMap(FHeightMapGeneration
 	// Mark that we're not using an external heightmap.
 	ExternalSettings.bIsExternalHeightMap = false;
 
-	// Generate heightmap if it hasn't been created yet.
+	// Generate heightmap if it hasn't been created yet (può essere di qualsiasi risoluzione)
 	if (HeightmapSettings.HeightMap.Num() <= 0)
 	{
 		if (HeightmapSettings.bRandomizeSeed)
@@ -686,6 +779,9 @@ void UPipelineLibrary::CreateLandscapeFromInternalHeightMap(FHeightMapGeneration
 		}
 	}
 
+	TArray<uint16> HeightmapU16 = ConvertArrayFromFloatToUInt16(HeightmapSettings.HeightMap);
+	TArray<uint16> StandardizedHeightmap = StandardizeHeightmapResolution(HeightmapU16);
+
 	// Validate world context.
 	const UWorld* World = GEditor->GetEditorWorldContext().World();
 	if (!World)
@@ -694,9 +790,7 @@ void UPipelineLibrary::CreateLandscapeFromInternalHeightMap(FHeightMapGeneration
 		return;
 	}
 
-	// Convert normalized float heightmap to uint16 format required by Unreal's landscape system.
-	TArray<uint16> HeightData = ConvertArrayFromFloatToUInt16(HeightmapSettings.HeightMap);
-	InitLandscape(HeightData, HeightmapSettings, ExternalSettings, LandscapeSettings);
+	InitLandscape(StandardizedHeightmap, HeightmapSettings, ExternalSettings, LandscapeSettings);
 }
 
 /**
@@ -709,20 +803,9 @@ void UPipelineLibrary::CreateLandscapeFromExternalHeightMap(const FString& FileP
 	ExternalSettings.bIsExternalHeightMap = true;
 	ExternalSettings.LastPNGPath = FilePath;
 
-	// Load heightmap data from the PNG file.
+	// Load heightmap data from the PNG file (può essere di qualsiasi risoluzione)
 	TArray<uint16> HeightMapInt16;
 	LoadHeightmapFromFileSystem(FilePath, HeightMapInt16, HeightmapSettings.HeightMap, ExternalSettings);
-
-	// Debug: Optional comparison with reference RAW file (non-blocking).
-	FString HeightMapPath = FPaths::ProjectDir() + TEXT(HEIGHTMAP_PATH_SUFFIX);
-	if (FPaths::FileExists(HeightMapPath))
-	{
-		CompareHeightmaps(HeightMapPath, HeightMapInt16, 505, 505);
-	}
-	else
-	{
-		UE_LOG(LogDropByDropHeightmap, Warning, TEXT("Reference RAW file not found for validation: %s"), *HeightMapPath);
-	}
 
 	// Validate that heightmap was loaded successfully.
 	if (HeightMapInt16.Num() <= 0)
@@ -731,8 +814,17 @@ void UPipelineLibrary::CreateLandscapeFromExternalHeightMap(const FString& FileP
 		return;
 	}
 
-	// Create the landscape with the loaded heightmap.
-	InitLandscape(HeightMapInt16, HeightmapSettings, ExternalSettings, LandscapeSettings);
+	TArray<uint16> StandardizedHeightmap = StandardizeHeightmapResolution(HeightMapInt16);
+
+	// Optional: Debug comparison with RAW file if it exists.
+	FString HeightMapPath = FPaths::ProjectDir() + TEXT(HEIGHTMAP_PATH_SUFFIX);
+	if (FPaths::FileExists(HeightMapPath))
+	{
+		CompareHeightmaps(HeightMapPath, StandardizedHeightmap, STANDARD_HEIGHTMAP_SIZE, STANDARD_HEIGHTMAP_SIZE);
+	}
+
+	// Create the landscape with the standardized heightmap.
+	InitLandscape(StandardizedHeightmap, HeightmapSettings, ExternalSettings, LandscapeSettings);
 }
 
 /**
@@ -791,8 +883,7 @@ TObjectPtr<ALandscape> UPipelineLibrary::GenerateLandscape(const FTransform& Lan
 		return nullptr;
 	}
 
-	// Move heightmap data into the per-layer map (efficient transfer without copying).
-	HeightDataPerLayer.Add(FGuid(), MoveTemp(Heightmap));
+	HeightDataPerLayer.Add(FGuid(), Heightmap);
 
 	// Get editor world context.
 	const FWorldContext& EditorWorldContext = GEditor->GetEditorWorldContext();
@@ -995,6 +1086,20 @@ TArray<uint16> UPipelineLibrary::ConvertArrayFromFloatToUInt16(const TArray<floa
 	return UInt16Data;
 }
 
+TArray<float> UPipelineLibrary::ConvertArrayFromUInt16ToFloat(const TArray<uint16>& UInt16Data)
+{
+	TArray<float> FloatData;
+	FloatData.AddUninitialized(UInt16Data.Num());
+
+	for (int32 Index = 0; Index < UInt16Data.Num(); Index++)
+	{
+		// Scale from [0, 65535] to [0, 1]
+		FloatData[Index] = static_cast<float>(UInt16Data[Index]) / 65535.0f;
+	}
+
+	return FloatData;
+}
+
 /**
  * Saves a texture as a persistent Unreal asset.
  * Handles complex pixel format conversions, ensuring grayscale heightmaps display correctly.
@@ -1120,33 +1225,33 @@ bool UPipelineLibrary::SaveToAsset(UTexture2D* Texture, const FString& AssetName
 		// Allocate buffer based on pixel format.
 		switch (PixelFormat)
 		{
-		case PF_B8G8R8A8:
-		case PF_R8G8B8A8:
-		{
-			InFormat = ERawFormat::BGRA8;
-			Raw.SetNumUninitialized(NumPixels * 4);
+			case PF_B8G8R8A8:
+			case PF_R8G8B8A8:
+			{
+				InFormat = ERawFormat::BGRA8;
+				Raw.SetNumUninitialized(NumPixels * 4);
 
-			break;
-		}
-		case PF_G16:
-		{
-			InFormat = ERawFormat::G16;
-			Raw.SetNumUninitialized(NumPixels * 2);
+				break;
+			}
+			case PF_G16:
+			{
+				InFormat = ERawFormat::G16;
+				Raw.SetNumUninitialized(NumPixels * 2);
 
-			break;
-		}
-		case PF_R32_FLOAT:
-		{
-			InFormat = ERawFormat::R32F;
-			Raw.SetNumUninitialized(NumPixels * 4);
+				break;
+			}
+			case PF_R32_FLOAT:
+			{
+				InFormat = ERawFormat::R32F;
+				Raw.SetNumUninitialized(NumPixels * 4);
 
-			break;
-		}
-		default:
-		{
-			InFormat = ERawFormat::Unknown;
-			break;
-		}
+				break;
+			}
+			default:
+			{
+				InFormat = ERawFormat::Unknown;
+				break;
+			}
 		}
 
 		// Copy platform data to our buffer.
@@ -1172,77 +1277,77 @@ bool UPipelineLibrary::SaveToAsset(UTexture2D* Texture, const FString& AssetName
 
 	switch (InFormat)
 	{
-	case ERawFormat::BGRA8:
-	{
-		// Extract red channel from BGRA format.
-		const uint8* Ptr = Raw.GetData();
-		for (int64 Index = 0; Index < NumPixels; Index++)
+		case ERawFormat::BGRA8:
 		{
-			// BGRA order: B = 0, G = 1, R = 2, A = 3
-			Greys[Index] = Ptr[Index * 4 + 2]; // Red channel.
-		}
+			// Extract red channel from BGRA format.
+			const uint8* Ptr = Raw.GetData();
+			for (int64 Index = 0; Index < NumPixels; Index++)
+			{
+				// BGRA order: B = 0, G = 1, R = 2, A = 3
+				Greys[Index] = Ptr[Index * 4 + 2]; // Red channel.
+			}
 
-		break;
-	}
-	case ERawFormat::RGBA8:
-	{
-		// Extract red channel from RGBA format.
-		const uint8* Ptr = Raw.GetData();
-		for (int64 Index = 0; Index < NumPixels; Index++)
+			break;
+		}
+		case ERawFormat::RGBA8:
 		{
-			// RGBA order: R = 0, G = 1, B = 2, A = 3
-			Greys[Index] = Ptr[Index * 4 + 0]; // Red channel.
+			// Extract red channel from RGBA format.
+			const uint8* Ptr = Raw.GetData();
+			for (int64 Index = 0; Index < NumPixels; Index++)
+			{
+				// RGBA order: R = 0, G = 1, B = 2, A = 3
+				Greys[Index] = Ptr[Index * 4 + 0]; // Red channel.
+			}
+
+			break;
 		}
-
-		break;
-	}
-	case ERawFormat::G8:
-	{
-		// Already grayscale, just copy.
-		FMemory::Memcpy(Greys.GetData(), Raw.GetData(), Greys.Num());
-
-		break;
-	}
-	case ERawFormat::G16:
-	{
-		// Convert 16-bit grayscale to 8-bit by keeping most significant byte.
-		const uint16* Ptr = reinterpret_cast<const uint16*>(Raw.GetData());
-		for (int64 Index = 0; Index < NumPixels; Index++)
+		case ERawFormat::G8:
 		{
-			Greys[Index] = static_cast<uint8>(Ptr[Index] >> 8); // Keep upper 8 bits.
-		}
+			// Already grayscale, just copy.
+			FMemory::Memcpy(Greys.GetData(), Raw.GetData(), Greys.Num());
 
-		break;
-	}
-	case ERawFormat::R32F:
-	{
-		// Convert 32-bit float [0, 1] to 8-bit integer [0, 255].
-		const float* Ptr = reinterpret_cast<const float*>(Raw.GetData());
-		for (int64 Index = 0; Index < NumPixels; Index++)
+			break;
+		}
+		case ERawFormat::G16:
 		{
-			const float Value = FMath::Clamp(Ptr[Index], 0.f, 1.f);
-			Greys[Index] = static_cast<uint8>(FMath::RoundToInt(Value * 255.f));
-		}
+			// Convert 16-bit grayscale to 8-bit by keeping most significant byte.
+			const uint16* Ptr = reinterpret_cast<const uint16*>(Raw.GetData());
+			for (int64 Index = 0; Index < NumPixels; Index++)
+			{
+				Greys[Index] = static_cast<uint8>(Ptr[Index] >> 8); // Keep upper 8 bits.
+			}
 
-		break;
-	}
-	case ERawFormat::RGBA16F:
-	{
-		// Convert HDR float to 8-bit, using red channel.
-		const FFloat16Color* Ptr = reinterpret_cast<const FFloat16Color*>(Raw.GetData());
-		for (int64 Index = 0; Index < NumPixels; Index++)
+			break;
+		}
+		case ERawFormat::R32F:
 		{
-			const float Red = FMath::Clamp(Ptr[Index].R, 0.f, 1.f);
-			Greys[Index] = static_cast<uint8>(FMath::RoundToInt(Red * 255.f));
-		}
+			// Convert 32-bit float [0, 1] to 8-bit integer [0, 255].
+			const float* Ptr = reinterpret_cast<const float*>(Raw.GetData());
+			for (int64 Index = 0; Index < NumPixels; Index++)
+			{
+				const float Value = FMath::Clamp(Ptr[Index], 0.f, 1.f);
+				Greys[Index] = static_cast<uint8>(FMath::RoundToInt(Value * 255.f));
+			}
 
-		break;
-	}
-	default:
-	{
-		UE_LOG(LogDropByDropHeightmap, Error, TEXT("Unexpected raw format during grayscale conversion!"));
-		return false;
-	}
+			break;
+		}
+		case ERawFormat::RGBA16F:
+		{
+			// Convert HDR float to 8-bit, using red channel.
+			const FFloat16Color* Ptr = reinterpret_cast<const FFloat16Color*>(Raw.GetData());
+			for (int64 Index = 0; Index < NumPixels; Index++)
+			{
+				const float Red = FMath::Clamp(Ptr[Index].R, 0.f, 1.f);
+				Greys[Index] = static_cast<uint8>(FMath::RoundToInt(Red * 255.f));
+			}
+
+			break;
+		}
+		default:
+		{
+			UE_LOG(LogDropByDropHeightmap, Error, TEXT("Unexpected raw format during grayscale conversion!"));
+			return false;
+		}
 	}
 
 	// Step 3: Convert grayscale to BGRA8 format.
@@ -1261,7 +1366,7 @@ bool UPipelineLibrary::SaveToAsset(UTexture2D* Texture, const FString& AssetName
 	}
 
 	// Step 4: Create or update the asset package.
-	const FString PackagePath = TEXT("/DropByDrop/SavedAssets");
+	const FString PackagePath = TEXT(HEIGHTMAP_ASSET_PREFIX);
 	const FString PackageName = FString::Printf(TEXT("%s/%s"), *PackagePath, *AssetName);
 
 	// Check if asset already exists.

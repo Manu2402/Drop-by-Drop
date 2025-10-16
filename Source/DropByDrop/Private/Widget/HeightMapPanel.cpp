@@ -363,7 +363,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 										]
 								]
 
-							// Size Parameter: Heightmap resolution (1-505 pixels).
+							// Size Parameter: Heightmap resolution.
 							+ SVerticalBox::Slot().AutoHeight().Padding(2)
 								[
 									SNew(SHorizontalBox)
@@ -377,7 +377,7 @@ void SHeightMapPanel::Construct(const FArguments& Args)
 										[
 											SNew(SNumericEntryBox<uint32>)
 												.Value_Lambda([this]() -> TOptional<uint32> { return Heightmap->Size; })
-												// Clamp between 1 and 505 (Unreal landscape component limit).
+												// Clamp between 1px and 505px.
 												.OnValueChanged_Lambda([this](uint32 Value) { Value = FMath::Clamp(Value, 1, 505); Heightmap->Size = Value; })
 										]
 								]
