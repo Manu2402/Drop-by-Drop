@@ -1046,7 +1046,7 @@ bool UPipelineLibrary::SetLandscapeSizeParam(int32& SubSectionSizeQuads, int32& 
 	// Verify calculated size matches input heightmap size.
 	if (MaxX != HeightmapSize || MaxY != HeightmapSize)
 	{
-		UE_LOG(LogDropByDropLandscape, Error, TEXT("Size calculated (%d x %d) not match with size of HeightMap (%d x %d)"))
+		UE_LOG(LogDropByDropLandscape, Error, TEXT("Size calculated (%d x %d) not match with size of HeightMap (%d x %d)"), MaxX, MaxY, HeightmapSize, HeightmapSize)
 		return false;
 	}
 
