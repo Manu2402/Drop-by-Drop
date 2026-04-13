@@ -84,17 +84,17 @@ Save and load erosion parameter sets as named presets. Templates are stored in a
 ## Architecture
 
 ```
-FDropByDropModule          — plugin entry point, registers toolbar & commands
-  └─ SRootPanel            — top-level Slate widget, tab switching
-       ├─ SHeightMapPanel  — procedural + external heightmap controls
-       ├─ SLandscapePanel  — landscape creation, proxies, AutoMaterial
-       ├─ SErosionPanel    — erosion parameters, wind bias compass
-       └─ STemplateBrowser — template list, save/load/delete UI
+FDropByDropModule          — Plugin entry point, registers toolbar & commands
+  └─ SRootPanel            — Top-level Slate widget, tab switching
+       ├─ SHeightMapPanel  — Procedural + External heightmap Controls
+       ├─ SLandscapePanel  — Landscape creation, proxies
+       ├─ SErosionPanel    — Erosion parameters, wind bias compass
+       └─ STemplateBrowser — Template list, Save/Load/Delete UI
 
-UPipelineLibrary           — static functions: heightmap gen, landscape spawn, erosion, templates
-UErosionLibrary            — core erosion algorithm (FDrop particle simulation)
+UPipelineLibrary           — Static functions: Heightmap generation, Landscape spawn, Erosion, Templates
+UErosionLibrary            — Core erosion algorithm ("FDrop" particle simulation)
 UErosionTemplateManager    — DataTable-backed template CRUD
-FDropByDropSettings        — singleton: shared state and DataTable reference
+FDropByDropSettings        — Singleton: shared state and DataTable reference
 ULandscapeInfoComponent    — ActorComponent attached to ALandscape, tracks erosion/proxy state
 ```
 
