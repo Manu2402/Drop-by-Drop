@@ -4,9 +4,9 @@
 
 ---
 
-## Demo Video
+## Showcase
 
-[Watch the demo video](https://www.youtube.com/watch?v=33QFwI-PbNg&t=1s)
+[Watch the showcase](https://www.youtube.com/watch?v=33QFwI-PbNg&t=1s)
 
 ---
 
