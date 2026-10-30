@@ -4,9 +4,10 @@
 
 ---
 
-## Showcase
+## Resources
 
-[Watch the showcase](https://www.youtube.com/watch?v=33QFwI-PbNg&t=1s)
+- [Article](https://www.aiv01.it/game-frame/plugin-erosione-idraulica-unreal-engine-5/) <br>
+- [Showcase](https://www.youtube.com/watch?v=33QFwI-PbNg&t=1s)
 
 ---
 
